@@ -33,9 +33,8 @@ class OcrService
                 'field_name' => 'images[]'
             ]);
 
-            $response = $this->sendFileRequest($url, [$filePath]);
+            $response = $this->sendFileRequest($url, [$filePath], 'images');
 
-            dd($response->getBody()->getContents());
             return $this->handleResponse($response);
         } catch (\Exception $e) {
             Log::error('OCR Image extraction failed', [
@@ -66,7 +65,7 @@ class OcrService
                 'field_name' => 'images[]'
             ]);
 
-            $response = $this->sendFileRequest($url, [$filePath]);
+            $response = $this->sendFileRequest($url, [$filePath], 'file');
 
             return $this->handleResponse($response);
         } catch (\Exception $e) {
@@ -98,9 +97,8 @@ class OcrService
                 'field_name' => 'images[]'
             ]);
 
-            $response = $this->sendFileRequest($url, $filePaths);
+            $response = $this->sendFileRequest($url, $filePaths, 'images');
 
-            dd($response->getBody());
             return $this->handleResponse($response);
         } catch (\Exception $e) {
             Log::error('OCR Multiple images extraction failed', [
@@ -120,21 +118,23 @@ class OcrService
     /**
      * Send file request with proper array format
      */
-    private function sendFileRequest(string $url, array $filePaths): Response
+    private function sendFileRequest(string $url, array $filePaths, string $fieldName): Response
     {
         $multipart = [];
 
-        foreach ($filePaths as $filePath) {
-            $multipart[] = [
-                'name' => 'images[]',
-                'contents' => file_get_contents($filePath),
-                'filename' => basename($filePath)
-            ];
+        $http = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->apiToken,
+        ]);
+
+        foreach ($filePaths as $index => $file) {
+            $http->attach(
+                "{$fieldName}[{$index}]",
+                file_get_contents($file->getRealPath()),
+                $file->getClientOriginalName()
+            );
         }
 
-        return Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->apiToken,
-        ])->attach($multipart)->post($url);
+        return $http->post($url);
     }
 
     /**

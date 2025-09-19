@@ -232,7 +232,7 @@ class ReceiptController extends Controller
             // Delete the physical file
             if ($receipt->fileExists()) {
                 $path = $receipt->stored_path ?: $receipt->original_path;
-                Storage::delete('public/' . $path);
+                Storage::disk('public')->delete($path);
                 Log::info('File deleted', ['path' => $path]);
             } else {
                 Log::warning('File not found for deletion', [

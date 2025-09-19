@@ -106,7 +106,7 @@ class Receipt extends Model
     public function fileExists(): bool
     {
         $path = $this->stored_path ?: $this->original_path;
-        return $path && \Storage::exists('public/' . $path);
+        return $path && \Storage::disk('public')->exists($path);
     }
 
     /**

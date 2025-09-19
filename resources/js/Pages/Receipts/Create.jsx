@@ -58,14 +58,12 @@ export default function Create() {
                                         Select Receipt File
                                     </label>
                                     
-                                    <div className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {/* Camera capture for mobile */}
                                         <div>
-                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <svg className="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 6.5 0 0 0 5.5 6.5a5.56 5.56 0 0 0-1.975 3.025A3 3 0 0 0 3 13h3m0-3.5v3.5m0-3.5h3.5m-3.5 0h3.5"/>
-                                                    </svg>
+                                                    <i className="fas fa-camera text-3xl mb-4 text-gray-500"></i>
                                                     <p className="mb-2 text-sm text-gray-500">
                                                         <span className="font-semibold">Scan with Camera</span>
                                                     </p>
@@ -82,11 +80,9 @@ export default function Create() {
 
                                         {/* File upload */}
                                         <div>
-                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <svg className="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 6.5 0 0 0 5.5 6.5a5.56 5.56 0 0 0-1.975 3.025A3 3 0 0 0 3 13h3m0-3.5v3.5m0-3.5h3.5m-3.5 0h3.5"/>
-                                                    </svg>
+                                                    <i className="fas fa-upload text-3xl mb-4 text-gray-500"></i>
                                                     <p className="mb-2 text-sm text-gray-500">
                                                         <span className="font-semibold">Upload Photo/PDF</span>
                                                     </p>
