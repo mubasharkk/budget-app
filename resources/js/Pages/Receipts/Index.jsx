@@ -104,9 +104,6 @@ export default function Index({ receipts }) {
                                                     Vendor
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Category
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Amount
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -152,29 +149,6 @@ export default function Index({ receipts }) {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                         {receipt.vendor || 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        <div>
-                                                            {receipt.items && receipt.items.length > 0 ? (
-                                                                <div>
-                                                                    {receipt.items.slice(0, 2).map((item, index) => (
-                                                                        <div key={index} className="text-xs">
-                                                                            {item.category?.name || 'Uncategorized'}
-                                                                            {item.subcategory && (
-                                                                                <span className="text-gray-500"> - {item.subcategory.name}</span>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
-                                                                    {receipt.items.length > 2 && (
-                                                                        <div className="text-xs text-gray-500">
-                                                                            +{receipt.items.length - 2} more items
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                'No items'
-                                                            )}
-                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                         {formatCurrency(receipt.total_amount, receipt.currency)}
