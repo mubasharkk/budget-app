@@ -25,7 +25,7 @@ class OcrService
     public function extractFromImage(string $filePath): array
     {
         try {
-            $url = $this->baseUrl . '/v1/extract/image/text?api_key=' . $this->apiKey;
+            $url = $this->baseUrl . '/v1/extract/image/text?lang=deu&api_key=' . $this->apiKey;
 
             Log::info('OCR Image extraction request', [
                 'url' => $url,
@@ -89,7 +89,7 @@ class OcrService
     public function extractFromMultipleImages(array $filePaths): array
     {
         try {
-            $url = $this->baseUrl . '/v1/extract/image/text?api_key=' . urlencode($this->apiKey);
+            $url = $this->baseUrl . '/v1/extract/image/text?lang=deu&api_key=' . urlencode($this->apiKey);
 
             Log::info('OCR Multiple images extraction request', [
                 'url' => $url,
@@ -122,16 +122,22 @@ class OcrService
     {
         $http = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->apiToken,
+            'Accept' => 'application/json',
         ]);
 
         foreach ($filePaths as $index => $filePath) {
             $fileName = basename($filePath);
             $fileContent = file_get_contents($filePath);
+            $mimeType = mime_content_type($filePath);
+
+            // For single file, use field name without array notation
+            $attachFieldName = count($filePaths) === 1 ? $fieldName : "{$fieldName}[{$index}]";
 
             $http->attach(
-                "{$fieldName}[{$index}]",
+                $attachFieldName,
                 $fileContent,
-                $fileName
+                $fileName,
+                ['Content-Type' => $mimeType]
             );
         }
 

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ProcessReceipt;
+use App\Jobs\ProcessOcr;
 use App\Models\Category;
 use App\Models\Receipt;
 use Illuminate\Http\Request;
@@ -79,8 +79,8 @@ class ReceiptController extends Controller
             'status' => 'pending'
         ]);
 
-        // Dispatch processing job
-        ProcessReceipt::dispatch($receipt);
+        // Dispatch OCR processing job (which will chain to LLM processing)
+        ProcessOcr::dispatch($receipt);
 
         return redirect()->route('receipts.show', $receipt)
             ->with('success', 'Receipt uploaded successfully and is being processed.');
@@ -186,7 +186,7 @@ class ReceiptController extends Controller
             'error_message' => null
         ]);
 
-        ProcessReceipt::dispatch($receipt);
+        ProcessOcr::dispatch($receipt);
 
         return redirect()->route('receipts.show', $receipt)
             ->with('success', 'Receipt processing has been retried.');

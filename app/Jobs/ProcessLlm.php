@@ -1,0 +1,158 @@
+<?php
+
+namespace App\Jobs;
+
+use App\Models\Category;
+use App\Models\Receipt;
+use App\Models\ReceiptItem;
+use App\Services\LlmService;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
+
+class ProcessLlm implements ShouldQueue
+{
+    use Queueable;
+
+    public Receipt $receipt;
+    public int $tries = 3;
+    public int $timeout = 300; // 5 minutes
+
+    /**
+     * Create a new job instance.
+     */
+    public function __construct(Receipt $receipt)
+    {
+        $this->receipt = $receipt;
+    }
+
+    /**
+     * Execute the job.
+     */
+    public function handle(): void
+    {
+        try {
+            Log::info('Starting LLM processing', ['receipt_id' => $this->receipt->id]);
+
+            if (empty($this->receipt->ocr_text)) {
+                throw new \Exception('No OCR text available for LLM parsing');
+            }
+
+            // Perform LLM parsing
+            $llmService = new LlmService();
+            $llmResult = $llmService->parseReceipt($this->receipt->ocr_text);
+
+            if (!$llmResult['success']) {
+                throw new \Exception('LLM parsing failed: ' . ($llmResult['error'] ?? 'Unknown error'));
+            }
+
+            $data = $llmResult['data'];
+
+            // Update receipt with parsed data (no categories on receipt)
+            $this->receipt->update([
+                'vendor' => $data['vendor'],
+                'currency' => $data['currency'],
+                'total_amount' => $data['total_amount']
+            ]);
+
+            // Process items with categories
+            $this->processItems($data['items'] ?? [], $data['category'], $data['subcategory']);
+
+            // Update receipt status to processed
+            $this->receipt->update(['status' => 'processed']);
+
+            Log::info('LLM processing completed successfully', [
+                'receipt_id' => $this->receipt->id,
+                'category' => $data['category'],
+                'subcategory' => $data['subcategory'],
+                'vendor' => $data['vendor'],
+                'items_count' => count($data['items'] ?? [])
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('LLM processing failed', [
+                'receipt_id' => $this->receipt->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $this->receipt->update([
+                'status' => 'failed',
+                'error_message' => 'LLM processing failed: ' . $e->getMessage()
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Find or create category
+     */
+    private function findOrCreateCategory(string $categoryName): ?int
+    {
+        if (empty($categoryName)) {
+            return null;
+        }
+
+        $category = Category::where('name', $categoryName)
+            ->whereNull('parent_id')
+            ->first();
+
+        if (!$category) {
+            $category = Category::create([
+                'name' => $categoryName,
+                'parent_id' => null
+            ]);
+        }
+
+        return $category->id;
+    }
+
+    /**
+     * Find or create subcategory
+     */
+    private function findOrCreateSubcategory(?string $subcategoryName, ?int $categoryId): ?int
+    {
+        if (empty($subcategoryName) || !$categoryId) {
+            return null;
+        }
+
+        $subcategory = Category::where('name', $subcategoryName)
+            ->where('parent_id', $categoryId)
+            ->first();
+
+        if (!$subcategory) {
+            $subcategory = Category::create([
+                'name' => $subcategoryName,
+                'parent_id' => $categoryId
+            ]);
+        }
+
+        return $subcategory->id;
+    }
+
+    /**
+     * Process receipt items
+     */
+    private function processItems(array $items, string $category, string $subcategory): void
+    {
+        // Delete existing items
+        $this->receipt->items()->delete();
+
+        // Find or create categories for items
+        $categoryId = $this->findOrCreateCategory($category);
+        $subcategoryId = $this->findOrCreateSubcategory($subcategory, $categoryId);
+
+        foreach ($items as $itemData) {
+            ReceiptItem::create([
+                'receipt_id' => $this->receipt->id,
+                'name' => $itemData['name'] ?? '',
+                'quantity' => $itemData['quantity'] ?? 1,
+                'unit_price' => $itemData['unit_price'] ?? 0,
+                'total' => $itemData['total'] ?? 0,
+                'category_id' => $categoryId,
+                'subcategory_id' => $subcategoryId,
+            ]);
+        }
+    }
+}
