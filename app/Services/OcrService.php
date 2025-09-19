@@ -30,10 +30,10 @@ class OcrService
             Log::info('OCR Image extraction request', [
                 'url' => $url,
                 'file' => basename($filePath),
-                'field_name' => 'images[]'
+                'field_name' => 'file[]'
             ]);
 
-            $response = $this->sendFileRequest($url, [$filePath], 'images');
+            $response = $this->sendFileRequest($url, [$filePath], 'file');
 
             return $this->handleResponse($response);
         } catch (\Exception $e) {
@@ -62,7 +62,7 @@ class OcrService
             Log::info('OCR PDF extraction request', [
                 'url' => $url,
                 'file' => basename($filePath),
-                'field_name' => 'images[]'
+                'field_name' => 'file[]'
             ]);
 
             $response = $this->sendFileRequest($url, [$filePath], 'file');
@@ -94,10 +94,10 @@ class OcrService
             Log::info('OCR Multiple images extraction request', [
                 'url' => $url,
                 'files_count' => count($filePaths),
-                'field_name' => 'images[]'
+                'field_name' => 'file[]'
             ]);
 
-            $response = $this->sendFileRequest($url, $filePaths, 'images');
+            $response = $this->sendFileRequest($url, $filePaths, 'file');
 
             return $this->handleResponse($response);
         } catch (\Exception $e) {
@@ -120,17 +120,26 @@ class OcrService
      */
     private function sendFileRequest(string $url, array $filePaths, string $fieldName): Response
     {
-        $multipart = [];
-
         $http = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->apiToken,
         ]);
 
-        foreach ($filePaths as $index => $file) {
+        foreach ($filePaths as $index => $filePath) {
+            // Handle both file paths (strings) and file objects
+            if (is_string($filePath)) {
+                // File path - read the file content
+                $fileName = basename($filePath);
+                $fileContent = file_get_contents($filePath);
+            } else {
+                // File object - get content and name from object
+                $fileName = $filePath->getClientOriginalName();
+                $fileContent = file_get_contents($filePath->getRealPath());
+            }
+
             $http->attach(
                 "{$fieldName}[{$index}]",
-                file_get_contents($file->getRealPath()),
-                $file->getClientOriginalName()
+                $fileContent,
+                $fileName
             );
         }
 
