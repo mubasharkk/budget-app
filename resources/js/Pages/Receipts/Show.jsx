@@ -36,8 +36,8 @@ export default function Show({ receipt }) {
 
     const handleItemCategoryChange = (itemIndex, categoryId) => {
         const newItems = [...data.items];
-        newItems[itemIndex] = { 
-            ...newItems[itemIndex], 
+        newItems[itemIndex] = {
+            ...newItems[itemIndex],
             category_id: categoryId,
             subcategory_id: '' // Reset subcategory when category changes
         };
@@ -46,8 +46,8 @@ export default function Show({ receipt }) {
 
     const handleItemSubcategoryChange = (itemIndex, subcategoryId) => {
         const newItems = [...data.items];
-        newItems[itemIndex] = { 
-            ...newItems[itemIndex], 
+        newItems[itemIndex] = {
+            ...newItems[itemIndex],
             subcategory_id: subcategoryId
         };
         setData('items', newItems);
@@ -56,7 +56,7 @@ export default function Show({ receipt }) {
     const getSubcategoriesForItem = (itemIndex) => {
         const item = data.items[itemIndex];
         if (!item?.category_id) return [];
-        
+
         const selectedCategory = categories.find(cat => cat.id === parseInt(item.category_id));
         return selectedCategory?.subcategories || [];
     };
@@ -76,10 +76,10 @@ export default function Show({ receipt }) {
     };
 
     const addItem = () => {
-        setData('items', [...data.items, { 
-            name: '', 
-            quantity: 1, 
-            unit_price: 0, 
+        setData('items', [...data.items, {
+            name: '',
+            quantity: 1,
+            unit_price: 0,
             total: 0,
             category_id: '',
             subcategory_id: ''
@@ -344,7 +344,7 @@ export default function Show({ receipt }) {
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         {/* Category Selection for Item */}
                                                         <div className="grid grid-cols-2 gap-3">
                                                             <div>

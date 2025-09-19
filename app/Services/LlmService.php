@@ -16,7 +16,7 @@ class LlmService
     {
         $apiKey = config('services.openai.api_key', env('OPENAI_API_KEY'));
         $baseUrl = config('services.openai.base_url', 'https://api.openai.com/v1');
-        
+
         $this->client = (new Factory())
             ->withApiKey($apiKey)
             ->withBaseUri($baseUrl)
@@ -31,7 +31,7 @@ class LlmService
         try {
             $categories = $this->getExistingCategories();
             $prompt = $this->buildPrompt($ocrText, $categories);
-            
+
             $response = $this->client->chat()->create([
                 'model' => 'gpt-4',
                 'messages' => [
@@ -54,7 +54,7 @@ class LlmService
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return [
                 'success' => false,
                 'data' => null,
@@ -80,7 +80,7 @@ class LlmService
     private function getExistingCategories(): array
     {
         $categories = Category::with('subcategories')->whereNull('parent_id')->get();
-        
+
         return $categories->map(function ($category) {
             return [
                 'name' => $category->name,
@@ -96,16 +96,16 @@ class LlmService
     {
         try {
             $content = $response->choices[0]->message->content ?? '';
-            
+
             // Try to parse JSON response
             $parsedData = json_decode($content, true);
-            
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 Log::error('LLM returned invalid JSON', [
                     'content' => $content,
                     'json_error' => json_last_error_msg()
                 ]);
-                
+
                 return [
                     'success' => false,
                     'data' => null,

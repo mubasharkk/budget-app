@@ -152,11 +152,33 @@ class OcrService
         if ($response->successful()) {
             $data = $response->json();
 
+            // Extract text from the files structure
+            $text = '';
+            $confidence = 0;
+            $ocrData = null;
+
+            if (isset($data['files']) && is_array($data['files'])) {
+                // Get the first file's text (assuming single file processing)
+                $firstFile = reset($data['files']);
+                if ($firstFile && isset($firstFile['text'])) {
+                    $text = $firstFile['text'];
+                    $confidence = $firstFile['confidence'] ?? 0;
+                    
+                    // Save only the text content in ocr_data
+                    $ocrData = $text;
+                }
+            } else {
+                // Fallback to direct text field (legacy format)
+                $text = $data['text'] ?? '';
+                $confidence = $data['confidence'] ?? 0;
+                $ocrData = $text;
+            }
+
             return [
                 'success' => true,
-                'text' => $data['text'] ?? '',
-                'confidence' => $data['confidence'] ?? 0,
-                'raw_data' => $data
+                'text' => $text,
+                'confidence' => $confidence,
+                'raw_data' => $ocrData
             ];
         }
 

@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class ReceiptController extends Controller
 {
@@ -60,12 +62,51 @@ class ReceiptController extends Controller
         $year = now()->year;
         $month = now()->format('m');
         $uuid = Str::uuid();
-        $extension = $file->getClientOriginalExtension();
-        $filename = "{$uuid}.{$extension}";
-        $path = "receipts/{$year}/{$month}/";
-
-        // Store the file publicly
-        $storedPath = $file->storeAs($path, $filename, 'public');
+        
+        // Convert images to PNG, keep PDFs as-is
+        if ($file->getMimeType() === 'application/pdf') {
+            $extension = 'pdf';
+            $filename = "{$uuid}.{$extension}";
+            $path = "receipts/{$year}/{$month}/";
+            $storedPath = $file->storeAs($path, $filename, 'public');
+        } else {
+            // Convert images to PNG
+            $extension = 'png';
+            $filename = "{$uuid}.{$extension}";
+            $path = "receipts/{$year}/{$month}/";
+            
+            try {
+                // Convert image to PNG using Intervention Image
+                $imageManager = new ImageManager(new Driver());
+                $image = $imageManager->read($file->getRealPath());
+                
+                // Convert to PNG and save
+                $pngData = $image->toPng();
+                $storedPath = $path . $filename;
+                Storage::disk('public')->put($storedPath, $pngData);
+                
+                // Update MIME type and file size for PNG
+                $mimeType = 'image/png';
+                $fileSize = strlen($pngData);
+                
+                Log::info('Image converted to PNG', [
+                    'original_filename' => $originalFilename,
+                    'original_mime' => $file->getMimeType(),
+                    'converted_filename' => $filename,
+                    'file_size' => $fileSize
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Image conversion failed', [
+                    'original_filename' => $originalFilename,
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Fallback: store original file if conversion fails
+                $extension = $file->getClientOriginalExtension();
+                $filename = "{$uuid}.{$extension}";
+                $storedPath = $file->storeAs($path, $filename, 'public');
+            }
+        }
 
         // Create receipt record
         $receipt = Receipt::create([

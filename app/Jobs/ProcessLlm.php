@@ -50,23 +50,24 @@ class ProcessLlm implements ShouldQueue
 
             // Update receipt with parsed data (no categories on receipt)
             $this->receipt->update([
-                'vendor' => $data['vendor'],
-                'currency' => $data['currency'],
-                'total_amount' => $data['total_amount']
+                'vendor' => $data['vendor'] ?? null,
+                'currency' => $data['currency'] ?? null,
+                'total_amount' => $data['total_amount'] ?? null
             ]);
 
-            // Process items with categories
-            $this->processItems($data['items'] ?? [], $data['category'], $data['subcategory']);
+            // Process items with individual categories
+            $this->processItems($data['items'] ?? []);
 
             // Update receipt status to processed
             $this->receipt->update(['status' => 'processed']);
 
             Log::info('LLM processing completed successfully', [
                 'receipt_id' => $this->receipt->id,
-                'category' => $data['category'],
-                'subcategory' => $data['subcategory'],
-                'vendor' => $data['vendor'],
-                'items_count' => count($data['items'] ?? [])
+                'vendor' => $data['vendor'] ?? 'Not provided',
+                'items_count' => count($data['items'] ?? []),
+                'items_with_categories' => count(array_filter($data['items'] ?? [], function($item) {
+                    return !empty($item['category']);
+                }))
             ]);
 
         } catch (\Exception $e) {
@@ -132,18 +133,22 @@ class ProcessLlm implements ShouldQueue
     }
 
     /**
-     * Process receipt items
+     * Process receipt items with individual categories
      */
-    private function processItems(array $items, string $category, string $subcategory): void
+    private function processItems(array $items): void
     {
         // Delete existing items
         $this->receipt->items()->delete();
 
-        // Find or create categories for items
-        $categoryId = $this->findOrCreateCategory($category);
-        $subcategoryId = $this->findOrCreateSubcategory($subcategory, $categoryId);
-
         foreach ($items as $itemData) {
+            // Get category and subcategory for this specific item
+            $itemCategory = $itemData['category'] ?? null;
+            $itemSubcategory = $itemData['subcategory'] ?? null;
+
+            // Find or create categories for this item
+            $categoryId = $itemCategory ? $this->findOrCreateCategory($itemCategory) : null;
+            $subcategoryId = $itemSubcategory && $categoryId ? $this->findOrCreateSubcategory($itemSubcategory, $categoryId) : null;
+
             ReceiptItem::create([
                 'receipt_id' => $this->receipt->id,
                 'name' => $itemData['name'] ?? '',
