@@ -157,7 +157,14 @@ export default function Index({ receipts }) {
                                                         {getStatusBadge(receipt.status)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        {formatDate(receipt.created_at)}
+                                                        <div>
+                                                            Receipt: {new Date(receipt.receipt_date).toLocaleDateString('de-DE')} {new Date(receipt.receipt_date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                                                            {receipt.receipt_date && (
+                                                                <div className="text-xs text-gray-400 mt-1">
+                                                                    Uploaded: {formatDate(receipt.created_at)}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex space-x-2">

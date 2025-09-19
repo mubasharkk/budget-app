@@ -52,7 +52,9 @@ class ProcessLlm implements ShouldQueue
             $this->receipt->update([
                 'vendor' => $data['vendor'] ?? null,
                 'currency' => $data['currency'] ?? null,
-                'total_amount' => $data['total_amount'] ?? null
+                'total_amount' => $data['total_amount'] ?? null,
+                'receipt_date' => $this->parseReceiptDateTime($data['receipt_date'] ?? null, $data['receipt_time'] ?? null),
+                'receipt_timezone' => 'Europe/Berlin' // Default to German timezone
             ]);
 
             // Process items with individual categories
@@ -158,6 +160,47 @@ class ProcessLlm implements ShouldQueue
                 'category_id' => $categoryId,
                 'subcategory_id' => $subcategoryId,
             ]);
+        }
+    }
+
+    /**
+     * Parse receipt date and time into a single datetime
+     */
+    private function parseReceiptDateTime(?string $date, ?string $time): ?\DateTime
+    {
+        if (!$date) {
+            return null;
+        }
+
+        try {
+            // Parse date (expected format: YYYY-MM-DD)
+            $dateTime = \DateTime::createFromFormat('Y-m-d', $date);
+            
+            if (!$dateTime) {
+                Log::warning('Invalid date format received from LLM', ['date' => $date]);
+                return null;
+            }
+
+            // Add time if provided (expected format: HH:MM:SS or HH:MM)
+            if ($time) {
+                $timeParts = explode(':', $time);
+                if (count($timeParts) >= 2) {
+                    $hour = (int) $timeParts[0];
+                    $minute = (int) $timeParts[1];
+                    $second = isset($timeParts[2]) ? (int) $timeParts[2] : 0;
+                    
+                    $dateTime->setTime($hour, $minute, $second);
+                }
+            }
+
+            return $dateTime;
+        } catch (\Exception $e) {
+            Log::error('Failed to parse receipt datetime', [
+                'date' => $date,
+                'time' => $time,
+                'error' => $e->getMessage()
+            ]);
+            return null;
         }
     }
 }

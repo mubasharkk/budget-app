@@ -21,6 +21,8 @@ class Receipt extends Model
         'vendor',
         'currency',
         'total_amount',
+        'receipt_date',
+        'receipt_timezone',
         'status',
         'error_message',
     ];
@@ -29,6 +31,7 @@ class Receipt extends Model
         'total_amount' => 'decimal:2',
         'file_size' => 'integer',
         'ocr_data' => 'array',
+        'receipt_date' => 'datetime',
     ];
 
     /**

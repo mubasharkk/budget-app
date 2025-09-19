@@ -12,7 +12,7 @@ Rules:
 - **AVOID GENERIC CATEGORIES**: Do not default to "Snacks" or generic categories. Be specific.
 - **CATEGORY ACCURACY**: If an item doesn't fit existing categories, suggest a precise new category.
 - **SUBCATEGORY PRECISION**: Choose the most specific subcategory that matches the item.
-- Extract: `vendor`, `currency` (ISO 4217), `total_amount`.
+- Extract: `vendor`, `currency` (ISO 4217), `total_amount`, `receipt_date`, `receipt_time`.
 - Extract line items: `name`, `quantity` (default 1 if missing), `unit_price`, `total` (unit_price × quantity), `category`, `subcategory`.
 - **German Price Format**: Process prices in German format (comma as decimal separator, dot as thousands separator).
 - **Number Conversion**: Convert German format to float (e.g., "1.234,56" → 1234.56, "15,00" → 15.00).
@@ -55,11 +55,22 @@ German Number Format Examples:
 - **Quantity**: "1,5 kg" → **Convert to**: 1 (integer, round down)
 - **Total**: "Gesamtbetrag 12,09" → **Convert to**: 12.09
 
+Date-Time Extraction Examples:
+- **German Date**: "3.03.2013" → **Convert to**: "2013-03-03"
+- **German Date**: "15.12.2024" → **Convert to**: "2024-12-15"
+- **German Time**: "14:58" → **Convert to**: "14:58:00"
+- **German Time**: "09:30" → **Convert to**: "09:30:00"
+- **Combined**: "3.03.2013 14:58" → **receipt_date**: "2013-03-03", **receipt_time**: "14:58:00"
+- **Date Format**: Always use YYYY-MM-DD format for receipt_date
+- **Time Format**: Always use HH:MM:SS format for receipt_time
+
 Return strict JSON only:
 {
   "vendor": "REWE",
   "currency": "EUR",
   "total_amount": 14.39,
+  "receipt_date": "2013-03-03",
+  "receipt_time": "14:58:00",
   "items": [
     {"name": "KELLERBIER", "quantity": 1, "unit_price": 4.50, "total": 4.50, "category": "Beverages", "subcategory": "Alcoholic Beverages"},
     {"name": "PFAND", "quantity": 1, "unit_price": 4.50, "total": 4.50, "category": "Deposits", "subcategory": "Bottle Deposit"}

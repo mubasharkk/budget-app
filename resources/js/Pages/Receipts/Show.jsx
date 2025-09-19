@@ -161,6 +161,11 @@ export default function Show({ receipt }) {
                                         {getStatusBadge(receipt.status)}
                                         <span className="text-sm text-gray-500">
                                             Uploaded {new Date(receipt.created_at).toLocaleDateString('de-DE')}
+                                            {receipt.receipt_date && (
+                                                <span className="ml-2">
+                                                    • Receipt Date: {new Date(receipt.receipt_date).toLocaleDateString('de-DE')} {receipt.receipt_date && new Date(receipt.receipt_date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
                                         </span>
                                     </div>
                                 </div>

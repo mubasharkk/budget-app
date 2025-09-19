@@ -62,7 +62,7 @@ class OcrService
             Log::info('OCR PDF extraction request', [
                 'url' => $url,
                 'file' => basename($filePath),
-                'field_name' => 'file[]'
+                'field_name' => 'file'
             ]);
 
             $response = $this->sendFileRequest($url, [$filePath], 'file');
@@ -155,23 +155,15 @@ class OcrService
             // Extract text from the files structure
             $text = '';
             $confidence = 0;
-            $ocrData = null;
+            $ocrData = $data;
 
-            if (isset($data['files']) && is_array($data['files'])) {
+            if (isset($data['pages']) && is_array($data['pages'])) {
                 // Get the first file's text (assuming single file processing)
-                $firstFile = reset($data['files']);
-                if ($firstFile && isset($firstFile['text'])) {
-                    $text = $firstFile['text'];
-                    $confidence = $firstFile['confidence'] ?? 0;
-                    
-                    // Save only the text content in ocr_data
-                    $ocrData = $text;
-                }
+                $text = implode("\n\n\n", $data['pages']);
             } else {
                 // Fallback to direct text field (legacy format)
                 $text = $data['text'] ?? '';
                 $confidence = $data['confidence'] ?? 0;
-                $ocrData = $text;
             }
 
             return [
