@@ -149,7 +149,7 @@ class ReceiptController extends Controller
             }
         }
 
-        return redirect()->route('receipts.show', $receipt)
+        return redirect()->route('receipts.index')
             ->with('success', 'Receipt updated successfully.');
     }
 
