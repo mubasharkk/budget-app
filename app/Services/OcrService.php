@@ -30,10 +30,10 @@ class OcrService
             Log::info('OCR Image extraction request', [
                 'url' => $url,
                 'file' => basename($filePath),
-                'field_name' => 'file[]'
+                'field_name' => 'images'
             ]);
 
-            $response = $this->sendFileRequest($url, [$filePath], 'file');
+            $response = $this->sendFileRequest($url, [$filePath], 'images');
 
             return $this->handleResponse($response);
         } catch (\Exception $e) {
@@ -94,10 +94,10 @@ class OcrService
             Log::info('OCR Multiple images extraction request', [
                 'url' => $url,
                 'files_count' => count($filePaths),
-                'field_name' => 'file[]'
+                'field_name' => 'images[]'
             ]);
 
-            $response = $this->sendFileRequest($url, $filePaths, 'file');
+            $response = $this->sendFileRequest($url, $filePaths, 'images');
 
             return $this->handleResponse($response);
         } catch (\Exception $e) {
@@ -125,16 +125,8 @@ class OcrService
         ]);
 
         foreach ($filePaths as $index => $filePath) {
-            // Handle both file paths (strings) and file objects
-            if (is_string($filePath)) {
-                // File path - read the file content
-                $fileName = basename($filePath);
-                $fileContent = file_get_contents($filePath);
-            } else {
-                // File object - get content and name from object
-                $fileName = $filePath->getClientOriginalName();
-                $fileContent = file_get_contents($filePath->getRealPath());
-            }
+            $fileName = basename($filePath);
+            $fileContent = file_get_contents($filePath);
 
             $http->attach(
                 "{$fieldName}[{$index}]",
