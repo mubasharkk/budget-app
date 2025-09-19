@@ -119,21 +119,15 @@ class ProcessReceipt implements ShouldQueue
 
         $data = $llmResult['data'];
 
-        // Process categories
-        $categoryId = $this->findOrCreateCategory($data['category']);
-        $subcategoryId = $this->findOrCreateSubcategory($data['subcategory'], $categoryId);
-
-        // Update receipt with parsed data
+        // Update receipt with parsed data (no categories on receipt)
         $this->receipt->update([
-            'category_id' => $categoryId,
-            'subcategory_id' => $subcategoryId,
             'vendor' => $data['vendor'],
             'currency' => $data['currency'],
             'total_amount' => $data['total_amount']
         ]);
 
-        // Process items
-        $this->processItems($data['items'] ?? []);
+        // Process items with categories
+        $this->processItems($data['items'] ?? [], $data['category'], $data['subcategory']);
 
         Log::info('LLM parsing completed', [
             'receipt_id' => $this->receipt->id,
@@ -193,10 +187,14 @@ class ProcessReceipt implements ShouldQueue
     /**
      * Process receipt items
      */
-    private function processItems(array $items): void
+    private function processItems(array $items, string $category, string $subcategory): void
     {
         // Delete existing items
         $this->receipt->items()->delete();
+
+        // Find or create categories for items
+        $categoryId = $this->findOrCreateCategory($category);
+        $subcategoryId = $this->findOrCreateSubcategory($subcategory, $categoryId);
 
         foreach ($items as $itemData) {
             ReceiptItem::create([
@@ -204,7 +202,9 @@ class ProcessReceipt implements ShouldQueue
                 'name' => $itemData['name'] ?? '',
                 'quantity' => $itemData['quantity'] ?? 1,
                 'unit_price' => $itemData['unit_price'] ?? 0,
-                'total' => $itemData['total'] ?? 0
+                'total' => $itemData['total'] ?? 0,
+                'category_id' => $categoryId,
+                'subcategory_id' => $subcategoryId,
             ]);
         }
     }

@@ -18,8 +18,6 @@ class Receipt extends Model
         'file_size',
         'ocr_text',
         'ocr_data',
-        'category_id',
-        'subcategory_id',
         'vendor',
         'currency',
         'total_amount',
@@ -41,21 +39,6 @@ class Receipt extends Model
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the category
-     */
-    public function category(): BelongsTo
-    {
-        return $this->belongsTo(Category::class, 'category_id');
-    }
-
-    /**
-     * Get the subcategory
-     */
-    public function subcategory(): BelongsTo
-    {
-        return $this->belongsTo(Category::class, 'subcategory_id');
-    }
 
     /**
      * Get the receipt items

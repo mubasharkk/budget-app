@@ -13,6 +13,8 @@ class ReceiptItem extends Model
         'quantity',
         'unit_price',
         'total',
+        'category_id',
+        'subcategory_id',
     ];
 
     protected $casts = [
@@ -27,6 +29,22 @@ class ReceiptItem extends Model
     public function receipt(): BelongsTo
     {
         return $this->belongsTo(Receipt::class);
+    }
+
+    /**
+     * Get the category
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    /**
+     * Get the subcategory
+     */
+    public function subcategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'subcategory_id');
     }
 
     /**

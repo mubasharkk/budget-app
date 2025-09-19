@@ -16,8 +16,6 @@ export default function Show({ receipt }) {
     const [showRetryModal, setShowRetryModal] = useState(false);
 
     const { data, setData, patch, processing, errors, reset } = useForm({
-        category_id: receipt.category_id || '',
-        subcategory_id: receipt.subcategory_id || '',
         vendor: receipt.vendor || '',
         currency: receipt.currency || 'EUR',
         total_amount: receipt.total_amount || '',
@@ -33,20 +31,34 @@ export default function Show({ receipt }) {
             .then(response => response.json())
             .then(data => {
                 setCategories(data);
-                // Set subcategories if category is selected
-                if (data.category_id) {
-                    const selectedCategory = data.find(cat => cat.id === data.category_id);
-                    setSubcategories(selectedCategory?.subcategories || []);
-                }
             });
     }, []);
 
-    const handleCategoryChange = (categoryId) => {
-        setData('category_id', categoryId);
-        setData('subcategory_id', ''); // Reset subcategory
+    const handleItemCategoryChange = (itemIndex, categoryId) => {
+        const newItems = [...data.items];
+        newItems[itemIndex] = { 
+            ...newItems[itemIndex], 
+            category_id: categoryId,
+            subcategory_id: '' // Reset subcategory when category changes
+        };
+        setData('items', newItems);
+    };
 
-        const selectedCategory = categories.find(cat => cat.id === parseInt(categoryId));
-        setSubcategories(selectedCategory?.subcategories || []);
+    const handleItemSubcategoryChange = (itemIndex, subcategoryId) => {
+        const newItems = [...data.items];
+        newItems[itemIndex] = { 
+            ...newItems[itemIndex], 
+            subcategory_id: subcategoryId
+        };
+        setData('items', newItems);
+    };
+
+    const getSubcategoriesForItem = (itemIndex) => {
+        const item = data.items[itemIndex];
+        if (!item?.category_id) return [];
+        
+        const selectedCategory = categories.find(cat => cat.id === parseInt(item.category_id));
+        return selectedCategory?.subcategories || [];
     };
 
     const handleItemChange = (index, field, value) => {
@@ -64,7 +76,14 @@ export default function Show({ receipt }) {
     };
 
     const addItem = () => {
-        setData('items', [...data.items, { name: '', quantity: 1, unit_price: 0, total: 0 }]);
+        setData('items', [...data.items, { 
+            name: '', 
+            quantity: 1, 
+            unit_price: 0, 
+            total: 0,
+            category_id: '',
+            subcategory_id: ''
+        }]);
     };
 
     const removeItem = (index) => {
@@ -219,44 +238,6 @@ export default function Show({ receipt }) {
                                     <h3 className="text-lg font-medium mb-4">Receipt Details</h3>
 
                                     <form onSubmit={submit} className="space-y-6">
-                                        {/* Category Selection */}
-                                        <div>
-                                            <InputLabel htmlFor="category_id" value="Category" />
-                                            <select
-                                                id="category_id"
-                                                value={data.category_id}
-                                                onChange={(e) => handleCategoryChange(e.target.value)}
-                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                            >
-                                                <option value="">Select a category</option>
-                                                {categories.map((category) => (
-                                                    <option key={category.id} value={category.id}>
-                                                        {category.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <InputError message={errors.category_id} className="mt-2" />
-                                        </div>
-
-                                        {/* Subcategory Selection */}
-                                        <div>
-                                            <InputLabel htmlFor="subcategory_id" value="Subcategory" />
-                                            <select
-                                                id="subcategory_id"
-                                                value={data.subcategory_id}
-                                                onChange={(e) => setData('subcategory_id', e.target.value)}
-                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                                disabled={!data.category_id}
-                                            >
-                                                <option value="">Select a subcategory</option>
-                                                {subcategories.map((subcategory) => (
-                                                    <option key={subcategory.id} value={subcategory.id}>
-                                                        {subcategory.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <InputError message={errors.subcategory_id} className="mt-2" />
-                                        </div>
 
                                         {/* Vendor */}
                                         <div>
@@ -310,56 +291,95 @@ export default function Show({ receipt }) {
                                                 </button>
                                             </div>
 
-                                            <div className="space-y-3">
+                                            <div className="space-y-4">
                                                 {data.items.map((item, index) => (
-                                                    <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                                                        <div className="col-span-5">
-                                                            <TextInput
-                                                                placeholder="Item name"
-                                                                value={item.name}
-                                                                onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                                                                className="block w-full"
-                                                            />
+                                                    <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                                                        <div className="grid grid-cols-12 gap-2 items-end mb-3">
+                                                            <div className="col-span-5">
+                                                                <TextInput
+                                                                    placeholder="Item name"
+                                                                    value={item.name}
+                                                                    onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                                                                    className="block w-full"
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-2">
+                                                                <TextInput
+                                                                    type="number"
+                                                                    step="0.001"
+                                                                    placeholder="Qty"
+                                                                    value={item.quantity}
+                                                                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                                                    className="block w-full"
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-2">
+                                                                <TextInput
+                                                                    type="number"
+                                                                    step="0.0001"
+                                                                    placeholder="Unit Price"
+                                                                    value={item.unit_price}
+                                                                    onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
+                                                                    className="block w-full"
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-2">
+                                                                <TextInput
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    placeholder="Total"
+                                                                    value={item.total}
+                                                                    onChange={(e) => handleItemChange(index, 'total', e.target.value)}
+                                                                    className="block w-full"
+                                                                    readOnly
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeItem(index)}
+                                                                    className="text-red-600 hover:text-red-900"
+                                                                >
+                                                                    ×
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                        <div className="col-span-2">
-                                                            <TextInput
-                                                                type="number"
-                                                                step="0.001"
-                                                                placeholder="Qty"
-                                                                value={item.quantity}
-                                                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                                                className="block w-full"
-                                                            />
-                                                        </div>
-                                                        <div className="col-span-2">
-                                                            <TextInput
-                                                                type="number"
-                                                                step="0.0001"
-                                                                placeholder="Unit Price"
-                                                                value={item.unit_price}
-                                                                onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
-                                                                className="block w-full"
-                                                            />
-                                                        </div>
-                                                        <div className="col-span-2">
-                                                            <TextInput
-                                                                type="number"
-                                                                step="0.01"
-                                                                placeholder="Total"
-                                                                value={item.total}
-                                                                onChange={(e) => handleItemChange(index, 'total', e.target.value)}
-                                                                className="block w-full"
-                                                                readOnly
-                                                            />
-                                                        </div>
-                                                        <div className="col-span-1">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeItem(index)}
-                                                                className="text-red-600 hover:text-red-900"
-                                                            >
-                                                                ×
-                                                            </button>
+                                                        
+                                                        {/* Category Selection for Item */}
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div>
+                                                                <InputLabel htmlFor={`item_${index}_category`} value="Category" />
+                                                                <select
+                                                                    id={`item_${index}_category`}
+                                                                    value={item.category_id || ''}
+                                                                    onChange={(e) => handleItemCategoryChange(index, e.target.value)}
+                                                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                                >
+                                                                    <option value="">Select category</option>
+                                                                    {categories.map((category) => (
+                                                                        <option key={category.id} value={category.id}>
+                                                                            {category.name}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <InputLabel htmlFor={`item_${index}_subcategory`} value="Subcategory" />
+                                                                <select
+                                                                    id={`item_${index}_subcategory`}
+                                                                    value={item.subcategory_id || ''}
+                                                                    onChange={(e) => handleItemSubcategoryChange(index, e.target.value)}
+                                                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                                    disabled={!item.category_id}
+                                                                >
+                                                                    <option value="">Select subcategory</option>
+                                                                    {getSubcategoriesForItem(index).map((subcategory) => (
+                                                                        <option key={subcategory.id} value={subcategory.id}>
+                                                                            {subcategory.name}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -442,7 +462,7 @@ export default function Show({ receipt }) {
                                     <button
                                         onClick={handleRetryConfirm}
                                         disabled={retryProcessingLoading}
-                                        className="px-4 py-2 bg-yellow-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50"
+                                        className="px-4 py-2 bg-yellow-600 uppercase text-xs text-white font-medium rounded-md shadow-sm hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50"
                                     >
                                         {retryProcessingLoading ? 'Retrying...' : 'Retry Processing'}
                                     </button>

@@ -30,19 +30,19 @@ class Category extends Model
     }
 
     /**
-     * Get receipts for this category
+     * Get receipt items for this category
      */
-    public function receipts(): HasMany
+    public function receiptItems(): HasMany
     {
-        return $this->hasMany(Receipt::class, 'category_id');
+        return $this->hasMany(ReceiptItem::class, 'category_id');
     }
 
     /**
-     * Get receipts for this subcategory
+     * Get receipt items for this subcategory
      */
-    public function subcategoryReceipts(): HasMany
+    public function subcategoryReceiptItems(): HasMany
     {
-        return $this->hasMany(Receipt::class, 'subcategory_id');
+        return $this->hasMany(ReceiptItem::class, 'subcategory_id');
     }
 
     /**

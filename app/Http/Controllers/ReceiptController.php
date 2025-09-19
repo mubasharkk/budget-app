@@ -19,7 +19,7 @@ class ReceiptController extends Controller
      */
     public function index()
     {
-        $receipts = Receipt::with(['category', 'subcategory', 'items'])
+        $receipts = Receipt::with(['items.category', 'items.subcategory'])
             ->where('user_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -96,7 +96,7 @@ class ReceiptController extends Controller
             abort(403);
         }
 
-        $receipt->load(['category', 'subcategory', 'items']);
+        $receipt->load(['items.category', 'items.subcategory']);
 
         return Inertia::render('Receipts/Show', [
             'receipt' => $receipt->append(['file_url', 'public_file_url', 'direct_file_url'])
@@ -114,8 +114,6 @@ class ReceiptController extends Controller
         }
 
         $request->validate([
-            'category_id' => 'nullable|exists:categories,id',
-            'subcategory_id' => 'nullable|exists:categories,id',
             'vendor' => 'nullable|string|max:255',
             'currency' => 'nullable|string|size:3',
             'total_amount' => 'nullable|numeric|min:0',
@@ -124,12 +122,12 @@ class ReceiptController extends Controller
             'items.*.quantity' => 'required|numeric|min:0',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.total' => 'required|numeric|min:0',
+            'items.*.category_id' => 'nullable|exists:categories,id',
+            'items.*.subcategory_id' => 'nullable|exists:categories,id',
         ]);
 
         // Update receipt
         $receipt->update([
-            'category_id' => $request->category_id,
-            'subcategory_id' => $request->subcategory_id,
             'vendor' => $request->vendor,
             'currency' => $request->currency,
             'total_amount' => $request->total_amount,
@@ -144,7 +142,9 @@ class ReceiptController extends Controller
                     'name' => $itemData['name'],
                     'quantity' => $itemData['quantity'],
                     'unit_price' => $itemData['unit_price'],
-                    'total' => $itemData['total']
+                    'total' => $itemData['total'],
+                    'category_id' => $itemData['category_id'] ?? null,
+                    'subcategory_id' => $itemData['subcategory_id'] ?? null,
                 ]);
             }
         }

@@ -35,6 +35,7 @@ class OcrService
 
             $response = $this->sendFileRequest($url, [$filePath]);
 
+            dd($response->getBody()->getContents());
             return $this->handleResponse($response);
         } catch (\Exception $e) {
             Log::error('OCR Image extraction failed', [
