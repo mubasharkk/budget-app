@@ -188,11 +188,12 @@ budget-app/
 - File storage and metadata
 - OCR text and processing status
 - Vendor, currency, and total amount
-- Category and subcategory associations
+- Overall receipt information (no categories)
 
 **Receipt Items**
 - Individual line items from receipts
 - Quantity, unit price, and total calculations
+- Category and subcategory associations
 - Linked to parent receipts
 
 ## 🔧 Configuration
@@ -232,14 +233,14 @@ budget-app/
 
 1. **Upload** → File validation and storage
 2. **OCR Processing** → Text extraction from image/PDF
-3. **AI Analysis** → Category classification and item extraction
-4. **Data Persistence** → Save structured data to database
+3. **AI Analysis** → Category classification for each item and item extraction
+4. **Data Persistence** → Save structured data to database with categories on items
 5. **Status Updates** → Real-time processing status
 
 ### Managing Receipts
 
 - **View All Receipts**: Paginated list with status badges
-- **Receipt Details**: View OCR text, edit categories, modify items
+- **Receipt Details**: View OCR text, edit item categories, modify items
 - **Retry Processing**: Retry failed receipts
 - **File Access**: Direct file viewing and download
 
