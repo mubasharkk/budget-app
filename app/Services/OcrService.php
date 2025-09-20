@@ -65,9 +65,9 @@ class OcrService
                 'field_name' => 'file'
             ]);
 
-            $response = $this->sendFileRequest($url, [$filePath], 'file');
+            $response = $this->sendPdfRequest($url, $filePath);
 
-            return $this->handleResponse($response);
+            return $this->handlePdfResponse($response);
         } catch (\Exception $e) {
             Log::error('OCR PDF extraction failed', [
                 'file' => $filePath,
@@ -116,7 +116,7 @@ class OcrService
     }
 
     /**
-     * Send file request with proper array format
+     * Send file request with proper array format (for images)
      */
     private function sendFileRequest(string $url, array $filePaths, string $fieldName): Response
     {
@@ -145,6 +145,30 @@ class OcrService
     }
 
     /**
+     * Send PDF request with different format (for PDFs)
+     */
+    private function sendPdfRequest(string $url, string $filePath): Response
+    {
+        $http = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->apiToken,
+            'Accept' => 'application/json',
+        ]);
+
+        $fileName = basename($filePath);
+        $fileContent = file_get_contents($filePath);
+        $mimeType = mime_content_type($filePath);
+
+        $http->attach(
+            'file',
+            $fileContent,
+            $fileName,
+            ['Content-Type' => $mimeType]
+        );
+
+        return $http->post($url);
+    }
+
+    /**
      * Handle OCR API response
      */
     private function handleResponse(Response $response): array
@@ -153,25 +177,21 @@ class OcrService
             $data = $response->json();
 
             // Extract text from the files structure
-            $text = '';
-            $confidence = 0;
-            $ocrData = $data;
+            $text = null;
 
-            if (isset($data['pages']) && is_array($data['pages'])) {
+            if (isset($data['files']) && is_array($data['files'])) {
                 // Get the first file's text (assuming single file processing)
-                $text = implode("\n\n\n", $data['pages']);
-            } else {
-                // Fallback to direct text field (legacy format)
-                $text = $data['text'] ?? '';
-                $confidence = $data['confidence'] ?? 0;
-            }
+                $text = implode("\n\n", array_map(function ($file) {
+                    return $file['text'];
+                }, $data['files']));
 
-            return [
-                'success' => true,
-                'text' => $text,
-                'confidence' => $confidence,
-                'raw_data' => $ocrData
-            ];
+                return [
+                    'success' => true,
+                    'text' => $text,
+                    'confidence' => null,
+                    'raw_data' => $data
+                ];
+            }
         }
 
         Log::error('OCR API request failed', [
@@ -184,6 +204,47 @@ class OcrService
             'text' => '',
             'confidence' => 0,
             'error' => 'OCR API request failed with status: ' . $response->status()
+        ];
+    }
+
+    /**
+     * Handle PDF OCR API response (different format)
+     */
+    private function handlePdfResponse(Response $response): array
+    {
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // PDF response format might be different
+            $text = null;
+            $ocrData = $data;
+
+            // Handle PDF-specific response format
+            if (isset($data['pages'])) {
+                $text = implode("\n\n\n", $data['pages']);
+            } else {
+                // Log the actual response structure for debugging
+                Log::warning('Unexpected PDF OCR response format', ['response' => $data]);
+            }
+
+            return [
+                'success' => true,
+                'text' => $text,
+                'confidence' => null,
+                'raw_data' => $ocrData
+            ];
+        }
+
+        Log::error('PDF OCR API request failed', [
+            'status' => $response->status(),
+            'body' => $response->body()
+        ]);
+
+        return [
+            'success' => false,
+            'text' => '',
+            'confidence' => 0,
+            'error' => 'PDF OCR API request failed with status: ' . $response->status()
         ];
     }
 }
