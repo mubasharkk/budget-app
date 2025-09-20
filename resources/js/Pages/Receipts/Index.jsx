@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
+import { PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function Index({ receipts }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -75,7 +76,7 @@ export default function Index({ receipts }) {
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-bold">Receipts</h2>
                                 <Link href={route('receipts.create')}>
-                                    <PrimaryButton>Upload New Receipt</PrimaryButton>
+                                    <PrimaryButton icon={PlusIcon} iconOnly>Upload New Receipt</PrimaryButton>
                                 </Link>
                             </div>
 
@@ -88,7 +89,7 @@ export default function Index({ receipts }) {
                                     <p className="mt-1 text-sm text-gray-500">Get started by uploading a new receipt.</p>
                                     <div className="mt-6">
                                         <Link href={route('receipts.create')}>
-                                            <PrimaryButton>Upload Receipt</PrimaryButton>
+                                            <PrimaryButton icon={PlusIcon} iconOnly>Upload Receipt</PrimaryButton>
                                         </Link>
                                     </div>
                                 </div>
@@ -265,8 +266,10 @@ export default function Index({ receipts }) {
                             </div>
                             <div className="items-center px-4 py-3">
                                 <div className="flex justify-center space-x-3">
-                                    <CancelButton onClick={handleDeleteCancel} />
+                                    <CancelButton icon={XMarkIcon} iconOnly onClick={handleDeleteCancel} />
                                     <DangerButton
+                                        icon={TrashIcon}
+                                        iconOnly
                                         onClick={handleDeleteConfirm}
                                         disabled={processing}
                                         className="px-4 py-2 text-sm"

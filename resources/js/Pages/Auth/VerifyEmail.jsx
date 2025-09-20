@@ -1,6 +1,7 @@
 import PrimaryButton from '@/Components/PrimaryButton';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { EnvelopeIcon } from '@heroicons/react/24/outline';
 
 export default function VerifyEmail({ status }) {
     const { post, processing } = useForm({});
@@ -31,7 +32,7 @@ export default function VerifyEmail({ status }) {
 
             <form onSubmit={submit}>
                 <div className="mt-4 flex items-center justify-between">
-                    <PrimaryButton disabled={processing}>
+                    <PrimaryButton icon={EnvelopeIcon} iconOnly disabled={processing}>
                         Resend Verification Email
                     </PrimaryButton>
 

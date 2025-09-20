@@ -7,6 +7,7 @@ import CancelButton from '@/Components/CancelButton';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
+import { ArrowLeftIcon, TrashIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 export default function Show({ receipt }) {
     const [categories, setCategories] = useState([]);
@@ -171,7 +172,7 @@ export default function Show({ receipt }) {
                                 </div>
                                 <div className="flex space-x-2">
                                     <Link href={route('receipts.index')}>
-                                        <PrimaryButton variant="secondary">Back to List</PrimaryButton>
+                                        <PrimaryButton icon={ArrowLeftIcon} iconOnly variant="secondary">Back to List</PrimaryButton>
                                     </Link>
                                     {receipt.status === 'failed' && (
                                         <button
@@ -182,7 +183,7 @@ export default function Show({ receipt }) {
                                             {retryProcessingLoading ? 'Retrying...' : 'Retry Processing'}
                                         </button>
                                     )}
-                                    <DangerButton onClick={handleDeleteClick}>
+                                    <DangerButton icon={TrashIcon} iconOnly onClick={handleDeleteClick}>
                                         Delete Receipt
                                     </DangerButton>
                                 </div>
@@ -398,7 +399,7 @@ export default function Show({ receipt }) {
                                             >
                                                 Cancel
                                             </Link>
-                                            <PrimaryButton disabled={processing}>
+                                            <PrimaryButton icon={CheckIcon} iconOnly disabled={processing}>
                                                 {processing ? 'Saving...' : 'Save Changes'}
                                             </PrimaryButton>
                                         </div>
@@ -429,8 +430,10 @@ export default function Show({ receipt }) {
                             </div>
                             <div className="items-center px-4 py-3">
                                 <div className="flex justify-center space-x-3">
-                                    <CancelButton onClick={handleDeleteCancel} />
+                                    <CancelButton icon={XMarkIcon} iconOnly onClick={handleDeleteCancel} />
                                     <DangerButton
+                                        icon={TrashIcon}
+                                        iconOnly
                                         onClick={handleDeleteConfirm}
                                         disabled={deleteProcessing}
                                         className="px-4 py-2"
@@ -463,7 +466,7 @@ export default function Show({ receipt }) {
                             </div>
                             <div className="items-center px-4 py-3">
                                 <div className="flex justify-center space-x-3">
-                                    <CancelButton onClick={handleRetryCancel} />
+                                    <CancelButton icon={XMarkIcon} iconOnly onClick={handleRetryCancel} />
                                     <button
                                         onClick={handleRetryConfirm}
                                         disabled={retryProcessingLoading}

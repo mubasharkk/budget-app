@@ -4,6 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { UserPlusIcon } from '@heroicons/react/24/outline';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -147,7 +148,7 @@ export default function Register() {
                         Already registered?
                     </Link>
 
-                    <PrimaryButton className="ms-4" disabled={processing}>
+                    <PrimaryButton icon={UserPlusIcon} iconOnly className="ms-4" disabled={processing}>
                         Register
                     </PrimaryButton>
                 </div>

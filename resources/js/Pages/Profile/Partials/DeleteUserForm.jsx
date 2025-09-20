@@ -6,6 +6,7 @@ import Modal from '@/Components/Modal';
 import TextInput from '@/Components/TextInput';
 import { useForm } from '@inertiajs/react';
 import { useRef, useState } from 'react';
+import { TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function DeleteUserForm({ className = '' }) {
     const [confirmingUserDeletion, setConfirmingUserDeletion] = useState(false);
@@ -60,7 +61,7 @@ export default function DeleteUserForm({ className = '' }) {
                 </p>
             </header>
 
-            <DangerButton onClick={confirmUserDeletion}>
+            <DangerButton icon={TrashIcon} iconOnly onClick={confirmUserDeletion}>
                 Delete Account
             </DangerButton>
 
@@ -105,9 +106,9 @@ export default function DeleteUserForm({ className = '' }) {
                     </div>
 
                     <div className="mt-6 flex justify-center">
-                        <CancelButton onClick={closeModal} />
+                        <CancelButton icon={XMarkIcon} iconOnly onClick={closeModal} />
 
-                        <DangerButton className="ms-3" disabled={processing}>
+                        <DangerButton icon={TrashIcon} iconOnly className="ms-3" disabled={processing}>
                             Delete Account
                         </DangerButton>
                     </div>

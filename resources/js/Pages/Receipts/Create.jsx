@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import CancelButton from '@/Components/CancelButton';
 import InputError from '@/Components/InputError';
+import { XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 export default function Create() {
     const [filePreview, setFilePreview] = useState(null);
@@ -138,10 +139,14 @@ export default function Create() {
 
                                 <div className="flex items-center justify-end space-x-4">
                                     <CancelButton 
+                                        icon={XMarkIcon}
+                                        iconOnly
                                         variant="link"
                                         href={route('receipts.index')}
                                     />
                                     <PrimaryButton 
+                                        icon={CheckIcon}
+                                        iconOnly
                                         disabled={processing || !data.file || isUploading}
                                         className="min-w-32"
                                     >

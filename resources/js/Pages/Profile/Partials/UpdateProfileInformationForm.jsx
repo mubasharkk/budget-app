@@ -4,6 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
+import { CheckIcon } from '@heroicons/react/24/outline';
 
 export default function UpdateProfileInformation({
     mustVerifyEmail,
@@ -93,7 +94,7 @@ export default function UpdateProfileInformation({
                 )}
 
                 <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                    <PrimaryButton icon={CheckIcon} iconOnly disabled={processing}>Save</PrimaryButton>
 
                     <Transition
                         show={recentlySuccessful}
