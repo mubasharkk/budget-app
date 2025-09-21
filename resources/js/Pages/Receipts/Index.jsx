@@ -4,7 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
-import { PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 
 export default function Index({ receipts }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -175,6 +175,16 @@ export default function Index({ receipts }) {
                                                             >
                                                                 View
                                                             </Link>
+                                                            <a
+                                                                href={receipt.public_file_url || receipt.file_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-blue-600 hover:text-blue-900 inline-flex items-center"
+                                                                title="Open PDF in new tab"
+                                                            >
+                                                                <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
+                                                                PDF
+                                                            </a>
                                                             <button
                                                                 onClick={() => handleDeleteClick(receipt)}
                                                                 className="text-red-600 hover:text-red-900"
