@@ -15,16 +15,20 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('original_filename');
-            $table->string('file_path'); // Will be renamed to 'original_path' by modify migration
+            $table->string('original_path');
+            $table->string('stored_path')->nullable();
             $table->string('file_type')->nullable();
-            $table->string('mime_type'); // Will be renamed to 'mime' by modify migration
+            $table->string('mime');
             $table->bigInteger('file_size')->nullable();
-            $table->longText('extracted_text')->nullable(); // Will be renamed to 'ocr_text' by modify migration
+            $table->longText('ocr_text')->nullable();
             $table->json('ocr_data')->nullable();
             $table->datetime('receipt_date')->nullable();
             $table->string('receipt_timezone')->nullable();
-            $table->enum('status', ['uploaded', 'processing', 'processed', 'failed'])->default('uploaded'); // Will be changed by modify migration
+            $table->enum('status', ['pending', 'processed', 'failed'])->default('pending');
             $table->text('error_message')->nullable();
+            $table->string('vendor')->nullable();
+            $table->string('currency', 3)->nullable();
+            $table->decimal('total_amount', 12, 2)->nullable();
             $table->timestamps();
             
             // Indexes for better performance
