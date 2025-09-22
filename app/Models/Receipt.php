@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Receipt extends Model
 {
+    use CrudTrait;
     protected $fillable = [
         'user_id',
         'original_filename',
