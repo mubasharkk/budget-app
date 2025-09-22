@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('receipt_items', function (Blueprint $table) {
+            // Add category_id column if it doesn't exist, then add foreign key constraint
             $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('set null');
+            // Add subcategory_id column with foreign key
             $table->foreignId('subcategory_id')->nullable()->constrained('categories')->onDelete('set null');
         });
     }
