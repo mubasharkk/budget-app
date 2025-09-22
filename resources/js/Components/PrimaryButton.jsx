@@ -19,7 +19,7 @@ export default function PrimaryButton({
             {Icon && (
                 <Icon className={`h-4 w-4 ${children ? 'mr-2 sm:mr-2 mr-0' : ''}`} />
             )}
-            <span className={iconOnly ? 'hidden sm:inline' : ''}>{children}</span>
+            <span>{children}</span>
         </button>
     );
 }
