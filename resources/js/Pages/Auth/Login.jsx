@@ -34,7 +34,7 @@ export default function Login({ status, canResetPassword }) {
 
             {/* Google Login Button */}
             <div className="mb-6">
-                <Link
+                <a
                     href={route('auth.google')}
                     className="flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 >
@@ -57,7 +57,7 @@ export default function Login({ status, canResetPassword }) {
                         />
                     </svg>
                     Continue with Google
-                </Link>
+                </a>
             </div>
 
             <div className="relative mb-6">
