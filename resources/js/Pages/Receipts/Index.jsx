@@ -265,11 +265,20 @@ export default function Index({ receipts }) {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <div>
-                                                            Receipt: {new Date(receipt.receipt_date).toLocaleDateString('de-DE')} {new Date(receipt.receipt_date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                                                            {receipt.receipt_date && (
-                                                                <div className="text-xs text-gray-400 mt-1">
-                                                                    Uploaded: {formatDate(receipt.created_at)}
-                                                                </div>
+                                                            Receipt: {receipt.receipt_date ? (
+                                                                <>
+                                                                    {new Date(receipt.receipt_date).toLocaleDateString('de-DE')} {new Date(receipt.receipt_date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                                                                    <div className="text-xs text-gray-400 mt-1">
+                                                                        Uploaded: {formatDate(receipt.created_at)}
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    N/A
+                                                                    <div className="text-xs text-gray-400 mt-1">
+                                                                        Uploaded: {formatDate(receipt.created_at)}
+                                                                    </div>
+                                                                </>
                                                             )}
                                                         </div>
                                                     </td>

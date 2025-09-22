@@ -50,81 +50,93 @@ class ReceiptController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:jpg,jpeg,png,heic,webp,pdf|max:15360', // 15MB max
+            'files' => 'required|array|min:1|max:5',
+            'files.*' => 'required|file|mimes:jpg,jpeg,png,heic,webp,pdf|max:15360', // 15MB max per file
         ]);
 
-        $file = $request->file('file');
-        $originalFilename = $file->getClientOriginalName();
-        $mimeType = $file->getMimeType();
-        $fileSize = $file->getSize();
+        $files = $request->file('files');
+        $createdReceipts = [];
 
-        // Generate unique filename with date structure
-        $year = now()->year;
-        $month = now()->format('m');
-        $uuid = Str::uuid();
-        
-        // Convert images to PNG, keep PDFs as-is
-        if ($file->getMimeType() === 'application/pdf') {
-            $extension = 'pdf';
-            $filename = "{$uuid}.{$extension}";
-            $path = "receipts/{$year}/{$month}/";
-            $storedPath = $file->storeAs($path, $filename, 'public');
-        } else {
-            // Convert images to PNG
-            $extension = 'png';
-            $filename = "{$uuid}.{$extension}";
-            $path = "receipts/{$year}/{$month}/";
+        foreach ($files as $file) {
+            $originalFilename = $file->getClientOriginalName();
+            $mimeType = $file->getMimeType();
+            $fileSize = $file->getSize();
+
+            // Generate unique filename with date structure
+            $year = now()->year;
+            $month = now()->format('m');
+            $uuid = Str::uuid();
             
-            try {
-                // Convert image to PNG using Intervention Image
-                $imageManager = new ImageManager(new Driver());
-                $image = $imageManager->read($file->getRealPath());
-                
-                // Convert to PNG and save
-                $pngData = $image->toPng();
-                $storedPath = $path . $filename;
-                Storage::disk('public')->put($storedPath, $pngData);
-                
-                // Update MIME type and file size for PNG
-                $mimeType = 'image/png';
-                $fileSize = strlen($pngData);
-                
-                Log::info('Image converted to PNG', [
-                    'original_filename' => $originalFilename,
-                    'original_mime' => $file->getMimeType(),
-                    'converted_filename' => $filename,
-                    'file_size' => $fileSize
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Image conversion failed', [
-                    'original_filename' => $originalFilename,
-                    'error' => $e->getMessage()
-                ]);
-                
-                // Fallback: store original file if conversion fails
-                $extension = $file->getClientOriginalExtension();
+            // Convert images to PNG, keep PDFs as-is
+            if ($file->getMimeType() === 'application/pdf') {
+                $extension = 'pdf';
                 $filename = "{$uuid}.{$extension}";
+                $path = "receipts/{$year}/{$month}/";
                 $storedPath = $file->storeAs($path, $filename, 'public');
+            } else {
+                // Convert images to PNG
+                $extension = 'png';
+                $filename = "{$uuid}.{$extension}";
+                $path = "receipts/{$year}/{$month}/";
+                
+                try {
+                    // Convert image to PNG using Intervention Image
+                    $imageManager = new ImageManager(new Driver());
+                    $image = $imageManager->read($file->getRealPath());
+                    
+                    // Convert to PNG and save
+                    $pngData = $image->toPng();
+                    $storedPath = $path . $filename;
+                    Storage::disk('public')->put($storedPath, $pngData);
+                    
+                    // Update MIME type and file size for PNG
+                    $mimeType = 'image/png';
+                    $fileSize = strlen($pngData);
+                    
+                    Log::info('Image converted to PNG', [
+                        'original_filename' => $originalFilename,
+                        'original_mime' => $file->getMimeType(),
+                        'converted_filename' => $filename,
+                        'file_size' => $fileSize
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Image conversion failed', [
+                        'original_filename' => $originalFilename,
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    // Fallback: store original file if conversion fails
+                    $extension = $file->getClientOriginalExtension();
+                    $filename = "{$uuid}.{$extension}";
+                    $storedPath = $file->storeAs($path, $filename, 'public');
+                }
             }
+
+            // Create receipt record
+            $receipt = Receipt::create([
+                'user_id' => Auth::id(),
+                'original_filename' => $originalFilename,
+                'original_path' => $path,
+                'stored_path' => $storedPath,
+                'file_type' => $extension,
+                'mime' => $mimeType,
+                'file_size' => $fileSize,
+                'status' => 'pending'
+            ]);
+
+            // Dispatch OCR processing job (which will chain to LLM processing)
+            ProcessOcr::dispatch($receipt);
+            
+            $createdReceipts[] = $receipt;
         }
 
-        // Create receipt record
-        $receipt = Receipt::create([
-            'user_id' => Auth::id(),
-            'original_filename' => $originalFilename,
-            'original_path' => $path,
-            'stored_path' => $storedPath,
-            'file_type' => $extension,
-            'mime' => $mimeType,
-            'file_size' => $fileSize,
-            'status' => 'pending'
-        ]);
+        $fileCount = count($createdReceipts);
+        $message = $fileCount === 1 
+            ? 'Receipt uploaded successfully and is being processed.'
+            : "{$fileCount} receipts uploaded successfully and are being processed.";
 
-        // Dispatch OCR processing job (which will chain to LLM processing)
-        ProcessOcr::dispatch($receipt);
-
-        return redirect()->route('receipts.show', $receipt)
-            ->with('success', 'Receipt uploaded successfully and is being processed.');
+        return redirect()->route('receipts.index')
+            ->with('success', $message);
     }
 
     /**
