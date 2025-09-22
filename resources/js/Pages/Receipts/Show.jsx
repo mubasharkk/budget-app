@@ -174,18 +174,6 @@ export default function Show({ receipt }) {
                                     <Link href={route('receipts.index')}>
                                         <PrimaryButton icon={ArrowLeftIcon} iconOnly variant="secondary">Back to List</PrimaryButton>
                                     </Link>
-                                    {receipt.mime === 'application/pdf' && (
-                                        <a
-                                            href={receipt.public_file_url || receipt.file_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white bg-blue-600 rounded-md border border-transparent transition duration-150 ease-in-out hover:bg-blue-500 focus:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-700"
-                                            title="Open PDF in new tab"
-                                        >
-                                            <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
-                                            PDF
-                                        </a>
-                                    )}
                                     {receipt.status === 'failed' && (
                                         <button
                                             onClick={handleRetryClick}

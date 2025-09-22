@@ -4,11 +4,12 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
-import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
 
 export default function Index({ receipts }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [receiptToDelete, setReceiptToDelete] = useState(null);
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'thumbnail'
 
     const { delete: destroy, processing } = useForm();
 
@@ -75,9 +76,36 @@ export default function Index({ receipts }) {
                         <div className="p-6 text-gray-900">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-bold">Receipts</h2>
-                                <Link href={route('receipts.create')}>
-                                    <PrimaryButton icon={PlusIcon} iconOnly>Upload New Receipt</PrimaryButton>
-                                </Link>
+                                <div className="flex items-center space-x-4">
+                                    {/* View Changer Buttons */}
+                                    <div className="flex bg-gray-100 rounded-lg p-1">
+                                        <button
+                                            onClick={() => setViewMode('list')}
+                                            className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                                                viewMode === 'list'
+                                                    ? 'bg-white text-gray-900 shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                        >
+                                            <ListBulletIcon className="h-4 w-4 mr-2" />
+                                            List
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode('thumbnail')}
+                                            className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                                                viewMode === 'thumbnail'
+                                                    ? 'bg-white text-gray-900 shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                        >
+                                            <Squares2X2Icon className="h-4 w-4 mr-2" />
+                                            Thumbnail
+                                        </button>
+                                    </div>
+                                    <Link href={route('receipts.create')}>
+                                        <PrimaryButton icon={PlusIcon} iconOnly>Upload New Receipt</PrimaryButton>
+                                    </Link>
+                                </div>
                             </div>
 
                             {receipts.data.length === 0 ? (
@@ -94,8 +122,10 @@ export default function Index({ receipts }) {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
+                                <>
+                                    {viewMode === 'list' ? (
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -175,18 +205,6 @@ export default function Index({ receipts }) {
                                                             >
                                                                 View
                                                             </Link>
-                                                            {receipt.mime === 'application/pdf' && (
-                                                                <a
-                                                                    href={receipt.public_file_url || receipt.file_url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-blue-600 hover:text-blue-900 inline-flex items-center"
-                                                                    title="Open PDF in new tab"
-                                                                >
-                                                                    <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
-                                                                    PDF
-                                                                </a>
-                                                            )}
                                                             <button
                                                                 onClick={() => handleDeleteClick(receipt)}
                                                                 className="text-red-600 hover:text-red-900"
@@ -252,7 +270,80 @@ export default function Index({ receipts }) {
                                             </nav>
                                         </div>
                                     )}
-                                </div>
+                                        </div>
+                                    ) : (
+                                        /* Thumbnail View */
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                            {receipts.data.map((receipt) => (
+                                                <div key={receipt.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                                                    {/* Receipt Image */}
+                                                    <div className="aspect-square bg-gray-100">
+                                                        {receipt.mime?.startsWith('image/') ? (
+                                                            <img
+                                                                className="w-full h-full object-cover"
+                                                                src={receipt.public_file_url || receipt.file_url}
+                                                                alt="Receipt"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                <svg className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                </svg>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    {/* Receipt Info */}
+                                                    <div className="p-4">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <h3 className="text-sm font-medium text-gray-900 truncate">
+                                                                {receipt.vendor || receipt.original_filename}
+                                                            </h3>
+                                                            {getStatusBadge(receipt.status)}
+                                                        </div>
+                                                        
+                                                        {receipt.total_amount && (
+                                                            <p className="text-lg font-semibold text-gray-900 mb-2">
+                                                                {formatCurrency(receipt.total_amount, receipt.currency)}
+                                                            </p>
+                                                        )}
+                                                        
+                                                        <p className="text-xs text-gray-500 mb-3">
+                                                            {formatDate(receipt.receipt_date || receipt.created_at)}
+                                                        </p>
+                                                        
+                                                        {/* Actions */}
+                                                        <div className="flex space-x-2">
+                                                            <Link
+                                                                href={route('receipts.show', receipt.id)}
+                                                                className="flex-1 text-center px-3 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors"
+                                                            >
+                                                                View
+                                                            </Link>
+                                                            {receipt.mime === 'application/pdf' && (
+                                                                <a
+                                                                    href={receipt.public_file_url || receipt.file_url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                                                                    title="Open PDF in new tab"
+                                                                >
+                                                                    <DocumentArrowDownIcon className="h-4 w-4" />
+                                                                </a>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleDeleteClick(receipt)}
+                                                                className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+                                                            >
+                                                                <TrashIcon className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
