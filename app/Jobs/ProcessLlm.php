@@ -9,6 +9,7 @@ use App\Services\LlmService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ProcessLlm implements ShouldQueue
 {
@@ -104,6 +105,7 @@ class ProcessLlm implements ShouldQueue
         if (!$category) {
             $category = Category::create([
                 'name' => $categoryName,
+                'slug' => Str::slug($categoryName),
                 'parent_id' => null
             ]);
         }
@@ -127,6 +129,7 @@ class ProcessLlm implements ShouldQueue
         if (!$subcategory) {
             $subcategory = Category::create([
                 'name' => $subcategoryName,
+                'slug' => Str::slug($subcategoryName),
                 'parent_id' => $categoryId
             ]);
         }
@@ -175,7 +178,7 @@ class ProcessLlm implements ShouldQueue
         try {
             // Parse date (expected format: YYYY-MM-DD)
             $dateTime = \DateTime::createFromFormat('Y-m-d', $date);
-            
+
             if (!$dateTime) {
                 Log::warning('Invalid date format received from LLM', ['date' => $date]);
                 return null;
@@ -188,7 +191,7 @@ class ProcessLlm implements ShouldQueue
                     $hour = (int) $timeParts[0];
                     $minute = (int) $timeParts[1];
                     $second = isset($timeParts[2]) ? (int) $timeParts[2] : 0;
-                    
+
                     $dateTime->setTime($hour, $minute, $second);
                 }
             }

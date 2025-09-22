@@ -84,6 +84,7 @@ class LlmService
         return $categories->map(function ($category) {
             return [
                 'name' => $category->name,
+                'slug' => $category->slug,
                 'subcategories' => $category->subcategories->pluck('name')->toArray()
             ];
         })->toArray();
