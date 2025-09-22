@@ -77,8 +77,8 @@ export default function Index({ receipts }) {
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-bold">Receipts</h2>
                                 <div className="flex items-center space-x-4">
-                                    {/* View Changer Buttons */}
-                                    <div className="flex bg-gray-100 rounded-lg p-1">
+                                    {/* View Changer Buttons - Hidden on mobile */}
+                                    <div className="hidden sm:flex bg-gray-100 rounded-lg p-1">
                                         <button
                                             onClick={() => setViewMode('list')}
                                             className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
@@ -124,7 +124,7 @@ export default function Index({ receipts }) {
                             ) : (
                                 <>
                                     {viewMode === 'list' ? (
-                                        <div className="overflow-x-auto">
+                                        <div className="hidden sm:block overflow-x-auto">
                                             <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
@@ -273,7 +273,83 @@ export default function Index({ receipts }) {
                                         </div>
                                     ) : (
                                         /* Thumbnail View */
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                        <>
+                                            {/* Mobile Thumbnail View */}
+                                            <div className="block sm:hidden space-y-3">
+                                                {receipts.data.map((receipt) => (
+                                                    <div key={receipt.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                                                        <div className="flex items-center p-3">
+                                                            {/* Receipt Image - 75x75 */}
+                                                            <div 
+                                                                className="w-[75px] h-[75px] rounded-lg bg-gray-100 bg-cover bg-center flex-shrink-0"
+                                                                style={{
+                                                                    backgroundImage: receipt.mime?.startsWith('image/') 
+                                                                        ? `url(${receipt.public_file_url || receipt.file_url})`
+                                                                        : 'none'
+                                                                }}
+                                                            >
+                                                                {!receipt.mime?.startsWith('image/') && (
+                                                                    <div className="w-full h-full flex items-center justify-center">
+                                                                        <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            {/* Receipt Info */}
+                                                            <div className="ml-3 flex-1 min-w-0">
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <h3 className="text-sm font-medium text-gray-900 truncate">
+                                                                        {receipt.vendor || receipt.original_filename}
+                                                                    </h3>
+                                                                    {getStatusBadge(receipt.status)}
+                                                                </div>
+                                                                
+                                                                {receipt.total_amount && (
+                                                                    <p className="text-lg font-semibold text-gray-900 mb-1">
+                                                                        {formatCurrency(receipt.total_amount, receipt.currency)}
+                                                                    </p>
+                                                                )}
+                                                                
+                                                                <p className="text-xs text-gray-500 mb-2">
+                                                                    {formatDate(receipt.receipt_date || receipt.created_at)}
+                                                                </p>
+                                                                
+                                                                {/* Actions */}
+                                                                <div className="flex space-x-2">
+                                                                    <Link
+                                                                        href={route('receipts.show', receipt.id)}
+                                                                        className="flex-1 text-center px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100 transition-colors"
+                                                                    >
+                                                                        View
+                                                                    </Link>
+                                                                    {receipt.mime === 'application/pdf' && (
+                                                                        <a
+                                                                            href={receipt.public_file_url || receipt.file_url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                                                                            title="Open PDF in new tab"
+                                                                        >
+                                                                            <DocumentArrowDownIcon className="h-3 w-3" />
+                                                                        </a>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => handleDeleteClick(receipt)}
+                                                                        className="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors"
+                                                                    >
+                                                                        <TrashIcon className="h-3 w-3" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            
+                                            {/* Desktop Thumbnail View */}
+                                            <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                                             {receipts.data.map((receipt) => (
                                                 <div key={receipt.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                                                     {/* Receipt Image */}
@@ -341,7 +417,8 @@ export default function Index({ receipts }) {
                                                     </div>
                                                 </div>
                                             ))}
-                                        </div>
+                                            </div>
+                                        </>
                                     )}
                                 </>
                             )}
