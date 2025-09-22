@@ -155,38 +155,51 @@ export default function Show({ receipt }) {
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
-                            <div className="flex justify-between items-center mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold">{receipt.original_filename}</h2>
-                                    <div className="flex items-center space-x-4 mt-2">
-                                        {getStatusBadge(receipt.status)}
-                                        <span className="text-sm text-gray-500">
-                                            Uploaded {new Date(receipt.created_at).toLocaleDateString('de-DE')}
-                                            {receipt.receipt_date && (
-                                                <span className="ml-2">
-                                                    • Receipt Date: {new Date(receipt.receipt_date).toLocaleDateString('de-DE')} {receipt.receipt_date && new Date(receipt.receipt_date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                            )}
-                                        </span>
-                                    </div>
+                            {/* Title and Date Section */}
+                            <div className="mb-4">
+                                <h2 className="text-2xl font-bold">{receipt.original_filename}</h2>
+                                <div className="flex items-center space-x-4 mt-2">
+                                    {getStatusBadge(receipt.status)}
+                                    <span className="text-sm text-gray-500">
+                                        Uploaded {new Date(receipt.created_at).toLocaleDateString('de-DE')}
+                                        {receipt.receipt_date && (
+                                            <span className="ml-2">
+                                                • Receipt Date: {new Date(receipt.receipt_date).toLocaleDateString('de-DE')} {receipt.receipt_date && new Date(receipt.receipt_date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        )}
+                                    </span>
                                 </div>
-                                <div className="flex space-x-2">
-                                    <Link href={route('receipts.index')}>
-                                        <PrimaryButton icon={ArrowLeftIcon} iconOnly variant="secondary">Back to List</PrimaryButton>
-                                    </Link>
-                                    {receipt.status === 'failed' && (
-                                        <button
-                                            onClick={handleRetryClick}
-                                            disabled={retryProcessingLoading}
-                                            className="uppercase tracking-widest text-xs px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
-                                        >
-                                            {retryProcessingLoading ? 'Retrying...' : 'Retry Processing'}
-                                        </button>
-                                    )}
-                                    <DangerButton icon={TrashIcon} iconOnly onClick={handleDeleteClick}>
-                                        Delete Receipt
-                                    </DangerButton>
-                                </div>
+                            </div>
+
+                            {/* Action Buttons Section */}
+                            <div className="flex flex-wrap items-center gap-2 mb-6">
+                                <Link href={route('receipts.index')}>
+                                    <PrimaryButton icon={ArrowLeftIcon} iconOnly variant="secondary">Back to List</PrimaryButton>
+                                </Link>
+                                {receipt.mime === 'application/pdf' && (
+                                    <a
+                                        href={receipt.public_file_url || receipt.file_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white bg-blue-600 rounded-md border border-transparent transition duration-150 ease-in-out hover:bg-blue-500 focus:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-700"
+                                        title="Open PDF in new tab"
+                                    >
+                                        <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
+                                        PDF
+                                    </a>
+                                )}
+                                {receipt.status === 'failed' && (
+                                    <button
+                                        onClick={handleRetryClick}
+                                        disabled={retryProcessingLoading}
+                                        className="uppercase tracking-widest text-xs px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
+                                    >
+                                        {retryProcessingLoading ? 'Retrying...' : 'Retry Processing'}
+                                    </button>
+                                )}
+                                <DangerButton icon={TrashIcon} iconOnly onClick={handleDeleteClick}>
+                                    Delete Receipt
+                                </DangerButton>
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
