@@ -415,9 +415,21 @@ export default function Show({ receipt }) {
                                             >
                                                 Cancel
                                             </Link>
-                                            <PrimaryButton icon={CheckIcon} iconOnly disabled={processing}>
-                                                {processing ? 'Saving...' : 'Save Changes'}
-                                            </PrimaryButton>
+                                            <div className="relative group">
+                                                <PrimaryButton 
+                                                    icon={CheckIcon} 
+                                                    iconOnly 
+                                                    disabled={processing || receipt.status !== 'processed'}
+                                                    title={receipt.status !== 'processed' ? 'Receipt must be processed before editing' : 'Save changes'}
+                                                >
+                                                    {processing ? 'Saving...' : 'Save Changes'}
+                                                </PrimaryButton>
+                                                {receipt.status !== 'processed' && (
+                                                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                        Receipt must be processed first
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </form>
                                 </div>
