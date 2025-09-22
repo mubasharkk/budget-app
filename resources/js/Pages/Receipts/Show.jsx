@@ -419,14 +419,14 @@ export default function Show({ receipt }) {
                                                 <PrimaryButton 
                                                     icon={CheckIcon} 
                                                     iconOnly 
-                                                    disabled={processing || receipt.status !== 'processed'}
-                                                    title={receipt.status !== 'processed' ? 'Receipt must be processed before editing' : 'Save changes'}
+                                                    disabled={processing || receipt.status === 'processing'}
+                                                    title={receipt.status === 'processing' ? 'Receipt is currently being processed' : 'Save changes'}
                                                 >
                                                     {processing ? 'Saving...' : 'Save Changes'}
                                                 </PrimaryButton>
-                                                {receipt.status !== 'processed' && (
+                                                {receipt.status === 'processing' && (
                                                     <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                        Receipt must be processed first
+                                                        Receipt is being processed
                                                     </div>
                                                 )}
                                             </div>
