@@ -99,6 +99,7 @@ class ProcessLlm implements ShouldQueue
         }
 
         $category = Category::where('name', $categoryName)
+            ->orWhere('slug', Str::slug($categoryName))
             ->whereNull('parent_id')
             ->first();
 
@@ -123,6 +124,7 @@ class ProcessLlm implements ShouldQueue
         }
 
         $subcategory = Category::where('name', $subcategoryName)
+            ->orWhere('slug', Str::slug($subcategoryName))
             ->where('parent_id', $categoryId)
             ->first();
 
