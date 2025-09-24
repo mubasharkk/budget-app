@@ -50,15 +50,21 @@ A modern Laravel-based budget application with intelligent receipt processing ca
 
 ## 📋 Prerequisites
 
+### Required
+- **Docker Desktop** - For running the application in containers
+- **Docker Compose** - Usually included with Docker Desktop
+
+### Optional (for local development)
 - PHP 8.2 or higher
 - Composer
 - Node.js 18+ and npm
 - MySQL 8.0+
-- Docker and Docker Compose (optional, for containerized development)
 
 ## 🚀 Installation
 
-### Option 1: Using Docker (Recommended)
+### Option 1: Using Laravel Sail (Recommended)
+
+Laravel Sail provides a Docker-based development environment for Laravel applications.
 
 1. **Clone the repository**
    ```bash
@@ -66,28 +72,26 @@ A modern Laravel-based budget application with intelligent receipt processing ca
    cd budget-app
    ```
 
-2. **Install dependencies**
+2. **Install PHP dependencies**
    ```bash
    composer install
-   npm install
    ```
 
 3. **Environment setup**
    ```bash
    cp .env.example .env
-   php artisan key:generate
    ```
 
 4. **Configure environment variables**
    Edit `.env` file with your configuration:
    ```env
-   # Database
+   # Database (Sail will handle these automatically)
    DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
+   DB_HOST=mysql
    DB_PORT=3306
    DB_DATABASE=budget_app
-   DB_USERNAME=root
-   DB_PASSWORD=
+   DB_USERNAME=sail
+   DB_PASSWORD=password
 
    # OCR Service
    OCR_NEXT_SERVER=http://ocr-next-api
@@ -100,25 +104,43 @@ A modern Laravel-based budget application with intelligent receipt processing ca
    # Google OAuth
    GOOGLE_CLIENT_ID=your_google_client_id
    GOOGLE_CLIENT_SECRET=your_google_client_secret
-   GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+   GOOGLE_REDIRECT_URI=http://localhost/auth/google/callback
    ```
 
-5. **Start with Docker**
+5. **Start Laravel Sail**
    ```bash
    ./vendor/bin/sail up -d
    ```
 
-6. **Run migrations and seeders**
+6. **Install Node.js dependencies**
+   ```bash
+   ./vendor/bin/sail npm install
+   ```
+
+7. **Generate application key**
+   ```bash
+   ./vendor/bin/sail artisan key:generate
+   ```
+
+8. **Run database migrations and seeders**
    ```bash
    ./vendor/bin/sail artisan migrate --seed
    ```
 
-7. **Start development servers**
+9. **Start development servers**
    ```bash
-   composer run dev
+   ./vendor/bin/sail npm run dev
    ```
 
-### Option 2: Local Development
+10. **Access the application**
+    - **Web Application**: http://localhost
+    - **MinIO Console**: http://localhost:8900 (sail/password)
+
+### Option 2: Local Development (Advanced)
+
+If you prefer to run the application locally without Docker, you'll need to set up PHP, MySQL, and Node.js manually.
+
+**Prerequisites**: PHP 8.2+, Composer, Node.js 18+, MySQL 8.0+
 
 1. **Clone and install dependencies**
    ```bash
@@ -134,12 +156,23 @@ A modern Laravel-based budget application with intelligent receipt processing ca
    php artisan key:generate
    ```
 
-3. **Database setup**
+3. **Configure local database**
+   Update `.env` file:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=budget_app
+   DB_USERNAME=root
+   DB_PASSWORD=your_password
+   ```
+
+4. **Database setup**
    ```bash
    php artisan migrate --seed
    ```
 
-4. **Start development servers**
+5. **Start development servers**
    ```bash
    # Terminal 1: Laravel server
    php artisan serve
@@ -150,6 +183,64 @@ A modern Laravel-based budget application with intelligent receipt processing ca
    # Terminal 3: Queue worker
    php artisan queue:work
    ```
+
+## 🐳 Laravel Sail Commands
+
+When using Laravel Sail, prefix your commands with `./vendor/bin/sail`:
+
+### Basic Commands
+```bash
+# Start containers
+./vendor/bin/sail up -d
+
+# Stop containers
+./vendor/bin/sail down
+
+# View container logs
+./vendor/bin/sail logs
+
+# Access application container shell
+./vendor/bin/sail shell
+
+# Run Artisan commands
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan queue:work
+./vendor/bin/sail artisan test
+
+# Run Composer commands
+./vendor/bin/sail composer install
+./vendor/bin/sail composer update
+
+# Run NPM commands
+./vendor/bin/sail npm install
+./vendor/bin/sail npm run dev
+./vendor/bin/sail npm run build
+
+# Access MySQL database
+./vendor/bin/sail mysql
+```
+
+### Development Workflow
+```bash
+# Start development environment
+./vendor/bin/sail up -d
+
+# Install dependencies (first time only)
+./vendor/bin/sail composer install
+./vendor/bin/sail npm install
+
+# Run migrations
+./vendor/bin/sail artisan migrate --seed
+
+# Start development server
+./vendor/bin/sail npm run dev
+
+# Run tests
+./vendor/bin/sail test
+
+# Stop environment
+./vendor/bin/sail down
+```
 
 ## 📁 Project Structure
 
@@ -200,14 +291,25 @@ budget-app/
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `OCR_NEXT_SERVER` | OCR service base URL | Yes |
-| `OCR_NEXT_API_KEY` | OCR service API key | Yes |
-| `OCR_NEXT_API_TOKEN` | OCR service bearer token | Yes |
-| `OPENAI_API_KEY` | OpenAI API key for AI processing | Yes |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID | Yes |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Yes |
+| Variable | Description | Required | Sail Default |
+|----------|-------------|----------|--------------|
+| `DB_HOST` | Database host | Yes | `mysql` |
+| `DB_USERNAME` | Database username | Yes | `sail` |
+| `DB_PASSWORD` | Database password | Yes | `password` |
+| `OCR_NEXT_SERVER` | OCR service base URL | Yes | - |
+| `OCR_NEXT_API_KEY` | OCR service API key | Yes | - |
+| `OCR_NEXT_API_TOKEN` | OCR service bearer token | Yes | - |
+| `OPENAI_API_KEY` | OpenAI API key for AI processing | Yes | - |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | Yes | - |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Yes | - |
+
+### Sail-Specific Configuration
+
+When using Laravel Sail, the following services are automatically configured:
+
+- **MySQL**: Available at `mysql:3306` (internal) or `localhost:3306` (external)
+- **MinIO**: Available at `minio:9000` (internal) or `localhost:9000` (external)
+- **MinIO Console**: Available at `localhost:8900` (username: `sail`, password: `password`)
 
 ### File Upload Limits
 
@@ -246,6 +348,19 @@ budget-app/
 
 ## 🧪 Testing
 
+### Using Laravel Sail (Recommended)
+```bash
+# Run PHP tests
+./vendor/bin/sail test
+
+# Run with coverage
+./vendor/bin/sail test --coverage
+
+# Run specific test suite
+./vendor/bin/sail test --testsuite=Feature
+```
+
+### Local Testing
 ```bash
 # Run PHP tests
 php artisan test
