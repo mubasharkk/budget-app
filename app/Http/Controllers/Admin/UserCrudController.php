@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\UserRequest;
+use App\Models\Role;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
@@ -42,6 +43,11 @@ class UserCrudController extends CrudController
         CRUD::column('id')->label('ID');
         CRUD::column('name')->label('Name');
         CRUD::column('email')->label('Email');
+        CRUD::column('roles')->label('Roles')
+            ->type('closure')
+            ->function(function($entry) {
+                return $entry->roles->pluck('name')->join(', ');
+            });
         CRUD::column('google_id')->label('Google ID')->visible(false);
         CRUD::column('avatar')->label('Avatar')->type('image');
         CRUD::column('email_verified_at')->label('Email Verified');
@@ -62,6 +68,12 @@ class UserCrudController extends CrudController
         CRUD::field('name')->label('Name')->type('text');
         CRUD::field('email')->label('Email')->type('email');
         CRUD::field('password')->label('Password')->type('password');
+        CRUD::field('roles')->label('Roles')
+            ->type('select2_multiple')
+            ->entity('roles')
+            ->attribute('name')
+            ->model(Role::class)
+            ->pivot(true);
         CRUD::field('google_id')->label('Google ID')->type('text');
         CRUD::field('avatar')->label('Avatar URL')->type('url');
         CRUD::field('email_verified_at')->label('Email Verified At')->type('datetime');
@@ -80,6 +92,12 @@ class UserCrudController extends CrudController
         CRUD::field('name')->label('Name')->type('text');
         CRUD::field('email')->label('Email')->type('email');
         CRUD::field('password')->label('Password')->type('password')->hint('Leave empty to keep current password');
+        CRUD::field('roles')->label('Roles')
+            ->type('select2_multiple')
+            ->entity('roles')
+            ->attribute('name')
+            ->model(Role::class)
+            ->pivot(true);
         CRUD::field('google_id')->label('Google ID')->type('text');
         CRUD::field('avatar')->label('Avatar URL')->type('url');
         CRUD::field('email_verified_at')->label('Email Verified At')->type('datetime');

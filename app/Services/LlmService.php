@@ -37,7 +37,7 @@ class LlmService
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'You extract structured purchase data (category, subcategory, vendor, currency, total, and line items) from raw OCR text of receipts/invoices. You return strict JSON only.'
+                        'content' => 'You analyze OCR text to determine if it\'s a receipt/invoice and extract structured purchase data (category, subcategory, vendor, currency, total, and line items) if it is. You return strict JSON only with is_receipt field.'
                     ],
                     [
                         'role' => 'user',

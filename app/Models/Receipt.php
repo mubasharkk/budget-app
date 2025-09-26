@@ -36,6 +36,10 @@ class Receipt extends Model
         'receipt_date' => 'datetime',
     ];
 
+    protected $attributes = [
+        'currency' => 'EUR',
+    ];
+
     /**
      * Get the user
      */

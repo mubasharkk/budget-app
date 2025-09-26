@@ -49,10 +49,35 @@ class ProcessLlm implements ShouldQueue
 
             $data = $llmResult['data'];
 
+            // Check if the document is actually a receipt
+            $isReceipt = $data['is_receipt'] ?? true; // Default to true for backward compatibility
+
+            if (!$isReceipt) {
+                // Not a receipt - mark as processed with zero values
+                $this->receipt->update([
+                    'vendor' => null,
+                    'currency' => null,
+                    'total_amount' => 0,
+                    'receipt_date' => null,
+                    'receipt_timezone' => null,
+                    'status' => 'processed'
+                ]);
+
+                // Clear any existing items
+                $this->receipt->items()->delete();
+
+                Log::info('Document identified as non-receipt, marked as processed with zero values', [
+                    'receipt_id' => $this->receipt->id,
+                    'notes' => $data['notes'] ?? 'Document is not a receipt or invoice'
+                ]);
+
+                return; // Exit early for non-receipts
+            }
+
             // Update receipt with parsed data (no categories on receipt)
             $this->receipt->update([
                 'vendor' => $data['vendor'] ?? null,
-                'currency' => $data['currency'] ?? null,
+                'currency' => $data['currency'] ?? 'EUR', // Default to EUR if not provided
                 'total_amount' => $data['total_amount'] ?? null,
                 'receipt_date' => $this->parseReceiptDateTime($data['receipt_date'] ?? null, $data['receipt_time'] ?? null),
                 'receipt_timezone' => 'Europe/Berlin' // Default to German timezone
@@ -66,6 +91,7 @@ class ProcessLlm implements ShouldQueue
 
             Log::info('LLM processing completed successfully', [
                 'receipt_id' => $this->receipt->id,
+                'is_receipt' => $isReceipt,
                 'vendor' => $data['vendor'] ?? 'Not provided',
                 'items_count' => count($data['items'] ?? []),
                 'items_with_categories' => count(array_filter($data['items'] ?? [], function($item) {

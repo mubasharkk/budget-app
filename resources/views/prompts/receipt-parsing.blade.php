@@ -5,6 +5,7 @@ OCR text (verbatim):
 Locale hint: "Country: DE (EUR default), language may vary."
 
 Rules:
+- **RECEIPT DETECTION**: First determine if this document is actually a receipt/invoice. If it's not a receipt (e.g., random text, non-receipt document, unclear content), set `is_receipt: false` and return minimal data.
 - **ITEM-LEVEL CATEGORIZATION**: Each item in the list must have its own category and subcategory.
 - **CATEGORY REQUIRED**: Every item must have a category (required field).
 - **SUBCATEGORY PREFERRED**: Each item should have a subcategory when possible (optional but recommended).
@@ -65,7 +66,10 @@ Date-Time Extraction Examples:
 - **Time Format**: Always use HH:MM:SS format for receipt_time
 
 Return strict JSON only:
+
+**If this is a receipt/invoice:**
 {
+  "is_receipt": true,
   "vendor": "REWE",
   "currency": "EUR",
   "total_amount": 14.39,
@@ -76,4 +80,16 @@ Return strict JSON only:
     {"name": "PFAND", "quantity": 1, "unit_price": 4.50, "total": 4.50, "category": "Deposits", "subcategory": "Bottle Deposit"}
   ],
   "notes": null
+}
+
+**If this is NOT a receipt/invoice:**
+{
+  "is_receipt": false,
+  "vendor": null,
+  "currency": null,
+  "total_amount": 0,
+  "receipt_date": null,
+  "receipt_time": null,
+  "items": [],
+  "notes": "Document is not a receipt or invoice"
 }

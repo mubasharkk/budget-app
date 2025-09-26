@@ -290,13 +290,19 @@ export default function Show({ receipt }) {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <InputLabel htmlFor="currency" value="Currency" />
-                                                <TextInput
+                                                <select
                                                     id="currency"
                                                     value={data.currency}
                                                     onChange={(e) => setData('currency', e.target.value)}
-                                                    className="mt-1 block w-full"
-                                                    maxLength="3"
-                                                />
+                                                    className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                                >
+                                                    <option value="EUR">EUR - Euro</option>
+                                                    <option value="USD">USD - US Dollar</option>
+                                                    <option value="INR">INR - Indian Rupee</option>
+                                                    <option value="PKR">PKR - Pakistani Rupee</option>
+                                                    <option value="TRY">TRY - Turkish Lira</option>
+                                                    <option value="GBP">GBP - British Pound</option>
+                                                </select>
                                                 <InputError message={errors.currency} className="mt-2" />
                                             </div>
                                             <div>

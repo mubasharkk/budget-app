@@ -168,7 +168,7 @@ class ReceiptController extends Controller
 
         $request->validate([
             'vendor' => 'nullable|string|max:255',
-            'currency' => 'nullable|string|size:3',
+            'currency' => 'nullable|string|in:EUR,USD,INR,PKR,TRY,GBP',
             'total_amount' => 'nullable|numeric|min:0',
             'items' => 'nullable|array',
             'items.*.name' => 'required|string|max:255',
