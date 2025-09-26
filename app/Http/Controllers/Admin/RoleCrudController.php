@@ -75,7 +75,7 @@ class RoleCrudController extends CrudController
             ->validation('required|string|max:255');
         
         CRUD::field('permissions')->label('Permissions')
-            ->type('select2_multiple')
+            ->type('select_multiple')
             ->entity('permissions')
             ->attribute('name')
             ->model(Permission::class)
@@ -99,7 +99,7 @@ class RoleCrudController extends CrudController
             ->validation('required|string|max:255');
         
         CRUD::field('permissions')->label('Permissions')
-            ->type('select2_multiple')
+            ->type('select_multiple')
             ->entity('permissions')
             ->attribute('name')
             ->model(Permission::class)

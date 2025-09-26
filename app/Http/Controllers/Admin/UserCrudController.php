@@ -69,7 +69,7 @@ class UserCrudController extends CrudController
         CRUD::field('email')->label('Email')->type('email');
         CRUD::field('password')->label('Password')->type('password');
         CRUD::field('roles')->label('Roles')
-            ->type('select2_multiple')
+            ->type('select_multiple')
             ->entity('roles')
             ->attribute('name')
             ->model(Role::class)
@@ -93,7 +93,7 @@ class UserCrudController extends CrudController
         CRUD::field('email')->label('Email')->type('email');
         CRUD::field('password')->label('Password')->type('password')->hint('Leave empty to keep current password');
         CRUD::field('roles')->label('Roles')
-            ->type('select2_multiple')
+            ->type('select_multiple')
             ->entity('roles')
             ->attribute('name')
             ->model(Role::class)

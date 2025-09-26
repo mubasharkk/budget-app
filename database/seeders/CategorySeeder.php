@@ -25,7 +25,7 @@ class CategorySeeder extends Seeder
             ['name' => 'Building', 'parent_id' => null, 'slug' => 'Building']
         );
 
-        $building = Category::firstOrCreate(
+        $pharmacy = Category::firstOrCreate(
             ['name' => 'Pharmacy', 'parent_id' => null],
             ['name' => 'Pharmacy', 'parent_id' => null, 'slug' => 'Pharmacy']
         );
