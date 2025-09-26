@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessLlm;
 use App\Jobs\ProcessOcr;
 use App\Models\Category;
 use App\Models\Receipt;
@@ -66,7 +67,7 @@ class ReceiptController extends Controller
             $year = now()->year;
             $month = now()->format('m');
             $uuid = Str::uuid();
-            
+
             // Convert images to PNG, keep PDFs as-is
             if ($file->getMimeType() === 'application/pdf') {
                 $extension = 'pdf';
@@ -78,21 +79,21 @@ class ReceiptController extends Controller
                 $extension = 'png';
                 $filename = "{$uuid}.{$extension}";
                 $path = "receipts/{$year}/{$month}/";
-                
+
                 try {
                     // Convert image to PNG using Intervention Image
                     $imageManager = new ImageManager(new Driver());
                     $image = $imageManager->read($file->getRealPath());
-                    
+
                     // Convert to PNG and save
                     $pngData = $image->toPng();
                     $storedPath = $path . $filename;
                     Storage::disk('public')->put($storedPath, $pngData);
-                    
+
                     // Update MIME type and file size for PNG
                     $mimeType = 'image/png';
                     $fileSize = strlen($pngData);
-                    
+
                     Log::info('Image converted to PNG', [
                         'original_filename' => $originalFilename,
                         'original_mime' => $file->getMimeType(),
@@ -104,7 +105,7 @@ class ReceiptController extends Controller
                         'original_filename' => $originalFilename,
                         'error' => $e->getMessage()
                     ]);
-                    
+
                     // Fallback: store original file if conversion fails
                     $extension = $file->getClientOriginalExtension();
                     $filename = "{$uuid}.{$extension}";
@@ -126,12 +127,12 @@ class ReceiptController extends Controller
 
             // Dispatch OCR processing job (which will chain to LLM processing)
             ProcessOcr::dispatch($receipt);
-            
+
             $createdReceipts[] = $receipt;
         }
 
         $fileCount = count($createdReceipts);
-        $message = $fileCount === 1 
+        $message = $fileCount === 1
             ? 'Receipt uploaded successfully and is being processed.'
             : "{$fileCount} receipts uploaded successfully and are being processed.";
 
@@ -169,7 +170,8 @@ class ReceiptController extends Controller
         $request->validate([
             'vendor' => 'nullable|string|max:255',
             'currency' => 'nullable|string|in:EUR,USD,INR,PKR,TRY,GBP',
-            'total_amount' => 'nullable|numeric|min:0',
+            'total_amount' => 'required|numeric|min:0',
+            'receipt_date' => 'required|date|before_or_equal:now',
             'items' => 'nullable|array',
             'items.*.name' => 'required|string|max:255',
             'items.*.quantity' => 'required|numeric|min:0',
@@ -184,6 +186,7 @@ class ReceiptController extends Controller
             'vendor' => $request->vendor,
             'currency' => $request->currency,
             'total_amount' => $request->total_amount,
+            'receipt_date' => $request->receipt_date,
         ]);
 
         // Update items if provided
@@ -239,7 +242,11 @@ class ReceiptController extends Controller
             'error_message' => null
         ]);
 
-        ProcessOcr::dispatch($receipt);
+        if ($receipt->ocr_text && $receipt->ocr_data) {
+            ProcessLlm::dispatch($receipt);
+        } else {
+            ProcessOcr::dispatch($receipt);
+        }
 
         return redirect()->route('receipts.show', $receipt)
             ->with('success', 'Receipt processing has been retried.');

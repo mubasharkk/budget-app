@@ -20,6 +20,7 @@ export default function Show({ receipt }) {
         vendor: receipt.vendor || '',
         currency: receipt.currency || 'EUR',
         total_amount: receipt.total_amount || '',
+        receipt_date: receipt.receipt_date ? new Date(receipt.receipt_date).toISOString().slice(0, 16) : '',
         items: receipt.items || [],
     });
 
@@ -286,6 +287,22 @@ export default function Show({ receipt }) {
                                             <InputError message={errors.vendor} className="mt-2" />
                                         </div>
 
+                                        {/* Receipt Date */}
+                                        <div>
+                                            <InputLabel htmlFor="receipt_date" value="Receipt Date *" />
+                                            <TextInput
+                                                id="receipt_date"
+                                                type="datetime-local"
+                                                value={data.receipt_date}
+                                                onChange={(e) => setData('receipt_date', e.target.value)}
+                                                max={new Date().toISOString().slice(0, 16)}
+                                                required
+                                                className="mt-1 block w-full"
+                                            />
+                                            <InputError message={errors.receipt_date} className="mt-2" />
+                                            <p className="mt-1 text-sm text-gray-500">Cannot select future dates</p>
+                                        </div>
+
                                         {/* Currency and Total */}
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
@@ -306,13 +323,14 @@ export default function Show({ receipt }) {
                                                 <InputError message={errors.currency} className="mt-2" />
                                             </div>
                                             <div>
-                                                <InputLabel htmlFor="total_amount" value="Total Amount" />
+                                                <InputLabel htmlFor="total_amount" value="Total Amount *" />
                                                 <TextInput
                                                     id="total_amount"
                                                     type="number"
                                                     step="0.01"
                                                     value={data.total_amount}
                                                     onChange={(e) => setData('total_amount', e.target.value)}
+                                                    required
                                                     className="mt-1 block w-full"
                                                 />
                                                 <InputError message={errors.total_amount} className="mt-2" />
@@ -435,9 +453,9 @@ export default function Show({ receipt }) {
                                                 Cancel
                                             </Link>
                                             <div className="relative group">
-                                                <PrimaryButton 
-                                                    icon={CheckIcon} 
-                                                    iconOnly 
+                                                <PrimaryButton
+                                                    icon={CheckIcon}
+                                                    iconOnly
                                                     disabled={processing || receipt.status === 'processing'}
                                                     title={receipt.status === 'processing' ? 'Receipt is currently being processed' : 'Save changes'}
                                                 >
