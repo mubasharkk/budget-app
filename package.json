@@ -23,6 +23,7 @@
         "vite": "^7.0.4"
     },
     "dependencies": {
-        "@heroicons/react": "^2.2.0"
+        "@heroicons/react": "^2.2.0",
+        "recharts": "^3.2.1"
     }
 }

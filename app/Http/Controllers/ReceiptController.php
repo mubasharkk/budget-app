@@ -313,4 +313,5 @@ class ReceiptController extends Controller
                 ->with('error', 'Failed to delete receipt: ' . $e->getMessage());
         }
     }
+
 }
