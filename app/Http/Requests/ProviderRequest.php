@@ -18,6 +18,7 @@ class ProviderRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
+            'logo' => 'nullable|url|max:500',
             'website' => 'nullable|url|max:255',
             'contact_email' => 'nullable|email|max:255',
             'contact_phone' => 'nullable|string|max:50',
@@ -32,6 +33,7 @@ class ProviderRequest extends FormRequest
     {
         return [
             'name.required' => 'A provider name is required.',
+            'logo.url' => 'The logo must be a valid image URL (including http:// or https://).',
             'website.url' => 'The website must be a valid URL (including http:// or https://).',
             'contact_email.email' => 'Please enter a valid contact email address.',
         ];

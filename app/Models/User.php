@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\IncomeType;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,6 +31,9 @@ class User extends Authenticatable
         'password',
         'google_id',
         'avatar',
+        'monthly_income',
+        'income_type',
+        'income_currency',
     ];
 
     /**
@@ -52,6 +56,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'monthly_income' => 'decimal:2',
+            'income_type' => IncomeType::class,
+            'income_currency' => 'string',
         ];
     }
 
@@ -63,5 +70,15 @@ class User extends Authenticatable
     public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class);
+    }
+
+    public function budgets(): HasMany
+    {
+        return $this->hasMany(Budget::class);
+    }
+
+    public function digests(): HasMany
+    {
+        return $this->hasMany(Digest::class);
     }
 }

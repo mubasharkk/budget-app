@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\IncomeType;
+use App\Http\Requests\IncomeUpdateRequest;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +23,29 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'incomeTypeOptions' => IncomeType::options(),
         ]);
+    }
+
+    public function updateIncome(IncomeUpdateRequest $request): RedirectResponse
+    {
+        $user = $request->user();
+        $validated = $request->validated();
+
+        if (! isset($validated['monthly_income']) || $validated['monthly_income'] === null) {
+            $user->monthly_income = null;
+            $user->income_type = null;
+        } else {
+            $user->fill([
+                'monthly_income' => $validated['monthly_income'],
+                'income_type' => $validated['income_type'] ?? IncomeType::Net,
+                'income_currency' => $validated['income_currency'] ?? 'EUR',
+            ]);
+        }
+
+        $user->save();
+
+        return Redirect::route('profile.edit')->with('status', 'income-updated');
     }
 
     /**

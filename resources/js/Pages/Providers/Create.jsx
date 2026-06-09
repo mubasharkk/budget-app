@@ -7,6 +7,7 @@ import ProviderForm from './ProviderForm';
 export default function Create() {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
+        logo: '',
         website: '',
         contact_email: '',
         contact_phone: '',

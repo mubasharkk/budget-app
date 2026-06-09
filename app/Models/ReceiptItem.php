@@ -19,6 +19,7 @@ class ReceiptItem extends Model
         'total',
         'category_id',
         'subcategory_id',
+        'product_id',
     ];
 
     protected $casts = [
@@ -49,6 +50,14 @@ class ReceiptItem extends Model
     public function subcategory(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'subcategory_id');
+    }
+
+    /**
+     * Get the canonical product this line item was matched to.
+     */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
     }
 
     /**

@@ -46,6 +46,27 @@ export default function AuthenticatedLayout({ header, children }) {
                                 </NavLink>
 
                                 <NavLink
+                                    href={route('savings')}
+                                    active={route().current('savings', 'products.show')}
+                                >
+                                    Savings
+                                </NavLink>
+
+                                <NavLink
+                                    href={route('budgets.index')}
+                                    active={route().current('budgets.*')}
+                                >
+                                    Budgets
+                                </NavLink>
+
+                                <NavLink
+                                    href={route('agent')}
+                                    active={route().current('agent')}
+                                >
+                                    Assistant
+                                </NavLink>
+
+                                <NavLink
                                     href={route('contracts.index')}
                                     active={route().current('contracts.*')}
                                 >
@@ -175,6 +196,27 @@ export default function AuthenticatedLayout({ header, children }) {
                             active={route().current('insights')}
                         >
                             Insights
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink
+                            href={route('savings')}
+                            active={route().current('savings', 'products.show')}
+                        >
+                            Savings
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink
+                            href={route('budgets.index')}
+                            active={route().current('budgets.*')}
+                        >
+                            Budgets
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink
+                            href={route('agent')}
+                            active={route().current('agent')}
+                        >
+                            Assistant
                         </ResponsiveNavLink>
 
                         <ResponsiveNavLink

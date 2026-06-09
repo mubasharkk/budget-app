@@ -7,6 +7,7 @@ import ProviderForm from './ProviderForm';
 export default function Edit({ provider }) {
     const { data, setData, put, processing, errors } = useForm({
         name: provider.name ?? '',
+        logo: provider.logo ?? '',
         website: provider.website ?? '',
         contact_email: provider.contact_email ?? '',
         contact_phone: provider.contact_phone ?? '',

@@ -9,6 +9,29 @@ export default function ProviderForm({ data, setData, errors }) {
     return (
         <div className="space-y-6">
             <div>
+                <InputLabel htmlFor="logo" value="Logo URL" />
+                <TextInput
+                    id="logo"
+                    type="url"
+                    className="mt-1 block w-full"
+                    value={data.logo ?? ''}
+                    onChange={(e) => setData('logo', e.target.value)}
+                    placeholder="https://example.com/logo.png"
+                />
+                <InputError message={errors.logo} className="mt-2" />
+                {data.logo && (
+                    <img
+                        src={data.logo}
+                        alt="Logo preview"
+                        className="mt-2 h-10 w-10 rounded border border-gray-200 object-contain"
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                        }}
+                    />
+                )}
+            </div>
+
+            <div>
                 <InputLabel htmlFor="name" value="Name" />
                 <TextInput
                     id="name"

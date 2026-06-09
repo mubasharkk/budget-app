@@ -80,6 +80,8 @@ class ProcessReceipt implements ShouldQueue
 
             $this->receipt->update(['status' => 'processed']);
 
+            MatchReceiptItems::dispatch($this->receipt);
+
             Log::info('Receipt processing completed successfully', [
                 'receipt_id' => $this->receipt->id,
                 'vendor' => $data['vendor'] ?? 'Not provided',

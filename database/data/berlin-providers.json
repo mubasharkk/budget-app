@@ -1,0 +1,302 @@
+{
+    "meta": {
+        "region": "Berlin, Germany",
+        "sources": [
+            "Geofabrik OpenStreetMap extract — berlin-latest (shop/brand POIs)",
+            "Berlin Senate — landeseigene Wohnungsbaugesellschaften",
+            "Public Berlin utilities & transport operators"
+        ],
+        "license": "Provider names from OSM via Geofabrik are ODbL 1.0; curated enrichment is app-local.",
+        "geofabrik_url": "https://download.geofabrik.de/europe/germany/berlin.html"
+    },
+    "providers": [
+        {
+            "name": "degewo AG",
+            "category": "housing",
+            "website": "https://www.degewo.de",
+            "logo": "https://logo.clearbit.com/degewo.de",
+            "notes": "Landeseigene Wohnungsbaugesellschaft — largest Berlin municipal housing company.",
+            "source": "berlin-senate"
+        },
+        {
+            "name": "Gewobag",
+            "category": "housing",
+            "website": "https://www.gewobag.de",
+            "logo": "https://logo.clearbit.com/gewobag.de",
+            "notes": "Landeseigene Wohnungsbaugesellschaft — ~58,000 apartments across Berlin.",
+            "source": "berlin-senate"
+        },
+        {
+            "name": "HOWOGE",
+            "category": "housing",
+            "website": "https://www.howoge.de",
+            "logo": "https://logo.clearbit.com/howoge.de",
+            "notes": "Landeseigene Wohnungsbaugesellschaft — major Berlin landlord.",
+            "source": "berlin-senate"
+        },
+        {
+            "name": "GESOBAU AG",
+            "category": "housing",
+            "website": "https://www.gesobau.de",
+            "logo": "https://logo.clearbit.com/gesobau.de",
+            "notes": "Landeseigene Wohnungsbaugesellschaft.",
+            "source": "berlin-senate"
+        },
+        {
+            "name": "STADT UND LAND",
+            "category": "housing",
+            "website": "https://www.stadtundland.de",
+            "logo": "https://logo.clearbit.com/stadtundland.de",
+            "notes": "Landeseigene Wohnungsbaugesellschaft.",
+            "source": "berlin-senate"
+        },
+        {
+            "name": "WBM Wohnungsbaugesellschaft Berlin-Mitte",
+            "category": "housing",
+            "website": "https://www.wbm.de",
+            "logo": "https://logo.clearbit.com/wbm.de",
+            "notes": "Landeseigene Wohnungsbaugesellschaft — Berlin-Mitte focus.",
+            "source": "berlin-senate"
+        },
+        {
+            "name": "berlinovo",
+            "category": "housing",
+            "website": "https://www.berlinovo.de",
+            "logo": "https://logo.clearbit.com/berlinovo.de",
+            "notes": "State-owned housing company — classic housing stock & employee apartments.",
+            "source": "berlin-senate"
+        },
+        {
+            "name": "inberlinwohnen",
+            "category": "housing",
+            "website": "https://www.inberlinwohnen.de",
+            "logo": "https://logo.clearbit.com/inberlinwohnen.de",
+            "notes": "Central portal for all six LWU housing companies in Berlin.",
+            "source": "berlin-senate"
+        },
+        {
+            "name": "Berliner Wasserbetriebe",
+            "category": "utilities",
+            "website": "https://www.bwb.de",
+            "logo": "https://logo.clearbit.com/bwb.de",
+            "notes": "Berlin water utility — public operator.",
+            "source": "berlin-utilities"
+        },
+        {
+            "name": "Stromnetz Berlin",
+            "category": "utilities",
+            "website": "https://www.stromnetz.berlin",
+            "logo": "https://logo.clearbit.com/stromnetz.berlin",
+            "notes": "Berlin electricity grid — owned by the State of Berlin.",
+            "source": "berlin-utilities"
+        },
+        {
+            "name": "GASAG",
+            "category": "utilities",
+            "website": "https://www.gasag.de",
+            "logo": "https://logo.clearbit.com/gasag.de",
+            "notes": "Berlin gas distribution & supply.",
+            "source": "berlin-utilities"
+        },
+        {
+            "name": "Vattenfall Wärme Berlin",
+            "category": "utilities",
+            "website": "https://www.vattenfall.de/berlin",
+            "logo": "https://logo.clearbit.com/vattenfall.de",
+            "notes": "District heating in Berlin (transitioning to public ownership).",
+            "source": "berlin-utilities"
+        },
+        {
+            "name": "BVG",
+            "category": "transport",
+            "website": "https://www.bvg.de",
+            "logo": "https://logo.clearbit.com/bvg.de",
+            "notes": "Berliner Verkehrsbetriebe — U-Bahn, bus, tram.",
+            "source": "berlin-utilities"
+        },
+        {
+            "name": "Deutsche Bahn",
+            "category": "transport",
+            "website": "https://www.bahn.de",
+            "logo": "https://logo.clearbit.com/bahn.de",
+            "notes": "S-Bahn & regional rail serving Berlin.",
+            "source": "osm-berlin"
+        },
+        {
+            "name": "Telekom",
+            "category": "telecom",
+            "website": "https://www.telekom.de",
+            "logo": "https://logo.clearbit.com/telekom.de",
+            "notes": "Internet, mobile & landline.",
+            "source": "osm-berlin"
+        },
+        {
+            "name": "Vodafone",
+            "category": "telecom",
+            "website": "https://www.vodafone.de",
+            "logo": "https://logo.clearbit.com/vodafone.de",
+            "notes": "Mobile & cable internet.",
+            "source": "osm-berlin"
+        },
+        {
+            "name": "O2 Telefónica",
+            "category": "telecom",
+            "website": "https://www.o2online.de",
+            "logo": "https://logo.clearbit.com/o2online.de",
+            "notes": "Mobile & fibre — BVG tunnel network partner.",
+            "source": "osm-berlin"
+        },
+        {
+            "name": "1&1",
+            "category": "telecom",
+            "website": "https://www.1und1.de",
+            "logo": "https://logo.clearbit.com/1und1.de",
+            "notes": "Internet & mobile.",
+            "source": "osm-berlin"
+        },
+        {
+            "name": "Techniker Krankenkasse",
+            "category": "insurance",
+            "website": "https://www.tk.de",
+            "logo": "https://logo.clearbit.com/tk.de",
+            "notes": "Statutory health insurance — popular in Berlin.",
+            "source": "curated"
+        },
+        {
+            "name": "AOK Nordost",
+            "category": "insurance",
+            "website": "https://www.aok.de/nordost",
+            "logo": "https://logo.clearbit.com/aok.de",
+            "notes": "Statutory health insurance — Berlin/Brandenburg.",
+            "source": "curated"
+        },
+        {
+            "name": "REWE",
+            "category": "retail",
+            "website": "https://www.rewe.de",
+            "logo": "https://logo.clearbit.com/rewe.de",
+            "notes": "OSM brand: supermarket — frequent in Berlin extract.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Edeka",
+            "category": "retail",
+            "website": "https://www.edeka.de",
+            "logo": "https://logo.clearbit.com/edeka.de",
+            "notes": "OSM brand: supermarket.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Lidl",
+            "category": "retail",
+            "website": "https://www.lidl.de",
+            "logo": "https://logo.clearbit.com/lidl.de",
+            "notes": "OSM brand: supermarket/discount.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Aldi Nord",
+            "category": "retail",
+            "website": "https://www.aldi-nord.de",
+            "logo": "https://logo.clearbit.com/aldi-nord.de",
+            "notes": "OSM brand: discount supermarket (Berlin = Aldi Nord region).",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Netto Marken-Discount",
+            "category": "retail",
+            "website": "https://www.netto-online.de",
+            "logo": "https://logo.clearbit.com/netto-online.de",
+            "notes": "OSM brand: discount supermarket.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Penny",
+            "category": "retail",
+            "website": "https://www.penny.de",
+            "logo": "https://logo.clearbit.com/penny.de",
+            "notes": "OSM brand: discount supermarket (REWE Group).",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Kaufland",
+            "category": "retail",
+            "website": "https://www.kaufland.de",
+            "logo": "https://logo.clearbit.com/kaufland.de",
+            "notes": "OSM brand: hypermarket.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "dm-drogerie markt",
+            "category": "retail",
+            "website": "https://www.dm.de",
+            "logo": "https://logo.clearbit.com/dm.de",
+            "notes": "OSM brand: drugstore — very common in Berlin.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Rossmann",
+            "category": "retail",
+            "website": "https://www.rossmann.de",
+            "logo": "https://logo.clearbit.com/rossmann.de",
+            "notes": "OSM brand: drugstore.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Netflix",
+            "category": "streaming",
+            "website": "https://www.netflix.com",
+            "logo": "https://logo.clearbit.com/netflix.com",
+            "notes": "Streaming subscription.",
+            "source": "curated"
+        },
+        {
+            "name": "Spotify",
+            "category": "streaming",
+            "website": "https://www.spotify.com",
+            "logo": "https://logo.clearbit.com/spotify.com",
+            "notes": "Music streaming.",
+            "source": "curated"
+        },
+        {
+            "name": "Amazon Prime",
+            "category": "streaming",
+            "website": "https://www.amazon.de/prime",
+            "logo": "https://logo.clearbit.com/amazon.de",
+            "notes": "Prime Video & delivery membership.",
+            "source": "curated"
+        },
+        {
+            "name": "McFit",
+            "category": "fitness",
+            "website": "https://www.mcfit.com",
+            "logo": "https://logo.clearbit.com/mcfit.com",
+            "notes": "OSM brand: gym — widespread in Berlin.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "FitX",
+            "category": "fitness",
+            "website": "https://www.fitx.de",
+            "logo": "https://logo.clearbit.com/fitx.de",
+            "notes": "OSM brand: gym.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Deutsche Bank",
+            "category": "banking",
+            "website": "https://www.deutsche-bank.de",
+            "logo": "https://logo.clearbit.com/deutsche-bank.de",
+            "notes": "OSM brand: bank branch.",
+            "source": "geofabrik-osm-berlin"
+        },
+        {
+            "name": "Sparkasse Berlin",
+            "category": "banking",
+            "website": "https://www.berliner-sparkasse.de",
+            "logo": "https://logo.clearbit.com/berliner-sparkasse.de",
+            "notes": "Local savings bank — many branches in Berlin OSM data.",
+            "source": "geofabrik-osm-berlin"
+        }
+    ]
+}

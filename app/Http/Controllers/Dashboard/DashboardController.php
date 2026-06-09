@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Enums\BudgetPeriod;
 use App\Http\Controllers\Controller;
+use App\Services\BudgetService;
 use App\Services\ConsumptionService;
 use App\Services\Dashboard\DashboardService;
+use App\Services\DashboardSnapshotService;
 use App\Services\ExpenseService;
+use App\Services\PriceIntelligenceService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
@@ -18,7 +22,22 @@ class DashboardController extends Controller
         protected DashboardService $dashboardService,
         protected ExpenseService $expenseService,
         protected ConsumptionService $consumptionService,
+        protected PriceIntelligenceService $priceIntelligenceService,
+        protected BudgetService $budgetService,
+        protected DashboardSnapshotService $dashboardSnapshotService,
     ) {}
+
+    /**
+     * Compact at-a-glance snapshot across all expense features.
+     */
+    public function snapshot(Request $request)
+    {
+        $period = $request->get('period') === 'week' ? 'week' : 'month';
+
+        return response()->json(
+            $this->dashboardSnapshotService->snapshot(Auth::id(), $period)
+        );
+    }
 
     /**
      * Display the dashboard
@@ -34,6 +53,46 @@ class DashboardController extends Controller
     public function insights()
     {
         return Inertia::render('Insights');
+    }
+
+    /**
+     * Display the savings / price intelligence page.
+     */
+    public function savings()
+    {
+        return Inertia::render('Savings');
+    }
+
+    /**
+     * Budget progress for the current month or week.
+     */
+    public function budgets(Request $request)
+    {
+        $period = $request->get('period') === 'weekly'
+            ? BudgetPeriod::Weekly
+            : BudgetPeriod::Monthly;
+
+        return response()->json(
+            $this->budgetService->summary(Auth::id(), $period)
+        );
+    }
+
+    /**
+     * Price intelligence: savings opportunities, cheapest vendors, and price trends.
+     */
+    public function savingsData(Request $request)
+    {
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $userId = Auth::id();
+
+        return response()->json([
+            'savings_opportunities' => $this->priceIntelligenceService->savingsOpportunities(
+                $userId, $startDate, $endDate
+            ),
+            'cheapest_vendors' => $this->priceIntelligenceService->cheapestVendors($userId),
+            'price_trends' => $this->priceIntelligenceService->priceTrends($userId),
+        ]);
     }
 
     /**

@@ -1,7 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
-import MostBoughtItemsChart from '@/Components/MostBoughtItemsChart';
+import BudgetOverview from '@/Components/BudgetOverview';
+import DashboardAtAGlance from '@/Components/DashboardAtAGlance';
 import ExpenseOverview from '@/Components/ExpenseOverview';
+import IncomeOverview from '@/Components/IncomeOverview';
+import MostBoughtItemsChart from '@/Components/MostBoughtItemsChart';
 
 export default function Dashboard() {
     return (
@@ -15,24 +18,26 @@ export default function Dashboard() {
             <Head title="Dashboard" />
 
             <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="mb-6">
-                        <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                            <div className="p-6 text-gray-900">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Welcome to your Budget App Dashboard</h3>
-                                <p className="text-gray-600">
-                                    Track your spending patterns and analyze your most purchased items with interactive charts.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="mb-6 overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <ExpenseOverview />
+                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                        <DashboardAtAGlance />
                     </div>
 
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <MostBoughtItemsChart />
+                        <IncomeOverview />
+                    </div>
+
+                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                        <ExpenseOverview />
+                    </div>
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                            <BudgetOverview />
+                        </div>
+                        <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                            <MostBoughtItemsChart />
+                        </div>
                     </div>
                 </div>
             </div>

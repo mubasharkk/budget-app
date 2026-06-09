@@ -100,6 +100,168 @@ class LlmService
     }
 
     /**
+     * Match receipt line items to canonical products using existing catalog context.
+     *
+     * @param  array<int, array{receipt_item_id: int, name: string, unit_price: float, quantity: float, category: ?string}>  $lineItems
+     * @param  array<int, array{id: int, name: string, normalized_name: string, brand: ?string, unit: ?string, size: ?string}>  $existingProducts
+     * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
+     */
+    public function matchLineItemsToProducts(array $lineItems, array $existingProducts): array
+    {
+        try {
+            $prompt = View::make('prompts.product-matching', [
+                'lineItems' => $lineItems,
+                'products' => $existingProducts,
+            ])->render();
+
+            $response = $this->client->chat()->create([
+                'model' => $this->model,
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You match messy receipt line items to a canonical product catalog. Return strict JSON only.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'temperature' => 0.1,
+                'max_tokens' => 2000,
+            ]);
+
+            return $this->handleResponse($response);
+        } catch (\Exception $e) {
+            Log::error('LLM product matching failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'data' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Generate a narrative monthly digest summary from structured data.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
+     */
+    public function summarizeMonthlyDigest(array $data): array
+    {
+        try {
+            $prompt = View::make('prompts.monthly-digest', $data)->render();
+
+            $response = $this->client->chat()->create([
+                'model' => $this->model,
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You write concise personal finance digests. Return strict JSON only.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'temperature' => 0.3,
+                'max_tokens' => 1000,
+            ]);
+
+            return $this->handleResponse($response);
+        } catch (\Exception $e) {
+            Log::error('LLM digest summarization failed', ['error' => $e->getMessage()]);
+
+            return ['success' => false, 'data' => null, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Parse a natural-language spending question into a structured query.
+     *
+     * @param  array{categories: array<int, string>, today: string}  $context
+     * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
+     */
+    public function parseSpendingQuestion(string $question, array $context): array
+    {
+        try {
+            $prompt = View::make('prompts.spending-question', [
+                'question' => $question,
+                'categories' => $context['categories'],
+                'today' => $context['today'],
+            ])->render();
+
+            $response = $this->client->chat()->create([
+                'model' => $this->model,
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You parse spending questions into safe structured queries. Return strict JSON only.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'temperature' => 0.1,
+                'max_tokens' => 500,
+            ]);
+
+            return $this->handleResponse($response);
+        } catch (\Exception $e) {
+            Log::error('LLM spending question parse failed', ['error' => $e->getMessage()]);
+
+            return ['success' => false, 'data' => null, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Format structured query results as a natural-language answer.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
+     */
+    public function formatSpendingAnswer(string $question, array $data): array
+    {
+        try {
+            $prompt = View::make('prompts.spending-answer', [
+                'question' => $question,
+                'data' => $data,
+            ])->render();
+
+            $response = $this->client->chat()->create([
+                'model' => $this->model,
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You answer personal finance questions clearly and concisely. Return strict JSON only.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'temperature' => 0.2,
+                'max_tokens' => 300,
+            ]);
+
+            return $this->handleResponse($response);
+        } catch (\Exception $e) {
+            Log::error('LLM spending answer format failed', ['error' => $e->getMessage()]);
+
+            return ['success' => false, 'data' => null, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Build the prompt for the LLM using the Blade template.
      *
      * @param  array<int, array{name: string, slug: string, subcategories: array<int, string>}>  $categories

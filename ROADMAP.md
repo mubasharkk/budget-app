@@ -110,10 +110,12 @@ Make the receipt data answer "what am I buying most?"
 
 ---
 
-## Phase 4 — AI product catalog & price intelligence ("where can I save")
+## Phase 4 — AI product catalog & price intelligence ("where can I save") ✅ DONE
 
 The differentiator. Resolve messy OCR item names to canonical products so prices can be
 compared across vendors and time.
+
+**Built:** `products` + `price_observations` tables/models (user-scoped catalog, factories, `ProductPolicy`); nullable `receipt_items.product_id` FK. `ProductMatchingService` + `MatchReceiptItems` queued job (dispatched after `ProcessReceipt`) uses `LlmService::matchLineItemsToProducts()` with `resources/views/prompts/product-matching.blade.php` to find-or-create canonical products and record `price_observations`. `PriceIntelligenceService` — savings opportunities (overpayment vs observed minimum), cheapest vendor per product, price trends (rising/falling), and product detail. `DashboardController::savings` + `savingsData` (`/savings`, `/dashboard/savings`); `ProductController` for product detail (`/products/{product}`, `/products/{product}/data`). React: `Pages/Savings.jsx` (savings list, cheapest-vendor table, trends) and `Pages/Products/Show.jsx` (price chart, vendor breakdown, purchase history); "Savings" nav link. Tests: `MatchReceiptItemsTest`, `PriceIntelligenceServiceTest`, `ProductAuthorizationTest`; `ProcessReceiptTest` updated to assert matching job dispatch. **Note:** matching is async — queue worker required; existing receipts are not backfilled automatically.
 
 ### Data model
 - `products` — canonical catalog: `id, user_id?, name, normalized_name, brand?, unit?, size?, category_id?, attributes(json), timestamps`. (User-scoped or shared catalog — start user-scoped, allow a global catalog later.)
@@ -133,13 +135,15 @@ compared across vendors and time.
 - "Savings" dashboard tab: price-per-product over time, cheapest-vendor table, and a ranked "potential monthly savings" list ("You paid €X for Y at Z; cheapest seen was €W at V").
 - Product detail page: price chart across vendors + purchase history.
 
-**Acceptance:** receipt items are auto-linked to canonical products; user sees price trends per product, cheapest vendor, and a concrete ranked savings list.
+**Acceptance:** met — receipt items are auto-linked to canonical products after processing; user sees price trends per product, cheapest vendor, and a concrete ranked savings list.
 
 ---
 
-## Phase 5 — Budgets
+## Phase 5 — Budgets ✅ DONE
 
 Turn insight into limits.
+
+**Built:** `budgets` table/model (CrudTrait, HasFactory, `BudgetPeriod` enum, `BudgetPolicy`); unique per user/category/period (nullable `category_id` = overall budget). `BudgetService` — `allProgress()` and `summary()` compare budget vs actual via `ExpenseService` (fixed + variable per category), project end-of-period spend, and flag status (`on_track` < 80%, `warning` 80–100%, `over` ≥ 100%). `BudgetController` + `BudgetRequest` (CRUD, duplicate prevention); `GET /dashboard/budgets` JSON endpoint. React: `Pages/Budgets/Index|Create|Edit` (+ shared `BudgetForm`) with green/amber/red progress bars and month/week switcher; `Components/BudgetOverview.jsx` on the Dashboard; "Budgets" nav link. Tests: `BudgetServiceTest`, `BudgetTest`. **Note:** threshold status is surfaced in the API/UI; push/email notifications deferred to Phase 6.
 
 ### Data model
 - `budgets` — `id, user_id, category_id?, period (monthly|weekly), amount, currency, starts_on, timestamps`.
@@ -151,13 +155,15 @@ Turn insight into limits.
 ### Frontend
 - Budgets page: set per-category budgets; progress bars (green/amber/red); overview card on dashboard.
 
-**Acceptance:** user sets category budgets and sees real-time budget-vs-actual including both fixed and variable spend.
+**Acceptance:** met — user sets per-category or overall budgets and sees real-time budget-vs-actual including both fixed and variable spend, with projected end-of-period spend and colour-coded progress.
 
 ---
 
-## Phase 6 — Budgeting agent (AI assistant)
+## Phase 6 — Budgeting agent (AI assistant) ✅ DONE
 
 Tie it together into the "personalized budgeting agent."
+
+**Built:** `digests` table/model for in-app monthly summaries. `AnomalyDetectionService` (duplicate charges, large receipts, category spend spikes), `RecommendationService` (prioritized savings + budget alerts), `RenewalReminderService` (upcoming `next_billing_date` / `end_date`), `SpendingQueryExecutor` (safe whitelisted intents over `ExpenseService`/`ConsumptionService`/`BudgetService`), `NaturalLanguageQueryService` + `DigestService`. `LlmService` extended with `summarizeMonthlyDigest`, `parseSpendingQuestion`, `formatSpendingAnswer` (+ Blade prompts). `GenerateMonthlyDigest` job + `digests:generate-monthly` command (scheduled 1st of month); `MonthlyDigestMail` (log mailer by default). `AgentController` — `/agent` page, `/dashboard/agent` JSON, `POST /agent/ask`, `POST /agent/digest`. React `Pages/Agent.jsx` (digest, recommendations, anomalies, renewals, NL Q&A); "Assistant" nav link. Tests: `AnomalyDetectionServiceTest`, `RecommendationServiceTest`, `SpendingQueryExecutorTest`, `AgentTest`, `DigestServiceTest`. **Note:** NL queries use LLM for parse/format only — execution is always via whitelisted server-side queries; contract price-increase detection not possible without amount history (renewal reminders cover upcoming billing instead).
 
 - **Monthly digest:** queued job + `LlmService` summarizes the month (spend, vs budget, notable changes, upcoming contract renewals) → email/in-app.
 - **Recommendations:** combine Phase 4 savings + Phase 5 budgets into prioritized, actionable advice.
@@ -165,7 +171,25 @@ Tie it together into the "personalized budgeting agent."
 - **Natural-language queries:** "How much did I spend on groceries last month?" — an endpoint that turns questions into safe, scoped queries over the ledger.
 - **Renewal & due reminders:** from `contracts.next_billing_date`.
 
-**Acceptance:** user receives a monthly digest with savings recommendations and renewal reminders, and can ask natural-language questions about their spending.
+**Acceptance:** met — user receives a monthly digest (in-app + email) with savings recommendations and renewal reminders, and can ask natural-language questions about their spending on `/agent`.
+
+---
+
+## Phase 7 — Dashboard at-a-glance & Berlin provider catalog ✅ DONE
+
+Uncluttered dashboard with quick cross-feature visibility, plus a Berlin living-services provider catalog with logos.
+
+**Built:** `DashboardSnapshotService` + `GET /dashboard/snapshot` — single payload covering spending, budgets, savings, consumption, contracts, and assistant alerts. `Components/DashboardAtAGlance.jsx` replaces the stacked overview widgets on the Dashboard with six compact, tappable cards (month/week toggle). `providers.logo` column (nullable URL) + form field with live preview; logos shown on provider list. `database/data/berlin-providers.json` — 36 Berlin providers curated from the [Geofabrik Berlin OSM extract](https://download.geofabrik.de/europe/germany/berlin.html) (retail/shop brands) plus Berlin Senate housing companies (degewo, Gewobag, HOWOGE, GESOBAU, STADT UND LAND, WBM, berlinovo), utilities (BWB, Stromnetz Berlin, GASAG, Vattenfall Wärme), BVG, telecom, insurance, streaming, fitness, and banking. `BerlinProviderSeeder` seeds per-user (first user or `BERLIN_PROVIDERS_SEED_EMAIL`); idempotent. Tests: `DashboardSnapshotServiceTest`, `BerlinProviderSeederTest`. **Note:** full PBF parsing at seed-time is impractical — catalog is a curated JSON snapshot of Berlin OSM brand tags + public operator research; logos use Clearbit where available and are editable per provider.
+
+### Dashboard
+- Six linked snapshot cards: Spending, Budgets, Savings, Top item, Contracts, Assistant.
+- One API call, no duplicate chart widgets on the home page.
+
+### Providers
+- Logo URL on create/edit with preview.
+- `php artisan db:seed --class=BerlinProviderSeeder` after creating a user.
+
+**Acceptance:** met — dashboard shows all expense aspects at a glance without clutter; Berlin providers seed with logos and websites for housing, utilities, retail, and living services.
 
 ---
 
@@ -182,11 +206,12 @@ Tie it together into the "personalized budgeting agent."
 
 `Phase 0 → 1 → 2` gives the biggest immediate value (contracts + a true unified
 weekly/monthly overview). `Phase 3` is mostly generalizing existing dashboard code.
-`Phase 4` (AI catalog) is the largest investment and the key differentiator. `Phase 5–6`
-layer budgets and the agent on top.
+`Phase 4` (AI catalog) is the key differentiator. `Phase 5` layers budgets on top.
+`Phase 6` ties everything into the budgeting agent (digests, recommendations, NL queries).
+`Phase 7` polishes the dashboard UX and seeds a Berlin provider catalog for contracts.
 
 ## Open questions / assumptions
 
 - Multi-currency: assumed single primary currency per user for overviews/budgets; mixed-currency aggregation (FX) is out of scope unless needed.
 - Product catalog scope: starts user-scoped; a shared/global catalog can be added later for cross-user price benchmarking.
-- Notifications channel (email vs in-app vs both) for digests/reminders — to be decided in Phase 5/6.
+- Notifications channel (email vs in-app vs both) for digests/reminders — to be decided in Phase 6 (budget threshold alerts are UI-only for now).

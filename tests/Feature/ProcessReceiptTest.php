@@ -2,17 +2,26 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\MatchReceiptItems;
 use App\Jobs\ProcessReceipt;
 use App\Models\Category;
 use App\Models\Receipt;
 use App\Services\LlmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProcessReceiptTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Queue::fake();
+    }
 
     private function fakeReceipt(): Receipt
     {
@@ -73,6 +82,8 @@ class ProcessReceiptTest extends TestCase
         $beer = $receipt->items->firstWhere('name', 'KELLERBIER');
         $this->assertNotNull($beer->category_id);
         $this->assertNull($beer->subcategory_id);
+
+        Queue::assertPushed(MatchReceiptItems::class);
     }
 
     public function test_existing_category_is_reused_not_duplicated(): void
@@ -111,5 +122,7 @@ class ProcessReceiptTest extends TestCase
         $this->assertNull($receipt->vendor);
         $this->assertSame('0.00', (string) $receipt->total_amount);
         $this->assertCount(0, $receipt->items);
+
+        Queue::assertNotPushed(MatchReceiptItems::class);
     }
 }
