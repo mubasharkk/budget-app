@@ -90,9 +90,11 @@ Combine variable (receipts) + fixed (contracts) into one picture.
 
 ---
 
-## Phase 3 — Receipt consumption analytics
+## Phase 3 — Receipt consumption analytics ✅ DONE
 
 Make the receipt data answer "what am I buying most?"
+
+**Built:** `App\Services\ConsumptionService` — `topItems(metric: quantity|spend, …)` (grouped per item, with quantity, spend, and purchase count; date-range + category filter where a parent includes its subcategories) and `vendorLeaderboard(…)` (receipt count + total spend per vendor). `DashboardController::consumption` JSON endpoint (`/dashboard/consumption`) returns top-by-quantity, top-by-spend, and vendors. New `/insights` Inertia page (`Pages/Insights.jsx`) with date-range + category filters, a most-consumed-by-quantity bar chart, a top-spend-by-item list, and a vendor leaderboard table; "Insights" nav link added. Filters use the existing `/dashboard/categories` endpoint. Tests cover quantity-vs-spend ranking, vendor leaderboard totals + scoping, and date filtering. **Note:** filters on `receipt_date` (purchase date, consistent with Phase 2), unlike the legacy `MostBoughtItemsChart` which uses `created_at`; treemap was rendered as ranked bars/list.
 
 ### Backend
 - Extend `DashboardService`/new `ConsumptionService`:

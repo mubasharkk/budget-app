@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Services\ConsumptionService;
 use App\Services\Dashboard\DashboardService;
 use App\Services\ExpenseService;
 use Carbon\CarbonImmutable;
@@ -16,6 +17,7 @@ class DashboardController extends Controller
     public function __construct(
         protected DashboardService $dashboardService,
         protected ExpenseService $expenseService,
+        protected ConsumptionService $consumptionService,
     ) {}
 
     /**
@@ -24,6 +26,37 @@ class DashboardController extends Controller
     public function index()
     {
         return Inertia::render('Dashboard');
+    }
+
+    /**
+     * Display the consumption insights page.
+     */
+    public function insights()
+    {
+        return Inertia::render('Insights');
+    }
+
+    /**
+     * Consumption analytics: most-consumed items (by quantity and spend)
+     * and a vendor spend leaderboard, filterable by date range and category.
+     */
+    public function consumption(Request $request)
+    {
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $categoryId = $request->get('category_id') ?: null;
+
+        return response()->json([
+            'top_by_quantity' => $this->consumptionService->topItems(
+                Auth::id(), 'quantity', $startDate, $endDate, $categoryId
+            ),
+            'top_by_spend' => $this->consumptionService->topItems(
+                Auth::id(), 'spend', $startDate, $endDate, $categoryId
+            ),
+            'vendors' => $this->consumptionService->vendorLeaderboard(
+                Auth::id(), $startDate, $endDate
+            ),
+        ]);
     }
 
     /**

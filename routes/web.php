@@ -23,6 +23,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/spending-by-category', [\App\Http\Controllers\Dashboard\DashboardController::class, 'spendingByCategory'])->name('dashboard.spending.by.category');
     Route::get('/dashboard/overview', [\App\Http\Controllers\Dashboard\DashboardController::class, 'overview'])->name('dashboard.overview');
     Route::get('/dashboard/trend', [\App\Http\Controllers\Dashboard\DashboardController::class, 'trend'])->name('dashboard.trend');
+    Route::get('/dashboard/consumption', [\App\Http\Controllers\Dashboard\DashboardController::class, 'consumption'])->name('dashboard.consumption');
+
+    // Consumption insights page
+    Route::get('/insights', [\App\Http\Controllers\Dashboard\DashboardController::class, 'insights'])->name('insights');
 
     // Receipt management routes
     Route::resource('receipts', \App\Http\Controllers\ReceiptController::class);
