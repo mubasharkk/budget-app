@@ -193,6 +193,30 @@ Uncluttered dashboard with quick cross-feature visibility, plus a Berlin living-
 
 ---
 
+## Phase 8 — Seamless receipt capture (mobile-first) ✅ DONE
+
+Make uploading receipts as frictionless as possible on phone and for native mobile apps.
+
+**Built:** `ReceiptUploadService` centralizes image→PNG conversion, PDF storage, and `ProcessReceipt` dispatch (shared by web + API). `StoreReceiptRequest` validates photos, HEIC/HEIF, WebP, screenshots, and PDFs (≤15 MB, up to 5). **Web:** `ReceiptUploader` component — camera capture (`capture="environment"`), photo library, PDF picker, clipboard paste (screenshots), drag-and-drop; **instant upload** on `/receipts/scan` (one-tap flow); batch mode on `/receipts/create`; mobile FAB + scan CTAs on receipts index. **PWA:** `public/manifest.json` + Apple web-app meta tags (add to home screen → opens scan page). **Mobile API (Sanctum):** `POST /api/login` → token; `POST /api/receipts` (multipart `files[]`), `GET /api/receipts`, `GET /api/receipts/{id}`, `POST /api/logout`; `ReceiptResource` JSON responses. Tests: `ReceiptUploadServiceTest`, `ReceiptUploadTest`, `Api/ReceiptApiTest`. **Note:** native iOS/Android apps authenticate via Sanctum token then POST multipart to `/api/receipts`; queue worker still required for OCR.
+
+### Backend
+- `ReceiptUploadService` — store image/PDF, dispatch job.
+- `StoreReceiptRequest` — shared validation (web + API).
+- Sanctum token auth + `routes/api.php`.
+
+### Web / mobile web
+- `/receipts/scan` — minimal UI, upload on capture.
+- `ReceiptUploader` — camera, gallery, PDF, paste, drag-drop.
+- PWA manifest for home-screen install.
+
+### API (native apps)
+- `POST /api/login` `{ email, password, device_name? }` → `{ token, user }`
+- `POST /api/receipts` with `Authorization: Bearer {token}` and `files[]`
+
+**Acceptance:** met — user can snap a photo on mobile and it uploads instantly; screenshots and PDFs work; native apps can upload via Sanctum API.
+
+---
+
 ## Cross-cutting requirements (every phase)
 
 - **Tests first/with code:** feature tests for controllers/services, unit tests for cycle math, normalization, and matching; use factories. Run `php artisan test --filter=...`.
@@ -209,6 +233,7 @@ weekly/monthly overview). `Phase 3` is mostly generalizing existing dashboard co
 `Phase 4` (AI catalog) is the key differentiator. `Phase 5` layers budgets on top.
 `Phase 6` ties everything into the budgeting agent (digests, recommendations, NL queries).
 `Phase 7` polishes the dashboard UX and seeds a Berlin provider catalog for contracts.
+`Phase 8` makes receipt capture seamless on mobile web and via a Sanctum API for native apps.
 
 ## Open questions / assumptions
 

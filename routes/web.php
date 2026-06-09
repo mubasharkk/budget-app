@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/products/{product}/data', [\App\Http\Controllers\ProductController::class, 'data'])->name('products.data');
 
     // Receipt management routes
+    Route::get('/receipts/scan', [\App\Http\Controllers\ReceiptController::class, 'scan'])->name('receipts.scan');
     Route::resource('receipts', \App\Http\Controllers\ReceiptController::class);
     Route::get('/categories', [\App\Http\Controllers\ReceiptController::class, 'categories'])->name('categories');
     Route::post('/receipts/{receipt}/retry', [\App\Http\Controllers\ReceiptController::class, 'retry'])->name('receipts.retry');

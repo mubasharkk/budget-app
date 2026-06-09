@@ -1,0 +1,282 @@
+[
+    {
+        "name": "Groceries",
+        "slug": "groceries",
+        "color": "#10B981",
+        "icon": "shopping-cart",
+        "sort_order": 10,
+        "subcategories": [
+            "Fruits",
+            "Vegetables",
+            "Dairy",
+            "Bakery",
+            "Beverages",
+            "Snacks",
+            "Meat & Fish",
+            "Frozen",
+            "Household Supplies"
+        ]
+    },
+    {
+        "name": "Rent & Housing",
+        "slug": "rent-housing",
+        "color": "#6366F1",
+        "icon": "home",
+        "sort_order": 20,
+        "subcategories": [
+            "Rent",
+            "Mortgage",
+            "HOA & Service Charges",
+            "Property Tax",
+            "Home Insurance"
+        ]
+    },
+    {
+        "name": "Utilities",
+        "slug": "utilities",
+        "color": "#F59E0B",
+        "icon": "bolt",
+        "sort_order": 30,
+        "subcategories": [
+            "Electricity",
+            "Gas",
+            "Water",
+            "Heating & District Heat",
+            "Waste & Recycling"
+        ]
+    },
+    {
+        "name": "Internet & Phone",
+        "slug": "internet-phone",
+        "color": "#3B82F6",
+        "icon": "wifi",
+        "sort_order": 40,
+        "subcategories": [
+            "Internet",
+            "Mobile Phone",
+            "Landline",
+            "TV & Cable"
+        ]
+    },
+    {
+        "name": "Transport",
+        "slug": "transport",
+        "color": "#8B5CF6",
+        "icon": "truck",
+        "sort_order": 50,
+        "subcategories": [
+            "Fuel",
+            "Public Transit",
+            "Parking & Tolls",
+            "Car Maintenance",
+            "Car Insurance",
+            "Taxi & Rideshare"
+        ]
+    },
+    {
+        "name": "Insurance",
+        "slug": "insurance",
+        "color": "#64748B",
+        "icon": "shield-check",
+        "sort_order": 60,
+        "subcategories": [
+            "Health Insurance",
+            "Life Insurance",
+            "Liability Insurance",
+            "Travel Insurance"
+        ]
+    },
+    {
+        "name": "Healthcare & Pharmacy",
+        "slug": "healthcare-pharmacy",
+        "color": "#EC4899",
+        "icon": "heart",
+        "sort_order": 70,
+        "subcategories": [
+            "Doctor & Dentist",
+            "Pharmacy",
+            "Medical Supplies",
+            "Therapy & Wellness"
+        ]
+    },
+    {
+        "name": "Child Support & Family",
+        "slug": "child-support-family",
+        "color": "#F472B6",
+        "icon": "users",
+        "sort_order": 80,
+        "subcategories": [
+            "Child Support",
+            "Childcare & Kindergarten",
+            "School Costs",
+            "Allowance & Pocket Money"
+        ]
+    },
+    {
+        "name": "Education",
+        "slug": "education",
+        "color": "#0EA5E9",
+        "icon": "academic-cap",
+        "sort_order": 90,
+        "subcategories": [
+            "Tuition & Courses",
+            "Books & Materials",
+            "Student Fees"
+        ]
+    },
+    {
+        "name": "Dining Out",
+        "slug": "dining-out",
+        "color": "#FB923C",
+        "icon": "cake",
+        "sort_order": 100,
+        "subcategories": [
+            "Restaurants",
+            "Cafés & Bakeries",
+            "Takeaway & Delivery",
+            "Work Lunches"
+        ]
+    },
+    {
+        "name": "Entertainment & Leisure",
+        "slug": "entertainment-leisure",
+        "color": "#A855F7",
+        "icon": "film",
+        "sort_order": 110,
+        "subcategories": [
+            "Streaming & Media",
+            "Events & Tickets",
+            "Hobbies",
+            "Sports & Fitness",
+            "Travel & Holidays"
+        ]
+    },
+    {
+        "name": "Personal Care",
+        "slug": "personal-care",
+        "color": "#14B8A6",
+        "icon": "sparkles",
+        "sort_order": 120,
+        "subcategories": [
+            "Hair & Beauty",
+            "Cosmetics",
+            "Gym & Wellness"
+        ]
+    },
+    {
+        "name": "Clothing",
+        "slug": "clothing",
+        "color": "#E879F9",
+        "icon": "shopping-bag",
+        "sort_order": 130,
+        "subcategories": [
+            "Adult Clothing",
+            "Children's Clothing",
+            "Shoes & Accessories"
+        ]
+    },
+    {
+        "name": "Business & Work",
+        "slug": "business-work",
+        "color": "#475569",
+        "icon": "briefcase",
+        "sort_order": 140,
+        "subcategories": [
+            "Office Supplies",
+            "Software & Tools",
+            "Professional Services",
+            "Business Travel",
+            "Freelance & Contractor Costs"
+        ]
+    },
+    {
+        "name": "Credit & Loan Payments",
+        "slug": "credit-loan-payments",
+        "color": "#DC2626",
+        "icon": "credit-card",
+        "sort_order": 150,
+        "subcategories": [
+            "Credit Card Payment",
+            "Personal Loan",
+            "Student Loan",
+            "Car Loan",
+            "Buy Now Pay Later"
+        ]
+    },
+    {
+        "name": "Bills & Subscriptions",
+        "slug": "bills-subscriptions",
+        "color": "#7C3AED",
+        "icon": "document-text",
+        "sort_order": 160,
+        "subcategories": [
+            "Streaming Services",
+            "Software Subscriptions",
+            "Memberships",
+            "Cloud Storage",
+            "News & Magazines"
+        ]
+    },
+    {
+        "name": "Home & Maintenance",
+        "slug": "home-maintenance",
+        "color": "#CA8A04",
+        "icon": "wrench-screwdriver",
+        "sort_order": 170,
+        "subcategories": [
+            "Repairs",
+            "Furniture",
+            "Tools & Hardware",
+            "Garden & Cleaning"
+        ]
+    },
+    {
+        "name": "Taxes & Government Fees",
+        "slug": "taxes-government-fees",
+        "color": "#57534E",
+        "icon": "building-library",
+        "sort_order": 180,
+        "subcategories": [
+            "Income Tax",
+            "Vehicle Tax",
+            "Fines & Penalties",
+            "Government Services"
+        ]
+    },
+    {
+        "name": "Savings & Investments",
+        "slug": "savings-investments",
+        "color": "#059669",
+        "icon": "banknotes",
+        "sort_order": 190,
+        "subcategories": [
+            "Emergency Fund",
+            "Retirement",
+            "Investments",
+            "Savings Transfer"
+        ]
+    },
+    {
+        "name": "Gifts & Donations",
+        "slug": "gifts-donations",
+        "color": "#DB2777",
+        "icon": "gift",
+        "sort_order": 200,
+        "subcategories": [
+            "Gifts",
+            "Charity",
+            "Celebrations"
+        ]
+    },
+    {
+        "name": "Other",
+        "slug": "other",
+        "color": "#9CA3AF",
+        "icon": "ellipsis-horizontal",
+        "sort_order": 999,
+        "subcategories": [
+            "Uncategorized",
+            "Miscellaneous"
+        ]
+    }
+]

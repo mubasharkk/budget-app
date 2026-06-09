@@ -1,0 +1,17 @@
+{
+    "name": "Budget App",
+    "short_name": "Budget",
+    "description": "Scan receipts, track spending, and manage your budget.",
+    "start_url": "/receipts/scan",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#4f46e5",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "48x48",
+            "type": "image/x-icon"
+        }
+    ]
+}

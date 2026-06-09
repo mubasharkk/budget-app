@@ -4,7 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
-import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon, CameraIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/utils/money';
 
 export default function Index({ receipts }) {
@@ -95,7 +95,10 @@ export default function Index({ receipts }) {
                                             Thumbnail
                                         </button>
                                     </div>
-                                    <Link href={route('receipts.create')}>
+                                    <Link href={route('receipts.scan')} className="sm:hidden">
+                                        <PrimaryButton icon={CameraIcon} iconOnly>Scan</PrimaryButton>
+                                    </Link>
+                                    <Link href={route('receipts.create')} className="hidden sm:inline-flex">
                                         <PrimaryButton icon={PlusIcon} iconOnly>Upload New Receipt</PrimaryButton>
                                     </Link>
                                 </div>
@@ -108,9 +111,12 @@ export default function Index({ receipts }) {
                                     </svg>
                                     <h3 className="mt-2 text-sm font-medium text-gray-900">No receipts</h3>
                                     <p className="mt-1 text-sm text-gray-500">Get started by uploading a new receipt.</p>
-                                    <div className="mt-6">
+                                    <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                                        <Link href={route('receipts.scan')}>
+                                            <PrimaryButton icon={CameraIcon} iconOnly>Scan with camera</PrimaryButton>
+                                        </Link>
                                         <Link href={route('receipts.create')}>
-                                            <PrimaryButton icon={PlusIcon} iconOnly>Upload Receipt</PrimaryButton>
+                                            <PrimaryButton icon={PlusIcon} iconOnly>Upload files</PrimaryButton>
                                         </Link>
                                     </div>
                                 </div>
@@ -464,6 +470,14 @@ export default function Index({ receipts }) {
                     </div>
                 </div>
             )}
+
+            <Link
+                href={route('receipts.scan')}
+                className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg transition hover:bg-indigo-700 sm:hidden"
+                aria-label="Scan receipt"
+            >
+                <CameraIcon className="h-7 w-7" />
+            </Link>
         </AuthenticatedLayout>
     );
 }

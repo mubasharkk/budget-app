@@ -56,6 +56,10 @@ The job has `tries = 3` and `timeout = 300`. Receipt status lifecycle: `pending 
 - **Recurring/billing math:** use the `App\Enums\BillingCycle` enum (`toMonthlyFactor()` / `toMonthlyAmount()` / `nextDate()`) for any recurring-amount normalization.
 - **Recurring expenses (Phase 1):** `Provider` (companies) and `Contract` (recurring charges) models, both `user_id`-scoped with `ProviderPolicy`/`ContractPolicy`. `Contract` casts `billing_cycle`→`BillingCycle`, `status`→`ContractStatus`, and appends `projected_monthly_amount`. Managed in the React UI (`Pages/Contracts/*`, `Pages/Providers/*`, routes `contracts.*`/`providers.*`) and mirrored in Backpack. `contracts:roll-billing-dates` (scheduled daily in `routes/console.php`) advances `next_billing_date` and cancels contracts past `end_date`.
 
+## Design system
+
+Brand colors, logo direction, and UI templates live in `DESIGN.md`. Tailwind tokens: `brand-primary`, `brand-light`, `brand-mid`, `brand-dark`, `chart-fixed`, `chart-variable`.
+
 ## Files & Storage
 
 - Uploaded files live on the `public` disk; serve them via `ReceiptController@file` (ownership-checked) rather than direct URLs for private access. `storage:link` must be run for the public URL accessors.
