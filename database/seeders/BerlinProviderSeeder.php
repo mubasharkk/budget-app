@@ -37,32 +37,29 @@ class BerlinProviderSeeder extends Seeder
 
         $catalog = json_decode(file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
         $created = 0;
-        $skipped = 0;
+        $updated = 0;
 
         foreach ($catalog['providers'] as $entry) {
-            $exists = Provider::query()
-                ->where('user_id', $user->id)
-                ->where('name', $entry['name'])
-                ->exists();
+            $provider = Provider::query()->updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'name' => $entry['name'],
+                ],
+                [
+                    'logo' => $entry['logo'] ?? null,
+                    'website' => $entry['website'] ?? null,
+                    'notes' => $this->formatNotes($entry),
+                ],
+            );
 
-            if ($exists) {
-                $skipped++;
-
-                continue;
+            if ($provider->wasRecentlyCreated) {
+                $created++;
+            } elseif ($provider->wasChanged()) {
+                $updated++;
             }
-
-            Provider::query()->create([
-                'user_id' => $user->id,
-                'name' => $entry['name'],
-                'logo' => $entry['logo'] ?? null,
-                'website' => $entry['website'] ?? null,
-                'notes' => $this->formatNotes($entry),
-            ]);
-
-            $created++;
         }
 
-        $this->command?->info("Berlin providers for {$user->email}: {$created} created, {$skipped} skipped (already exist).");
+        $this->command?->info("Berlin providers for {$user->email}: {$created} created, {$updated} updated.");
     }
 
     private function resolveUser(): ?User

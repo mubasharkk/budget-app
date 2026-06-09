@@ -28,6 +28,7 @@ class BerlinProviderSeederTest extends TestCase
 
         $degewo = $providers->firstWhere('name', 'degewo AG');
         $this->assertNotNull($degewo->logo);
+        $this->assertStringStartsWith('/images/providers/', $degewo->logo);
         $this->assertStringContainsString('degewo.de', $degewo->website);
     }
 
@@ -42,5 +43,26 @@ class BerlinProviderSeederTest extends TestCase
         $countAfterSecond = Provider::where('user_id', $user->id)->count();
 
         $this->assertSame($countAfterFirst, $countAfterSecond);
+    }
+
+    public function test_seeder_updates_logo_when_catalog_changes(): void
+    {
+        $user = User::factory()->create();
+
+        $this->seed(BerlinProviderSeeder::class);
+
+        $degewo = Provider::query()
+            ->where('user_id', $user->id)
+            ->where('name', 'degewo AG')
+            ->firstOrFail();
+
+        $degewo->update(['logo' => 'https://example.com/stale-logo.png']);
+
+        $this->seed(BerlinProviderSeeder::class);
+
+        $degewo->refresh();
+
+        $this->assertStringStartsWith('/images/providers/', $degewo->logo);
+        $this->assertStringNotContainsString('example.com', $degewo->logo);
     }
 }

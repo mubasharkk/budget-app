@@ -1,7 +1,29 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+
+function ProviderLogo({ provider }) {
+    const [failed, setFailed] = useState(false);
+
+    if (!provider.logo || failed) {
+        return (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-gray-100 text-xs font-medium text-gray-500">
+                {provider.name.charAt(0)}
+            </div>
+        );
+    }
+
+    return (
+        <img
+            src={provider.logo}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded border border-gray-100 object-contain"
+            onError={() => setFailed(true)}
+        />
+    );
+}
 
 export default function Index({ providers }) {
     const flash = usePage().props.flash ?? {};
@@ -62,17 +84,7 @@ export default function Index({ providers }) {
                                         className="flex items-center justify-between px-6 py-4"
                                     >
                                         <div className="flex min-w-0 items-center gap-3">
-                                            {provider.logo ? (
-                                                <img
-                                                    src={provider.logo}
-                                                    alt=""
-                                                    className="h-9 w-9 shrink-0 rounded border border-gray-100 object-contain"
-                                                />
-                                            ) : (
-                                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-gray-100 text-xs font-medium text-gray-500">
-                                                    {provider.name.charAt(0)}
-                                                </div>
-                                            )}
+                                            <ProviderLogo provider={provider} />
                                             <div className="min-w-0">
                                             <div className="font-medium text-gray-900">
                                                 {provider.name}
