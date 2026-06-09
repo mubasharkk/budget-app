@@ -41,15 +41,10 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
-    'ocr' => [
-        'base_url' => env('OCR_NEXT_SERVER', 'http://ocr-next-api'),
-        'api_key' => env('OCR_NEXT_API_KEY'),
-        'api_token' => env('OCR_NEXT_API_TOKEN'),
-    ],
-
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o'),
     ],
 
 ];

@@ -1,11 +1,10 @@
 {{-- LLM Prompt for Receipt Parsing --}}
-OCR text (verbatim):
-{{ $ocrText }}
+You are given a receipt/invoice as an attached image or PDF. Read it directly and extract the data below.
 
 Locale hint: "Country: DE (EUR default), language may vary."
 
 Rules:
-- **RECEIPT DETECTION**: First determine if this document is actually a receipt/invoice. If it's not a receipt (e.g., random text, non-receipt document, unclear content), set `is_receipt: false` and return minimal data.
+- **RECEIPT DETECTION**: First determine if the attached document is actually a receipt/invoice. If it's not a receipt (e.g., a random photo, a non-receipt document, or unreadable content), set `is_receipt: false` and return minimal data.
 - **ITEM-LEVEL CATEGORIZATION**: Each item in the list must have its own category and subcategory.
 - **CATEGORY REQUIRED**: Every item must have a category (required field).
 - **SUBCATEGORY PREFERRED**: Each item should have a subcategory when possible (optional but recommended).

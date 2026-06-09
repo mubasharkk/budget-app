@@ -9,106 +9,92 @@ use App\Services\LlmService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class ProcessLlm implements ShouldQueue
+class ProcessReceipt implements ShouldQueue
 {
     use Queueable;
 
-    public Receipt $receipt;
     public int $tries = 3;
+
     public int $timeout = 300; // 5 minutes
 
-    /**
-     * Create a new job instance.
-     */
-    public function __construct(Receipt $receipt)
-    {
-        $this->receipt = $receipt;
-    }
+    public function __construct(public Receipt $receipt) {}
 
     /**
-     * Execute the job.
+     * Read the uploaded receipt with the vision LLM and persist the structured result.
      */
-    public function handle(): void
+    public function handle(LlmService $llmService): void
     {
         try {
-            Log::info('Starting LLM processing', ['receipt_id' => $this->receipt->id]);
+            Log::info('Starting receipt processing', ['receipt_id' => $this->receipt->id]);
 
-            if (empty($this->receipt->ocr_text)) {
-                throw new \Exception('No OCR text available for LLM parsing');
+            if (! $this->receipt->fileExists()) {
+                throw new \Exception('Receipt file not found: '.($this->receipt->stored_path ?: $this->receipt->original_path));
             }
 
-            // Perform LLM parsing
-            $llmService = new LlmService();
-            $llmResult = $llmService->parseReceipt($this->receipt->ocr_text);
+            $path = $this->receipt->stored_path ?: $this->receipt->original_path;
+            $filePath = Storage::disk('public')->path($path);
 
-            if (!$llmResult['success']) {
-                throw new \Exception('LLM parsing failed: ' . ($llmResult['error'] ?? 'Unknown error'));
+            $result = $llmService->parseReceiptFromFile($filePath, $this->receipt->mime);
+
+            if (! $result['success']) {
+                throw new \Exception('Receipt parsing failed: '.($result['error'] ?? 'Unknown error'));
             }
 
-            $data = $llmResult['data'];
+            $data = $result['data'];
+            $isReceipt = $data['is_receipt'] ?? true;
 
-            // Check if the document is actually a receipt
-            $isReceipt = $data['is_receipt'] ?? true; // Default to true for backward compatibility
-
-            if (!$isReceipt) {
-                // Not a receipt - mark as processed with zero values
+            if (! $isReceipt) {
                 $this->receipt->update([
+                    'ocr_data' => $data,
                     'vendor' => null,
-                    'currency' => null,
+                    'currency' => 'EUR',
                     'total_amount' => 0,
                     'receipt_date' => null,
                     'receipt_timezone' => null,
-                    'status' => 'processed'
+                    'status' => 'processed',
                 ]);
 
-                // Clear any existing items
                 $this->receipt->items()->delete();
 
                 Log::info('Document identified as non-receipt, marked as processed with zero values', [
                     'receipt_id' => $this->receipt->id,
-                    'notes' => $data['notes'] ?? 'Document is not a receipt or invoice'
+                    'notes' => $data['notes'] ?? 'Document is not a receipt or invoice',
                 ]);
 
-                return; // Exit early for non-receipts
+                return;
             }
 
-            // Update receipt with parsed data (no categories on receipt)
             $this->receipt->update([
+                'ocr_data' => $data,
                 'vendor' => $data['vendor'] ?? null,
-                'currency' => $data['currency'] ?? 'EUR', // Default to EUR if not provided
+                'currency' => $data['currency'] ?? 'EUR',
                 'total_amount' => $data['total_amount'] ?? null,
                 'receipt_date' => $this->parseReceiptDateTime($data['receipt_date'] ?? null, $data['receipt_time'] ?? null),
-                'receipt_timezone' => 'Europe/Berlin' // Default to German timezone
+                'receipt_timezone' => 'Europe/Berlin',
             ]);
 
-            // Process items with individual categories
             $this->processItems($data['items'] ?? []);
 
-            // Update receipt status to processed
             $this->receipt->update(['status' => 'processed']);
 
-            Log::info('LLM processing completed successfully', [
+            Log::info('Receipt processing completed successfully', [
                 'receipt_id' => $this->receipt->id,
-                'is_receipt' => $isReceipt,
                 'vendor' => $data['vendor'] ?? 'Not provided',
                 'items_count' => count($data['items'] ?? []),
-                'items_with_categories' => count(array_filter($data['items'] ?? [], function($item) {
-                    return !empty($item['category']);
-                }))
             ]);
-
         } catch (\Exception $e) {
-            Log::error('LLM processing failed', [
+            Log::error('Receipt processing failed', [
                 'receipt_id' => $this->receipt->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             $this->receipt->update([
                 'status' => 'failed',
-                'error_message' => 'LLM processing failed: ' . $e->getMessage()
+                'error_message' => 'Receipt processing failed: '.$e->getMessage(),
             ]);
 
             throw $e;
@@ -116,7 +102,7 @@ class ProcessLlm implements ShouldQueue
     }
 
     /**
-     * Find or create category
+     * Find or create a top-level category by name.
      */
     private function findOrCreateCategory(string $categoryName): ?int
     {
@@ -129,11 +115,11 @@ class ProcessLlm implements ShouldQueue
             ->whereNull('parent_id')
             ->first();
 
-        if (!$category) {
+        if (! $category) {
             $category = Category::create([
                 'name' => $categoryName,
                 'slug' => Str::slug($categoryName),
-                'parent_id' => null
+                'parent_id' => null,
             ]);
         }
 
@@ -141,11 +127,11 @@ class ProcessLlm implements ShouldQueue
     }
 
     /**
-     * Find or create subcategory
+     * Find or create a subcategory under the given parent category.
      */
     private function findOrCreateSubcategory(?string $subcategoryName, ?int $categoryId): ?int
     {
-        if (empty($subcategoryName) || !$categoryId) {
+        if (empty($subcategoryName) || ! $categoryId) {
             return null;
         }
 
@@ -154,11 +140,11 @@ class ProcessLlm implements ShouldQueue
             ->where('parent_id', $categoryId)
             ->first();
 
-        if (!$subcategory) {
+        if (! $subcategory) {
             $subcategory = Category::create([
                 'name' => $subcategoryName,
                 'slug' => Str::slug($subcategoryName),
-                'parent_id' => $categoryId
+                'parent_id' => $categoryId,
             ]);
         }
 
@@ -166,19 +152,18 @@ class ProcessLlm implements ShouldQueue
     }
 
     /**
-     * Process receipt items with individual categories
+     * Replace the receipt's items, finding or creating a category/subcategory per item.
+     *
+     * @param  array<int, array<string, mixed>>  $items
      */
     private function processItems(array $items): void
     {
-        // Delete existing items
         $this->receipt->items()->delete();
 
         foreach ($items as $itemData) {
-            // Get category and subcategory for this specific item
             $itemCategory = $itemData['category'] ?? null;
             $itemSubcategory = $itemData['subcategory'] ?? null;
 
-            // Find or create categories for this item
             $categoryId = $itemCategory ? $this->findOrCreateCategory($itemCategory) : null;
             $subcategoryId = $itemSubcategory && $categoryId ? $this->findOrCreateSubcategory($itemSubcategory, $categoryId) : null;
 
@@ -195,24 +180,23 @@ class ProcessLlm implements ShouldQueue
     }
 
     /**
-     * Parse receipt date and time into a single datetime
+     * Combine the parsed date and time into a single datetime.
      */
     private function parseReceiptDateTime(?string $date, ?string $time): ?\DateTime
     {
-        if (!$date) {
+        if (! $date) {
             return null;
         }
 
         try {
-            // Parse date (expected format: YYYY-MM-DD)
             $dateTime = \DateTime::createFromFormat('Y-m-d', $date);
 
-            if (!$dateTime) {
+            if (! $dateTime) {
                 Log::warning('Invalid date format received from LLM', ['date' => $date]);
+
                 return null;
             }
 
-            // Add time if provided (expected format: HH:MM:SS or HH:MM)
             if ($time) {
                 $timeParts = explode(':', $time);
                 if (count($timeParts) >= 2) {
@@ -229,8 +213,9 @@ class ProcessLlm implements ShouldQueue
             Log::error('Failed to parse receipt datetime', [
                 'date' => $date,
                 'time' => $time,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }

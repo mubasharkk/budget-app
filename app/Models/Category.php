@@ -3,13 +3,15 @@
 namespace App\Models;
 
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    use CrudTrait;
+    use CrudTrait, HasFactory;
+
     protected $fillable = [
         'name',
         'slug',
@@ -66,6 +68,6 @@ class Category extends Model
      */
     public function isSubcategory(): bool
     {
-        return !is_null($this->parent_id);
+        return ! is_null($this->parent_id);
     }
 }

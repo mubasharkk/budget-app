@@ -4,18 +4,19 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Services\Dashboard\DashboardService;
+use App\Services\ExpenseService;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
-    protected DashboardService $dashboardService;
-
-    public function __construct(DashboardService $dashboardService)
-    {
-        $this->dashboardService = $dashboardService;
-    }
+    public function __construct(
+        protected DashboardService $dashboardService,
+        protected ExpenseService $expenseService,
+    ) {}
 
     /**
      * Display the dashboard
@@ -32,18 +33,30 @@ class DashboardController extends Controller
     {
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
+        $categoryId = $request->get('category_id');
 
         $items = $this->dashboardService->getMostBoughtItems(
             Auth::id(),
             $startDate,
             $endDate,
-            10
+            10,
+            $categoryId
         );
 
         $chartData = $this->dashboardService->formatChartData($items);
 
+        return response()->json($chartData);
+    }
+
+    /**
+     * Get categories for filter dropdown
+     */
+    public function categories(Request $request)
+    {
+        $categories = $this->dashboardService->getCategoriesForFilter();
+
         return response()->json([
-            'data' => $chartData
+            'categories' => $categories,
         ]);
     }
 
@@ -62,7 +75,7 @@ class DashboardController extends Controller
         );
 
         return response()->json([
-            'stats' => $stats
+            'stats' => $stats,
         ]);
     }
 
@@ -81,7 +94,85 @@ class DashboardController extends Controller
         );
 
         return response()->json([
-            'data' => $spending
+            'data' => $spending,
         ]);
+    }
+
+    /**
+     * Unified fixed + variable overview for the current month or week,
+     * including the delta versus the previous period.
+     */
+    public function overview(Request $request)
+    {
+        $period = $this->resolvePeriod($request);
+        [$start, $end] = $this->currentPeriodRange($period);
+        [$prevStart, $prevEnd] = $this->previousPeriodRange($period);
+
+        $current = $this->expenseService->overview(Auth::id(), $start, $end, $period);
+
+        $previousVariable = round($this->expenseService->variableTotal(Auth::id(), $prevStart, $prevEnd), 2);
+        $previousTotal = round($current['fixed'] + $previousVariable, 2);
+
+        $delta = round($current['total'] - $previousTotal, 2);
+        $deltaPercent = $previousTotal > 0 ? round(($delta / $previousTotal) * 100, 1) : null;
+
+        return response()->json([
+            'period' => $period,
+            'start' => $start->toDateString(),
+            'end' => $end->toDateString(),
+            'current' => $current,
+            'previous_total' => $previousTotal,
+            'delta' => $delta,
+            'delta_percent' => $deltaPercent,
+        ]);
+    }
+
+    /**
+     * Spending trend over the most recent periods.
+     */
+    public function trend(Request $request)
+    {
+        $period = $this->resolvePeriod($request);
+        $points = $period === 'week' ? 8 : 6;
+
+        return response()->json([
+            'period' => $period,
+            'trend' => $this->expenseService->trend(Auth::id(), CarbonImmutable::today(), $period, $points),
+        ]);
+    }
+
+    private function resolvePeriod(Request $request): string
+    {
+        return $request->get('period') === 'week' ? 'week' : 'month';
+    }
+
+    /**
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function currentPeriodRange(string $period): array
+    {
+        $today = CarbonImmutable::today();
+
+        return $period === 'week'
+            ? [$today->startOfWeek(CarbonInterface::MONDAY), $today->endOfWeek(CarbonInterface::SUNDAY)]
+            : [$today->startOfMonth(), $today->endOfMonth()];
+    }
+
+    /**
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function previousPeriodRange(string $period): array
+    {
+        $today = CarbonImmutable::today();
+
+        if ($period === 'week') {
+            $start = $today->startOfWeek(CarbonInterface::MONDAY)->subWeek();
+
+            return [$start, $start->endOfWeek(CarbonInterface::SUNDAY)];
+        }
+
+        $start = $today->startOfMonth()->subMonth();
+
+        return [$start, $start->endOfMonth()];
     }
 }

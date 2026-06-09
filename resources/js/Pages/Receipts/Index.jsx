@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
 import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline';
+import { formatCurrency } from '@/utils/money';
 
 export default function Index({ receipts }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -46,14 +47,6 @@ export default function Index({ receipts }) {
     const handleDeleteCancel = () => {
         setShowDeleteModal(false);
         setReceiptToDelete(null);
-    };
-
-    const formatCurrency = (amount, currency = 'EUR') => {
-        if (!amount) return 'N/A';
-        return new Intl.NumberFormat('de-DE', {
-            style: 'currency',
-            currency: currency,
-        }).format(amount);
     };
 
     const formatDate = (date) => {

@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import MostBoughtItemsChart from '@/Components/MostBoughtItemsChart';
+import ExpenseOverview from '@/Components/ExpenseOverview';
 
 export default function Dashboard() {
     return (
@@ -26,6 +27,10 @@ export default function Dashboard() {
                         </div>
                     </div>
                     
+                    <div className="mb-6 overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                        <ExpenseOverview />
+                    </div>
+
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <MostBoughtItemsChart />
                     </div>

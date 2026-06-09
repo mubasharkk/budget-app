@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ProcessLlm;
-use App\Jobs\ProcessOcr;
+use App\Jobs\ProcessReceipt;
 use App\Models\Category;
 use App\Models\Receipt;
 use Illuminate\Http\Request;
@@ -12,8 +11,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class ReceiptController extends Controller
 {
@@ -33,7 +32,7 @@ class ReceiptController extends Controller
         });
 
         return Inertia::render('Receipts/Index', [
-            'receipts' => $receipts
+            'receipts' => $receipts,
         ]);
     }
 
@@ -82,12 +81,12 @@ class ReceiptController extends Controller
 
                 try {
                     // Convert image to PNG using Intervention Image
-                    $imageManager = new ImageManager(new Driver());
+                    $imageManager = new ImageManager(new Driver);
                     $image = $imageManager->read($file->getRealPath());
 
                     // Convert to PNG and save
                     $pngData = $image->toPng();
-                    $storedPath = $path . $filename;
+                    $storedPath = $path.$filename;
                     Storage::disk('public')->put($storedPath, $pngData);
 
                     // Update MIME type and file size for PNG
@@ -98,12 +97,12 @@ class ReceiptController extends Controller
                         'original_filename' => $originalFilename,
                         'original_mime' => $file->getMimeType(),
                         'converted_filename' => $filename,
-                        'file_size' => $fileSize
+                        'file_size' => $fileSize,
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Image conversion failed', [
                         'original_filename' => $originalFilename,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
 
                     // Fallback: store original file if conversion fails
@@ -122,11 +121,11 @@ class ReceiptController extends Controller
                 'file_type' => $extension,
                 'mime' => $mimeType,
                 'file_size' => $fileSize,
-                'status' => 'pending'
+                'status' => 'pending',
             ]);
 
-            // Dispatch OCR processing job (which will chain to LLM processing)
-            ProcessOcr::dispatch($receipt);
+            // Dispatch the vision-based receipt processing job
+            ProcessReceipt::dispatch($receipt);
 
             $createdReceipts[] = $receipt;
         }
@@ -145,15 +144,12 @@ class ReceiptController extends Controller
      */
     public function show(Receipt $receipt)
     {
-        // Ensure user can only view their own receipts
-        if ($receipt->user_id !== Auth::id()) {
-            abort(403);
-        }
+        $this->authorize('view', $receipt);
 
         $receipt->load(['items.category', 'items.subcategory']);
 
         return Inertia::render('Receipts/Show', [
-            'receipt' => $receipt->append(['file_url', 'public_file_url', 'direct_file_url'])
+            'receipt' => $receipt->append(['file_url', 'public_file_url', 'direct_file_url']),
         ]);
     }
 
@@ -162,10 +158,7 @@ class ReceiptController extends Controller
      */
     public function update(Request $request, Receipt $receipt)
     {
-        // Ensure user can only update their own receipts
-        if ($receipt->user_id !== Auth::id()) {
-            abort(403);
-        }
+        $this->authorize('update', $receipt);
 
         $request->validate([
             'vendor' => 'nullable|string|max:255',
@@ -226,10 +219,7 @@ class ReceiptController extends Controller
      */
     public function retry(Receipt $receipt)
     {
-        // Ensure user can only retry their own receipts
-        if ($receipt->user_id !== Auth::id()) {
-            abort(403);
-        }
+        $this->authorize('retry', $receipt);
 
         if ($receipt->status !== 'failed') {
             return redirect()->route('receipts.show', $receipt)
@@ -239,14 +229,10 @@ class ReceiptController extends Controller
         // Reset status and dispatch job
         $receipt->update([
             'status' => 'pending',
-            'error_message' => null
+            'error_message' => null,
         ]);
 
-        if ($receipt->ocr_text && $receipt->ocr_data) {
-            ProcessLlm::dispatch($receipt);
-        } else {
-            ProcessOcr::dispatch($receipt);
-        }
+        ProcessReceipt::dispatch($receipt);
 
         return redirect()->route('receipts.show', $receipt)
             ->with('success', 'Receipt processing has been retried.');
@@ -257,15 +243,12 @@ class ReceiptController extends Controller
      */
     public function file(Receipt $receipt)
     {
-        // Ensure user can only access their own receipts
-        if ($receipt->user_id !== Auth::id()) {
-            abort(403);
-        }
+        $this->authorize('view', $receipt);
 
         $path = $receipt->stored_path ?: $receipt->original_path;
-        $filePath = storage_path('app/public/' . $path);
+        $filePath = storage_path('app/public/'.$path);
 
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             abort(404);
         }
 
@@ -277,16 +260,13 @@ class ReceiptController extends Controller
      */
     public function destroy(Receipt $receipt)
     {
-        // Ensure user can only delete their own receipts
-        if ($receipt->user_id !== Auth::id()) {
-            abort(403);
-        }
+        $this->authorize('delete', $receipt);
 
         try {
             Log::info('Deleting receipt', [
                 'receipt_id' => $receipt->id,
                 'user_id' => Auth::id(),
-                'filename' => $receipt->original_filename
+                'filename' => $receipt->original_filename,
             ]);
 
             // Delete the physical file
@@ -297,7 +277,7 @@ class ReceiptController extends Controller
             } else {
                 Log::warning('File not found for deletion', [
                     'receipt_id' => $receipt->id,
-                    'path' => $receipt->stored_path ?: $receipt->original_path
+                    'path' => $receipt->stored_path ?: $receipt->original_path,
                 ]);
             }
 
@@ -313,12 +293,11 @@ class ReceiptController extends Controller
             Log::error('Failed to delete receipt', [
                 'receipt_id' => $receipt->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return redirect()->route('receipts.index')
-                ->with('error', 'Failed to delete receipt: ' . $e->getMessage());
+                ->with('error', 'Failed to delete receipt: '.$e->getMessage());
         }
     }
-
 }

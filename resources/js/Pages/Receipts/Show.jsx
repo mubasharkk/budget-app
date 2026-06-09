@@ -8,6 +8,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { ArrowLeftIcon, TrashIcon, XMarkIcon, CheckIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { formatCurrency } from '@/utils/money';
 
 export default function Show({ receipt }) {
     const [categories, setCategories] = useState([]);
@@ -138,14 +139,6 @@ export default function Show({ receipt }) {
                 {status.charAt(0).toUpperCase() + status.slice(1)}
             </span>
         );
-    };
-
-    const formatCurrency = (amount, currency = 'EUR') => {
-        if (!amount) return 'N/A';
-        return new Intl.NumberFormat('de-DE', {
-            style: 'currency',
-            currency: currency,
-        }).format(amount);
     };
 
     return (

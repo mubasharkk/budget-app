@@ -3,13 +3,15 @@
 namespace App\Models;
 
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Receipt extends Model
 {
-    use CrudTrait;
+    use CrudTrait, HasFactory;
+
     protected $fillable = [
         'user_id',
         'original_filename',
@@ -47,7 +49,6 @@ class Receipt extends Model
     {
         return $this->belongsTo(User::class);
     }
-
 
     /**
      * Get the receipt items
@@ -88,7 +89,8 @@ class Receipt extends Model
     {
         // Use stored_path if available (for public access), otherwise fall back to original_path
         $path = $this->stored_path ?: $this->original_path;
-        return asset('storage/' . $path);
+
+        return asset('storage/'.$path);
     }
 
     /**
@@ -98,7 +100,8 @@ class Receipt extends Model
     {
         // Use stored_path if available (for public access), otherwise fall back to original_path
         $path = $this->stored_path ?: $this->original_path;
-        return url('storage/' . $path);
+
+        return url('storage/'.$path);
     }
 
     /**
@@ -115,6 +118,7 @@ class Receipt extends Model
     public function fileExists(): bool
     {
         $path = $this->stored_path ?: $this->original_path;
+
         return $path && \Storage::disk('public')->exists($path);
     }
 
@@ -124,6 +128,7 @@ class Receipt extends Model
     public function getFilePathAttribute(): string
     {
         $path = $this->stored_path ?: $this->original_path;
-        return storage_path('app/public/' . $path);
+
+        return storage_path('app/public/'.$path);
     }
 }
