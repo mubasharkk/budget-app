@@ -100,15 +100,23 @@ export default function IncomeOverview() {
             ) : !income ? (
                 <div className="rounded-lg border border-dashed border-gray-200 py-10 text-center">
                     <p className="text-sm text-gray-500">
-                        Add your monthly net or brutto income to see how your
-                        budget fits your earnings.
+                        Add recurring income in your profile or record one-time
+                        earnings to see how your budget fits your income.
                     </p>
-                    <Link
-                        href={route('profile.edit')}
-                        className="mt-2 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                    >
-                        Set income in profile
-                    </Link>
+                    <div className="mt-3 flex flex-wrap justify-center gap-4 text-sm">
+                        <Link
+                            href={route('profile.edit')}
+                            className="font-medium text-indigo-600 hover:text-indigo-800"
+                        >
+                            Set monthly income
+                        </Link>
+                        <Link
+                            href={route('incomes.create')}
+                            className="font-medium text-indigo-600 hover:text-indigo-800"
+                        >
+                            Add one-time income
+                        </Link>
+                    </div>
                 </div>
             ) : (
                 <>
@@ -123,12 +131,35 @@ export default function IncomeOverview() {
                                     income.currency,
                                 )}
                             </div>
-                            <div className="mt-1 text-xs text-gray-500">
-                                {formatCurrency(
-                                    income.monthly_income,
-                                    income.currency,
-                                )}{' '}
-                                / month
+                            <div className="mt-1 space-y-0.5 text-xs text-gray-500">
+                                {income.has_recurring_income &&
+                                    income.monthly_income && (
+                                        <div>
+                                            Recurring:{' '}
+                                            {formatCurrency(
+                                                income.recurring_period_income,
+                                                income.currency,
+                                            )}
+                                        </div>
+                                    )}
+                                {income.has_one_time_income && (
+                                    <div>
+                                        One-time:{' '}
+                                        {formatCurrency(
+                                            income.one_time_period_income,
+                                            income.currency,
+                                        )}
+                                    </div>
+                                )}
+                                {income.monthly_income && (
+                                    <div>
+                                        {formatCurrency(
+                                            income.monthly_income,
+                                            income.currency,
+                                        )}{' '}
+                                        / month recurring
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="rounded-lg bg-gray-50 p-4">

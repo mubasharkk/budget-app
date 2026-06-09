@@ -8,12 +8,16 @@ use App\Http\Requests\ContractRequest;
 use App\Models\Category;
 use App\Models\Contract;
 use App\Models\Provider;
+use App\Services\ContractBillingService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ContractController extends Controller
 {
+    public function __construct(private ContractBillingService $contractBillingService) {}
+
     public function index(): Response
     {
         $contracts = Contract::query()
@@ -88,6 +92,16 @@ class ContractController extends Controller
 
         return redirect()->route('contracts.index')
             ->with('success', 'Contract deleted successfully.');
+    }
+
+    public function markPaid(Contract $contract): RedirectResponse
+    {
+        $this->authorize('markPaid', $contract);
+
+        $this->contractBillingService->markAsPaid($contract);
+
+        return redirect()->back()
+            ->with('success', 'Contract marked as paid.');
     }
 
     /**

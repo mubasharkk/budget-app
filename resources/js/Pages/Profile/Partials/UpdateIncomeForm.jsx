@@ -3,7 +3,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
-import { router, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { CheckIcon } from '@heroicons/react/24/outline';
 
 export default function UpdateIncomeForm({ incomeTypeOptions = [], className = '' }) {
@@ -41,7 +41,15 @@ export default function UpdateIncomeForm({ incomeTypeOptions = [], className = '
                 </h2>
                 <p className="mt-1 text-sm text-gray-600">
                     Set your net or brutto (gross) monthly income so budgets and
-                    spending can be compared against what you earn.
+                    spending can be compared against what you earn. For bonuses,
+                    freelance payments, and other non-recurring earnings,{' '}
+                    <Link
+                        href={route('incomes.index')}
+                        className="font-medium text-indigo-600 hover:text-indigo-800"
+                    >
+                        record one-time income
+                    </Link>
+                    .
                 </p>
             </header>
 

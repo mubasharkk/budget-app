@@ -19,7 +19,7 @@ export default function AuthenticatedLayout({ header, children }) {
                         <div className="flex">
                             <div className="flex shrink-0 items-center">
                                 <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
+                                    <ApplicationLogo className="block h-9 w-9" />
                                 </Link>
                             </div>
 
@@ -57,6 +57,13 @@ export default function AuthenticatedLayout({ header, children }) {
                                     active={route().current('budgets.*')}
                                 >
                                     Budgets
+                                </NavLink>
+
+                                <NavLink
+                                    href={route('incomes.index')}
+                                    active={route().current('incomes.*')}
+                                >
+                                    Income
                                 </NavLink>
 
                                 <NavLink
@@ -210,6 +217,13 @@ export default function AuthenticatedLayout({ header, children }) {
                             active={route().current('budgets.*')}
                         >
                             Budgets
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink
+                            href={route('incomes.index')}
+                            active={route().current('incomes.*')}
+                        >
+                            Income
                         </ResponsiveNavLink>
 
                         <ResponsiveNavLink

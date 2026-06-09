@@ -1,7 +1,12 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
-import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+import {
+    PlusIcon,
+    PencilSquareIcon,
+    TrashIcon,
+    CheckCircleIcon,
+} from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/utils/money';
 
 const statusBadge = {
@@ -48,6 +53,12 @@ export default function Index({ contracts, summary }) {
                 preserveScroll: true,
             });
         }
+    };
+
+    const handleMarkPaid = (contract) => {
+        router.post(route('contracts.mark-paid', contract.id), {}, {
+            preserveScroll: true,
+        });
     };
 
     return (
@@ -166,6 +177,14 @@ export default function Index({ contracts, summary }) {
                                                                 contract.next_billing_date,
                                                             )}
                                                         </span>
+                                                        {contract.last_paid_at && (
+                                                            <span className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                                                                Paid:{' '}
+                                                                {formatDate(
+                                                                    contract.last_paid_at,
+                                                                )}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
 
@@ -186,6 +205,21 @@ export default function Index({ contracts, summary }) {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
+                                                        {contract.status ===
+                                                            'active' && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleMarkPaid(
+                                                                        contract,
+                                                                    )
+                                                                }
+                                                                className="text-gray-400 hover:text-green-600"
+                                                                title="Mark as paid"
+                                                            >
+                                                                <CheckCircleIcon className="h-5 w-5" />
+                                                            </button>
+                                                        )}
                                                         <Link
                                                             href={route(
                                                                 'contracts.edit',

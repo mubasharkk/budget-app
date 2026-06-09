@@ -1,6 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/utils/money';
 
@@ -24,11 +25,27 @@ export default function Show({ contract }) {
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
                         {contract.name}
                     </h2>
-                    <Link href={route('contracts.edit', contract.id)}>
-                        <PrimaryButton icon={PencilSquareIcon}>
-                            Edit
-                        </PrimaryButton>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        {contract.status === 'active' && (
+                            <SecondaryButton
+                                onClick={() =>
+                                    router.post(
+                                        route(
+                                            'contracts.mark-paid',
+                                            contract.id,
+                                        ),
+                                    )
+                                }
+                            >
+                                Mark as paid
+                            </SecondaryButton>
+                        )}
+                        <Link href={route('contracts.edit', contract.id)}>
+                            <PrimaryButton icon={PencilSquareIcon}>
+                                Edit
+                            </PrimaryButton>
+                        </Link>
+                    </div>
                 </div>
             }
         >
@@ -69,6 +86,10 @@ export default function Show({ contract }) {
                             <Row
                                 label="Next billing date"
                                 value={formatDate(contract.next_billing_date)}
+                            />
+                            <Row
+                                label="Last paid"
+                                value={formatDate(contract.last_paid_at)}
                             />
                             <Row
                                 label="Billing day"

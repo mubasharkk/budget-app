@@ -26,6 +26,7 @@ class Contract extends Model
         'start_date',
         'end_date',
         'next_billing_date',
+        'last_paid_at',
         'status',
         'auto_renew',
         'notes',
@@ -52,6 +53,7 @@ class Contract extends Model
             'start_date' => 'date',
             'end_date' => 'date',
             'next_billing_date' => 'date',
+            'last_paid_at' => 'date',
         ];
     }
 

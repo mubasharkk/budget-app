@@ -8,6 +8,8 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'Budget App') }}">
         <link rel="manifest" href="/manifest.json">
+        <link rel="icon" type="image/png" href="/images/logo.png">
+        <link rel="apple-touch-icon" href="/images/logo.png">
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 

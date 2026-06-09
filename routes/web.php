@@ -47,6 +47,11 @@ Route::middleware('auth')->group(function () {
     // Recurring expenses: providers & monthly contracts
     Route::resource('providers', \App\Http\Controllers\ProviderController::class)->except('show');
     Route::resource('contracts', \App\Http\Controllers\ContractController::class);
+    Route::post('/contracts/{contract}/mark-paid', [\App\Http\Controllers\ContractController::class, 'markPaid'])
+        ->name('contracts.mark-paid');
+
+    // One-time income entries
+    Route::resource('incomes', \App\Http\Controllers\IncomeController::class)->except('show');
 
     // Category budgets
     Route::resource('budgets', \App\Http\Controllers\BudgetController::class)->except('show');
