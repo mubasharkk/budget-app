@@ -4,6 +4,7 @@ import BudgetOverview from '@/Components/BudgetOverview';
 import DashboardAtAGlance from '@/Components/DashboardAtAGlance';
 import ExpenseOverview from '@/Components/ExpenseOverview';
 import IncomeOverview from '@/Components/IncomeOverview';
+import ConsumedItemsWidget from '@/Components/ConsumedItemsWidget';
 import MostBoughtItemsChart from '@/Components/MostBoughtItemsChart';
 
 export default function Dashboard() {
@@ -29,6 +30,10 @@ export default function Dashboard() {
 
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <ExpenseOverview />
+                    </div>
+
+                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                        <ConsumedItemsWidget />
                     </div>
 
                     <div className="grid gap-6 lg:grid-cols-2">

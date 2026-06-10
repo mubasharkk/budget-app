@@ -101,19 +101,40 @@ class DashboardController extends Controller
      */
     public function consumption(Request $request)
     {
-        $startDate = $request->get('start_date');
-        $endDate = $request->get('end_date');
         $categoryId = $request->get('category_id') ?: null;
+        $limit = $this->resolveConsumptionLimit($request);
+        $metric = $request->get('metric') === 'spend' ? 'spend' : 'quantity';
+
+        if ($request->filled('period')) {
+            $period = $this->resolveConsumptionPeriod($request);
+            [$start, $end] = $this->consumptionPeriodRange($period);
+            $startDate = $start->toDateString();
+            $endDate = $end->toDateString();
+        } else {
+            $period = null;
+            $startDate = $request->get('start_date');
+            $endDate = $request->get('end_date');
+        }
+
+        $userId = Auth::id();
 
         return response()->json([
+            'period' => $period,
+            'start' => $startDate,
+            'end' => $endDate,
+            'limit' => $limit,
+            'metric' => $metric,
+            'items' => $this->consumptionService->topItems(
+                $userId, $metric, $startDate, $endDate, $categoryId, $limit
+            ),
             'top_by_quantity' => $this->consumptionService->topItems(
-                Auth::id(), 'quantity', $startDate, $endDate, $categoryId
+                $userId, 'quantity', $startDate, $endDate, $categoryId, $limit
             ),
             'top_by_spend' => $this->consumptionService->topItems(
-                Auth::id(), 'spend', $startDate, $endDate, $categoryId
+                $userId, 'spend', $startDate, $endDate, $categoryId, $limit
             ),
             'vendors' => $this->consumptionService->vendorLeaderboard(
-                Auth::id(), $startDate, $endDate
+                $userId, $startDate, $endDate, $limit
             ),
         ]);
     }
@@ -236,6 +257,45 @@ class DashboardController extends Controller
     private function resolvePeriod(Request $request): string
     {
         return $request->get('period') === 'week' ? 'week' : 'month';
+    }
+
+    private function resolveConsumptionPeriod(Request $request): string
+    {
+        return match ($request->get('period')) {
+            'week' => 'week',
+            'quarter' => 'quarter',
+            default => 'month',
+        };
+    }
+
+    private function resolveConsumptionLimit(Request $request): int
+    {
+        $limit = (int) $request->get('limit', 10);
+
+        return in_array($limit, [10, 20, 50, 100], true) ? $limit : 10;
+    }
+
+    /**
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function consumptionPeriodRange(string $period, ?CarbonInterface $anchor = null): array
+    {
+        $anchor = CarbonImmutable::instance($anchor ?? CarbonImmutable::today());
+
+        return match ($period) {
+            'week' => [
+                $anchor->startOfWeek(CarbonInterface::MONDAY),
+                $anchor->endOfWeek(CarbonInterface::SUNDAY),
+            ],
+            'quarter' => [
+                $anchor->startOfQuarter(),
+                $anchor->endOfQuarter(),
+            ],
+            default => [
+                $anchor->startOfMonth(),
+                $anchor->endOfMonth(),
+            ],
+        };
     }
 
     /**
