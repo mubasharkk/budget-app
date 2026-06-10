@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\BillingCycle;
 use App\Enums\ContractStatus;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -87,5 +89,34 @@ class Contract extends Model
     public function getProjectedMonthlyAmountAttribute(): float
     {
         return $this->projectedMonthlyAmount();
+    }
+
+    public function isDueInCalendarMonth(?CarbonInterface $anchor = null): bool
+    {
+        if ($this->next_billing_date === null) {
+            return false;
+        }
+
+        $anchor = CarbonImmutable::instance($anchor ?? CarbonImmutable::today());
+        $due = CarbonImmutable::instance($this->next_billing_date);
+
+        return $due->betweenIncluded($anchor->startOfMonth(), $anchor->endOfMonth());
+    }
+
+    public function isUnpaidForCurrentDue(): bool
+    {
+        if ($this->last_paid_at === null || $this->next_billing_date === null) {
+            return true;
+        }
+
+        return CarbonImmutable::instance($this->last_paid_at)
+            ->lt(CarbonImmutable::instance($this->next_billing_date));
+    }
+
+    public function isPayableThisMonth(?CarbonInterface $anchor = null): bool
+    {
+        return $this->status->isBillable()
+            && $this->isDueInCalendarMonth($anchor)
+            && $this->isUnpaidForCurrentDue();
     }
 }

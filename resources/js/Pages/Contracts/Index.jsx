@@ -86,14 +86,27 @@ export default function Index({ contracts, summary }) {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <SummaryCard
-                            label="Fixed cost / month"
-                            value={formatCurrency(summary.monthly_total)}
+                            label={`Due this month (${summary.month_label})`}
+                            value={formatCurrency(summary.due_this_month)}
                         />
+                        <div className="rounded-lg bg-white p-5 shadow-sm">
+                            <div className="text-sm font-medium text-gray-500">
+                                Payments this month
+                            </div>
+                            <div className="mt-1 text-2xl font-semibold text-gray-900">
+                                {summary.due_this_month_count} due
+                            </div>
+                            {summary.paid_this_month_count > 0 && (
+                                <div className="mt-1 text-xs text-green-600">
+                                    {summary.paid_this_month_count} already paid
+                                </div>
+                            )}
+                        </div>
                         <SummaryCard
-                            label="Fixed cost / year"
-                            value={formatCurrency(summary.yearly_total)}
+                            label="Projected fixed / month"
+                            value={formatCurrency(summary.monthly_total)}
                         />
                         <SummaryCard
                             label="Active contracts"
@@ -177,14 +190,43 @@ export default function Index({ contracts, summary }) {
                                                                 contract.next_billing_date,
                                                             )}
                                                         </span>
-                                                        {contract.last_paid_at && (
-                                                            <span className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                                                                Paid:{' '}
-                                                                {formatDate(
+                                                        {contract.last_paid_at &&
+                                                            contract.next_billing_date &&
+                                                            new Date(
+                                                                contract.last_paid_at,
+                                                            ) >=
+                                                                new Date(
+                                                                    contract.next_billing_date,
+                                                                ) && (
+                                                                <span className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                                                                    Paid
+                                                                </span>
+                                                            )}
+                                                        {contract.status ===
+                                                            'active' &&
+                                                            contract.next_billing_date &&
+                                                            !(
+                                                                contract.last_paid_at &&
+                                                                new Date(
                                                                     contract.last_paid_at,
-                                                                )}
-                                                            </span>
-                                                        )}
+                                                                ) >=
+                                                                    new Date(
+                                                                        contract.next_billing_date,
+                                                                    )
+                                                            ) &&
+                                                            new Date(
+                                                                contract.next_billing_date,
+                                                            ).getMonth() ===
+                                                                new Date().getMonth() &&
+                                                            new Date(
+                                                                contract.next_billing_date,
+                                                            ).getFullYear() ===
+                                                                new Date().getFullYear() && (
+                                                                <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                                                                    Due this
+                                                                    month
+                                                                </span>
+                                                            )}
                                                     </div>
                                                 </div>
 

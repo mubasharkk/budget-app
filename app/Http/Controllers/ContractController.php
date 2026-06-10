@@ -30,9 +30,15 @@ class ContractController extends Controller
             ->where('status', ContractStatus::Active)
             ->sum(fn (Contract $contract): float => $contract->projectedMonthlyAmount());
 
+        $dueThisMonth = $this->contractBillingService->dueThisMonthSummary(Auth::id());
+
         return Inertia::render('Contracts/Index', [
             'contracts' => $contracts,
             'summary' => [
+                'due_this_month' => $dueThisMonth['total'],
+                'due_this_month_count' => $dueThisMonth['count'],
+                'paid_this_month_count' => $dueThisMonth['paid_count'],
+                'month_label' => $dueThisMonth['month'],
                 'monthly_total' => round($monthlyTotal, 2),
                 'yearly_total' => round($monthlyTotal * 12, 2),
                 'active_count' => $contracts->where('status', ContractStatus::Active)->count(),

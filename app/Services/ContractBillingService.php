@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Enums\ContractStatus;
 use App\Models\Contract;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class ContractBillingService
@@ -42,5 +44,50 @@ class ContractBillingService
         ]);
 
         return $contract->refresh();
+    }
+
+    /**
+     * Active contracts with next_billing_date in the calendar month that are not yet paid.
+     *
+     * @return array{month: string, total: float, count: int, paid_count: int}
+     */
+    public function dueThisMonthSummary(int $userId, ?CarbonInterface $anchor = null): array
+    {
+        $anchor = CarbonImmutable::instance($anchor ?? CarbonImmutable::today());
+        $monthStart = $anchor->startOfMonth();
+        $monthEnd = $anchor->endOfMonth();
+
+        $dueThisMonth = Contract::query()
+            ->where('user_id', $userId)
+            ->where('status', ContractStatus::Active)
+            ->whereNotNull('next_billing_date')
+            ->whereBetween('next_billing_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->get();
+
+        $unpaid = $dueThisMonth->filter(
+            fn (Contract $contract): bool => $contract->isUnpaidForCurrentDue()
+        );
+
+        return [
+            'month' => $monthStart->format('Y-m'),
+            'total' => round($unpaid->sum(fn (Contract $contract): float => (float) $contract->amount), 2),
+            'count' => $unpaid->count(),
+            'paid_count' => $dueThisMonth->count() - $unpaid->count(),
+        ];
+    }
+
+    /**
+     * @return Collection<int, Contract>
+     */
+    public function payableThisMonth(int $userId, ?CarbonInterface $anchor = null): Collection
+    {
+        $anchor = CarbonImmutable::instance($anchor ?? CarbonImmutable::today());
+
+        return Contract::query()
+            ->where('user_id', $userId)
+            ->where('status', ContractStatus::Active)
+            ->whereNotNull('next_billing_date')
+            ->get()
+            ->filter(fn (Contract $contract): bool => $contract->isPayableThisMonth($anchor));
     }
 }
