@@ -20,6 +20,75 @@ const ACCEPTED_TYPES = [
 
 const MAX_FILES = 5;
 const MAX_BYTES = 15 * 1024 * 1024;
+const MAX_DIMENSION = 2200;
+const COMPRESSED_TYPE = 'image/jpeg';
+const COMPRESSED_QUALITY = 0.85;
+
+function downscaleImage(file) {
+    return new Promise((resolve) => {
+        if (!file.type.startsWith('image/')) {
+            resolve(file);
+            return;
+        }
+
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+
+        image.onload = () => {
+            URL.revokeObjectURL(url);
+
+            const largestSide = Math.max(image.width, image.height);
+            const scale = Math.min(1, MAX_DIMENSION / largestSide);
+
+            if (scale === 1 && file.size <= MAX_BYTES) {
+                resolve(file);
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(image.width * scale);
+            canvas.height = Math.round(image.height * scale);
+
+            const context = canvas.getContext('2d');
+            if (!context) {
+                resolve(file);
+                return;
+            }
+
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(
+                (blob) => {
+                    if (!blob || blob.size >= file.size) {
+                        resolve(file);
+                        return;
+                    }
+
+                    const name = file.name.replace(
+                        /\.(heic|heif|webp|png|jpeg|jpg)$/i,
+                        '.jpg',
+                    );
+
+                    resolve(
+                        new File([blob], name, {
+                            type: COMPRESSED_TYPE,
+                            lastModified: Date.now(),
+                        }),
+                    );
+                },
+                COMPRESSED_TYPE,
+                COMPRESSED_QUALITY,
+            );
+        };
+
+        image.onerror = () => {
+            URL.revokeObjectURL(url);
+            resolve(file);
+        };
+
+        image.src = url;
+    });
+}
 
 function isAcceptedFile(file) {
     if (ACCEPTED_TYPES.includes(file.type)) {
@@ -115,35 +184,37 @@ export default function ReceiptUploader({
     }, [mode, onUploaded]);
 
     const addFiles = useCallback(
-        (incoming) => {
+        async (incoming) => {
             const accepted = Array.from(incoming).filter(isAcceptedFile);
             if (accepted.length === 0) {
                 setError('Please choose a photo, screenshot, or PDF receipt.');
                 return;
             }
 
-            const oversized = accepted.find((f) => f.size > MAX_BYTES);
+            setError(null);
+
+            const processed = await Promise.all(accepted.map(downscaleImage));
+
+            const oversized = processed.find((f) => f.size > MAX_BYTES);
             if (oversized) {
                 setError('Each file must be smaller than 15 MB.');
                 return;
             }
 
-            setError(null);
-
             if (mode === 'instant') {
-                uploadFiles(accepted);
+                uploadFiles(processed);
                 return;
             }
 
             setFiles((prev) => {
-                const merged = [...prev, ...accepted].slice(0, MAX_FILES);
-                if (prev.length + accepted.length > MAX_FILES) {
+                const merged = [...prev, ...processed].slice(0, MAX_FILES);
+                if (prev.length + processed.length > MAX_FILES) {
                     setError(`You can upload up to ${MAX_FILES} files at once.`);
                 }
                 return merged;
             });
 
-            accepted.forEach((file) => {
+            processed.forEach((file) => {
                 if (file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
