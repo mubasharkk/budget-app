@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ContractStatus;
 use App\Models\Contract;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,6 +32,17 @@ class ContractMarkPaidTest extends TestCase
         $this->assertSame('2026-07-01', $contract->next_billing_date->toDateString());
         $this->assertNotNull($contract->last_paid_at);
         $this->assertSame(ContractStatus::Active, $contract->status);
+        $this->assertTrue($contract->is_paid_this_month);
+    }
+
+    public function test_contract_is_not_marked_paid_this_month_when_last_payment_was_earlier(): void
+    {
+        $contract = Contract::factory()->make([
+            'last_paid_at' => CarbonImmutable::today()->subMonth(),
+            'next_billing_date' => CarbonImmutable::today(),
+        ]);
+
+        $this->assertFalse($contract->is_paid_this_month);
     }
 
     public function test_mark_paid_cancels_contract_when_next_billing_exceeds_end_date(): void

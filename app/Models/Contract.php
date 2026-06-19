@@ -61,6 +61,7 @@ class Contract extends Model
 
     protected $appends = [
         'projected_monthly_amount',
+        'is_paid_this_month',
     ];
 
     public function user(): BelongsTo
@@ -101,6 +102,23 @@ class Contract extends Model
         $due = CarbonImmutable::instance($this->next_billing_date);
 
         return $due->betweenIncluded($anchor->startOfMonth(), $anchor->endOfMonth());
+    }
+
+    public function isPaidThisMonth(?CarbonInterface $anchor = null): bool
+    {
+        if ($this->last_paid_at === null) {
+            return false;
+        }
+
+        $anchor = CarbonImmutable::instance($anchor ?? CarbonImmutable::today());
+
+        return CarbonImmutable::instance($this->last_paid_at)
+            ->betweenIncluded($anchor->startOfMonth(), $anchor->endOfMonth());
+    }
+
+    public function getIsPaidThisMonthAttribute(): bool
+    {
+        return $this->isPaidThisMonth();
     }
 
     public function isUnpaidForCurrentDue(): bool

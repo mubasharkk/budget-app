@@ -7,6 +7,7 @@ import {
     TrashIcon,
     CheckCircleIcon,
 } from '@heroicons/react/24/outline';
+import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
 import { formatCurrency } from '@/utils/money';
 
 const statusBadge = {
@@ -26,6 +27,18 @@ const formatDate = (value) =>
 
 const isOverdue = (value) =>
     value && new Date(value) < new Date(new Date().toDateString());
+
+const isThisMonth = (value) => {
+    if (!value) {
+        return false;
+    }
+    const date = new Date(value);
+    const now = new Date();
+    return (
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
+    );
+};
 
 function SummaryCard({ label, value }) {
     return (
@@ -190,38 +203,18 @@ export default function Index({ contracts, summary }) {
                                                                 contract.next_billing_date,
                                                             )}
                                                         </span>
-                                                        {contract.last_paid_at &&
-                                                            contract.next_billing_date &&
-                                                            new Date(
-                                                                contract.last_paid_at,
-                                                            ) >=
-                                                                new Date(
-                                                                    contract.next_billing_date,
-                                                                ) && (
-                                                                <span className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                                                                    Paid
-                                                                </span>
-                                                            )}
+                                                        {contract.is_paid_this_month && (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                                                <CheckCircleIconSolid className="h-3.5 w-3.5" />
+                                                                Paid
+                                                            </span>
+                                                        )}
                                                         {contract.status ===
                                                             'active' &&
-                                                            contract.next_billing_date &&
-                                                            !(
-                                                                contract.last_paid_at &&
-                                                                new Date(
-                                                                    contract.last_paid_at,
-                                                                ) >=
-                                                                    new Date(
-                                                                        contract.next_billing_date,
-                                                                    )
-                                                            ) &&
-                                                            new Date(
+                                                            !contract.is_paid_this_month &&
+                                                            isThisMonth(
                                                                 contract.next_billing_date,
-                                                            ).getMonth() ===
-                                                                new Date().getMonth() &&
-                                                            new Date(
-                                                                contract.next_billing_date,
-                                                            ).getFullYear() ===
-                                                                new Date().getFullYear() && (
+                                                            ) && (
                                                                 <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
                                                                     Due this
                                                                     month
@@ -248,20 +241,28 @@ export default function Index({ contracts, summary }) {
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         {contract.status ===
-                                                            'active' && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    handleMarkPaid(
-                                                                        contract,
-                                                                    )
-                                                                }
-                                                                className="text-gray-400 hover:text-green-600"
-                                                                title="Mark as paid"
-                                                            >
-                                                                <CheckCircleIcon className="h-5 w-5" />
-                                                            </button>
-                                                        )}
+                                                            'active' &&
+                                                            (contract.is_paid_this_month ? (
+                                                                <span
+                                                                    className="text-green-600"
+                                                                    title="Paid this month"
+                                                                >
+                                                                    <CheckCircleIconSolid className="h-5 w-5" />
+                                                                </span>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleMarkPaid(
+                                                                            contract,
+                                                                        )
+                                                                    }
+                                                                    className="text-gray-400 hover:text-green-600"
+                                                                    title="Mark as paid"
+                                                                >
+                                                                    <CheckCircleIcon className="h-5 w-5" />
+                                                                </button>
+                                                            ))}
                                                         <Link
                                                             href={route(
                                                                 'contracts.edit',
