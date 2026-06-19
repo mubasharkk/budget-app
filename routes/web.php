@@ -25,13 +25,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/overview', [\App\Http\Controllers\Dashboard\DashboardController::class, 'overview'])->name('dashboard.overview');
     Route::get('/dashboard/trend', [\App\Http\Controllers\Dashboard\DashboardController::class, 'trend'])->name('dashboard.trend');
     Route::get('/dashboard/consumption', [\App\Http\Controllers\Dashboard\DashboardController::class, 'consumption'])->name('dashboard.consumption');
-    Route::get('/dashboard/savings', [\App\Http\Controllers\Dashboard\DashboardController::class, 'savingsData'])->name('dashboard.savings');
+    Route::get('/dashboard/deals', [\App\Http\Controllers\Dashboard\DashboardController::class, 'dealsData'])->name('dashboard.deals');
     Route::get('/dashboard/budgets', [\App\Http\Controllers\Dashboard\DashboardController::class, 'budgets'])->name('dashboard.budgets');
     Route::get('/dashboard/snapshot', [\App\Http\Controllers\Dashboard\DashboardController::class, 'snapshot'])->name('dashboard.snapshot');
 
     // Consumption insights page
     Route::get('/insights', [\App\Http\Controllers\Dashboard\DashboardController::class, 'insights'])->name('insights');
-    Route::get('/savings', [\App\Http\Controllers\Dashboard\DashboardController::class, 'savings'])->name('savings');
+    Route::get('/deals', [\App\Http\Controllers\Dashboard\DashboardController::class, 'deals'])->name('deals');
 
     // Product price intelligence detail
     Route::get('/products/{product}', [\App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
@@ -52,6 +52,9 @@ Route::middleware('auth')->group(function () {
 
     // One-time income entries
     Route::resource('incomes', \App\Http\Controllers\IncomeController::class)->except('show');
+
+    // Manual savings entries
+    Route::resource('savings', \App\Http\Controllers\SavingController::class)->except('show');
 
     // Category budgets
     Route::resource('budgets', \App\Http\Controllers\BudgetController::class)->except('show');

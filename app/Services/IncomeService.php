@@ -60,6 +60,20 @@ class IncomeService
         ];
     }
 
+    /**
+     * Raw period income (recurring + one-time) regardless of whether it is zero.
+     */
+    public function periodIncome(User $user, string $period, ?CarbonInterface $anchor = null): float
+    {
+        $anchor = CarbonImmutable::instance($anchor ?? CarbonImmutable::today());
+        [$start, $end] = $this->periodRange($period, $anchor);
+
+        return round(
+            $this->recurringForPeriod($user, $period) + $this->oneTimeForPeriod($user, $start, $end),
+            2,
+        );
+    }
+
     public function recurringForPeriod(User $user, string $period): float
     {
         if ($user->monthly_income === null || (float) $user->monthly_income <= 0) {

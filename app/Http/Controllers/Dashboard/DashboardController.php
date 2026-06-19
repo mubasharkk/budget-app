@@ -9,6 +9,7 @@ use App\Services\ConsumptionService;
 use App\Services\Dashboard\DashboardService;
 use App\Services\DashboardSnapshotService;
 use App\Services\ExpenseService;
+use App\Services\IncomeService;
 use App\Services\PriceIntelligenceService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -25,6 +26,7 @@ class DashboardController extends Controller
         protected PriceIntelligenceService $priceIntelligenceService,
         protected BudgetService $budgetService,
         protected DashboardSnapshotService $dashboardSnapshotService,
+        protected IncomeService $incomeService,
     ) {}
 
     /**
@@ -56,11 +58,11 @@ class DashboardController extends Controller
     }
 
     /**
-     * Display the savings / price intelligence page.
+     * Display the deals / price intelligence page.
      */
-    public function savings()
+    public function deals()
     {
-        return Inertia::render('Savings');
+        return Inertia::render('Deals');
     }
 
     /**
@@ -80,7 +82,7 @@ class DashboardController extends Controller
     /**
      * Price intelligence: savings opportunities, cheapest vendors, and price trends.
      */
-    public function savingsData(Request $request)
+    public function dealsData(Request $request)
     {
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
@@ -229,6 +231,8 @@ class DashboardController extends Controller
         $delta = round($current['total'] - $previousTotal, 2);
         $deltaPercent = $previousTotal > 0 ? round(($delta / $previousTotal) * 100, 1) : null;
 
+        $income = $this->incomeService->periodIncome(Auth::user(), $period);
+
         return response()->json([
             'period' => $period,
             'start' => $start->toDateString(),
@@ -237,6 +241,12 @@ class DashboardController extends Controller
             'previous_total' => $previousTotal,
             'delta' => $delta,
             'delta_percent' => $deltaPercent,
+            'balance' => [
+                'income' => $income,
+                'expenses' => $current['variable'],
+                'contracts' => $current['fixed'],
+                'balance' => round($income - $current['variable'] - $current['fixed'], 2),
+            ],
         ]);
     }
 

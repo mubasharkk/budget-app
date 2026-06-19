@@ -77,10 +77,10 @@ export default function Show({ product }) {
             header={
                 <div className="flex items-center gap-3">
                     <Link
-                        href={route('savings')}
+                        href={route('deals')}
                         className="text-sm text-gray-500 hover:text-gray-700"
                     >
-                        ← Savings
+                        ← Deals
                     </Link>
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
                         {product.name}

@@ -130,7 +130,7 @@ export default function ExpenseOverview() {
                 <Skeleton />
             ) : (
                 <>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <SummaryCard
                             label={`Total spend (${periodLabel.toLowerCase()})`}
                             value={formatCurrency(overview.current.total)}
@@ -147,6 +147,22 @@ export default function ExpenseOverview() {
                             value={formatCurrency(overview.current.variable)}
                             accent="text-emerald-600"
                         />
+                        {overview.balance && (
+                            <SummaryCard
+                                label="Balance"
+                                value={formatCurrency(overview.balance.balance)}
+                                accent={
+                                    overview.balance.balance >= 0
+                                        ? 'text-emerald-600'
+                                        : 'text-red-600'
+                                }
+                            >
+                                <div className="mt-1 text-xs text-gray-500">
+                                    {formatCurrency(overview.balance.income)}{' '}
+                                    income − spend
+                                </div>
+                            </SummaryCard>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

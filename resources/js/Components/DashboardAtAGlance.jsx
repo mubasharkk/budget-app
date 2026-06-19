@@ -28,6 +28,47 @@ function SnapshotCard({ title, value, subtitle, href, accent = 'text-gray-900' }
     );
 }
 
+function BalanceHero({ balance, period }) {
+    const periodNoun = period === 'week' ? 'week' : 'month';
+    const positive = balance.balance >= 0;
+
+    return (
+        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Balance this {periodNoun}
+                    </div>
+                    <div
+                        className={`mt-1 text-3xl font-bold ${positive ? 'text-emerald-600' : 'text-red-600'}`}
+                    >
+                        {formatCurrency(balance.balance)}
+                    </div>
+                    <div className="mt-1 text-sm text-gray-500">
+                        {formatCurrency(balance.income)} income −{' '}
+                        {formatCurrency(balance.expenses)} expenses −{' '}
+                        {formatCurrency(balance.contracts)} contracts
+                    </div>
+                </div>
+                <Link
+                    href={balance.href}
+                    className="text-right text-sm text-gray-500 transition hover:text-indigo-600"
+                >
+                    <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Saved this {periodNoun}
+                    </div>
+                    <div className="mt-1 text-xl font-semibold text-gray-900">
+                        {formatCurrency(balance.saved)}
+                    </div>
+                    <div className="mt-0.5 text-xs text-indigo-600">
+                        Manage savings →
+                    </div>
+                </Link>
+            </div>
+        </div>
+    );
+}
+
 function Skeleton() {
     return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -101,6 +142,10 @@ export default function DashboardAtAGlance() {
             {loading || !data ? (
                 <Skeleton />
             ) : (
+                <>
+                {data.balance && (
+                    <BalanceHero balance={data.balance} period={period} />
+                )}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                     <SnapshotCard
                         title="Spending"
@@ -126,7 +171,7 @@ export default function DashboardAtAGlance() {
                         accent={statusAccent[data.budgets.status]}
                     />
                     <SnapshotCard
-                        title="Savings"
+                        title="Deals"
                         value={
                             data.savings.opportunity_count > 0
                                 ? formatCurrency(data.savings.potential_total)
@@ -180,6 +225,7 @@ export default function DashboardAtAGlance() {
                         href={data.agent.href}
                     />
                 </div>
+                </>
             )}
         </div>
     );

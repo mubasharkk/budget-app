@@ -6,6 +6,7 @@ use App\Enums\BudgetPeriod;
 use App\Enums\ContractStatus;
 use App\Models\Contract;
 use App\Models\Digest;
+use App\Models\Saving;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 
@@ -19,6 +20,7 @@ class DashboardSnapshotService
         private RenewalReminderService $renewalReminderService,
         private AnomalyDetectionService $anomalyDetectionService,
         private RecommendationService $recommendationService,
+        private IncomeService $incomeService,
     ) {}
 
     /**
@@ -68,6 +70,14 @@ class DashboardSnapshotService
 
         $potentialSavings = round($savings->sum(fn ($row) => (float) $row->potential_savings), 2);
 
+        $user = \App\Models\User::find($userId);
+        $periodIncome = $user ? $this->incomeService->periodIncome($user, $period, $anchor) : 0.0;
+        $balance = round($periodIncome - $overview['variable'] - $overview['fixed'], 2);
+        $saved = round((float) Saving::query()
+            ->where('user_id', $userId)
+            ->whereBetween('saved_on', [$start->toDateString(), $end->toDateString()])
+            ->sum('amount'), 2);
+
         return [
             'period' => $period,
             'expenses' => [
@@ -88,10 +98,18 @@ class DashboardSnapshotService
                 'href' => route('budgets.index', ['period' => $budgetPeriod->value]),
             ],
             'income' => $budget['income'],
+            'balance' => [
+                'income' => $periodIncome,
+                'expenses' => $overview['variable'],
+                'contracts' => $overview['fixed'],
+                'balance' => $balance,
+                'saved' => $saved,
+                'href' => route('savings.index'),
+            ],
             'savings' => [
                 'opportunity_count' => $savings->count(),
                 'potential_total' => $potentialSavings,
-                'href' => route('savings'),
+                'href' => route('deals'),
             ],
             'consumption' => [
                 'top_item' => $topItem?->item_name,

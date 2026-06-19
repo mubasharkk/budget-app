@@ -52,7 +52,7 @@ function TrendBadge({ direction }) {
     );
 }
 
-export default function Savings() {
+export default function Deals() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [data, setData] = useState(null);
@@ -65,10 +65,10 @@ export default function Savings() {
         if (endDate) query.end_date = endDate;
 
         axios
-            .get('/dashboard/savings', { params: query })
+            .get('/dashboard/deals', { params: query })
             .then((res) => setData(res.data))
             .catch((error) =>
-                console.error('Error fetching savings data:', error),
+                console.error('Error fetching deals data:', error),
             )
             .finally(() => setLoading(false));
     };
@@ -82,7 +82,7 @@ export default function Savings() {
         setEndDate('');
         setLoading(true);
         axios
-            .get('/dashboard/savings')
+            .get('/dashboard/deals')
             .then((res) => setData(res.data))
             .finally(() => setLoading(false));
     };
@@ -115,11 +115,11 @@ export default function Savings() {
         <AuthenticatedLayout
             header={
                 <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Savings
+                    Deals
                 </h2>
             }
         >
-            <Head title="Savings" />
+            <Head title="Deals" />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
