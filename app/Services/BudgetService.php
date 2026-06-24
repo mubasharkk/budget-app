@@ -56,7 +56,7 @@ class BudgetService
     /**
      * Dashboard summary across budgets for a period.
      *
-     * @return array{period: string, budgeted: float, actual: float, remaining: float, over_count: int, warning_count: int, on_track_count: int, items: array<int, array<string, mixed>>, income: ?array<string, mixed>}
+     * @return array{period: string, budgeted: float, actual: float, contracts: float, remaining: float, over_count: int, warning_count: int, on_track_count: int, items: array<int, array<string, mixed>>, income: ?array<string, mixed>}
      */
     public function summary(int $userId, BudgetPeriod $period, ?CarbonInterface $anchor = null): array
     {
@@ -64,6 +64,9 @@ class BudgetService
 
         $budgeted = round(array_sum(array_column($items, 'budget_amount')), 2);
         $actual = round(array_sum(array_column($items, 'actual')), 2);
+        $contracts = round(array_sum(
+            $this->expenseService->fixedByCategory($userId, $period->toExpensePeriod())
+        ), 2);
 
         $overCount = count(array_filter($items, fn (array $row): bool => $row['status'] === 'over'));
         $warningCount = count(array_filter($items, fn (array $row): bool => $row['status'] === 'warning'));
@@ -77,6 +80,7 @@ class BudgetService
             'period' => $period->value,
             'budgeted' => $budgeted,
             'actual' => $actual,
+            'contracts' => $contracts,
             'remaining' => round(max(0, $budgeted - $actual), 2),
             'over_count' => $overCount,
             'warning_count' => $warningCount,

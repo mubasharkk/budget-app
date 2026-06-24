@@ -176,6 +176,7 @@ class BudgetServiceTest extends TestCase
         $this->assertSame(5000.0, $summary['income']['period_income']);
         $this->assertSame(20.0, $summary['income']['budgeted_percent']);
         $this->assertSame(5.0, $summary['income']['spend_percent']);
+        $this->assertSame(150.0, $summary['contracts']); // 50 monthly + 1200 yearly / 12
 
         CarbonImmutable::setTestNow();
     }

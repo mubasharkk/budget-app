@@ -61,6 +61,9 @@ export default function IncomeOverview() {
 
     const income = data?.income;
     const periodLabel = period === 'weekly' ? 'This week' : 'This month';
+    const contracts = data?.contracts ?? 0;
+    const netIncome = income ? income.period_income - contracts : 0;
+    const potentialSaving = netIncome - (data?.actual ?? 0);
 
     return (
         <div className="space-y-4 p-6">
@@ -123,43 +126,24 @@ export default function IncomeOverview() {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                         <div className="rounded-lg bg-indigo-50 p-4">
                             <div className="text-sm text-indigo-600">
-                                {periodLabel} income ({income.income_type_label})
+                                {periodLabel} income after contracts
                             </div>
                             <div className="mt-1 text-xl font-semibold text-gray-900">
-                                {formatCurrency(
-                                    income.period_income,
-                                    income.currency,
-                                )}
+                                {formatCurrency(netIncome, income.currency)}
                             </div>
                             <div className="mt-1 space-y-0.5 text-xs text-gray-500">
-                                {income.has_recurring_income &&
-                                    income.monthly_income && (
-                                        <div>
-                                            Recurring:{' '}
-                                            {formatCurrency(
-                                                income.recurring_period_income,
-                                                income.currency,
-                                            )}
-                                        </div>
-                                    )}
-                                {income.has_one_time_income && (
-                                    <div>
-                                        One-time:{' '}
-                                        {formatCurrency(
-                                            income.one_time_period_income,
-                                            income.currency,
-                                        )}
-                                    </div>
-                                )}
-                                {income.monthly_income && (
-                                    <div>
-                                        {formatCurrency(
-                                            income.monthly_income,
-                                            income.currency,
-                                        )}{' '}
-                                        / month recurring
-                                    </div>
-                                )}
+                                <div>
+                                    {formatCurrency(
+                                        income.period_income,
+                                        income.currency,
+                                    )}{' '}
+                                    income
+                                </div>
+                                <div>
+                                    −{' '}
+                                    {formatCurrency(contracts, income.currency)}{' '}
+                                    contracts
+                                </div>
                             </div>
                         </div>
                         <div className="rounded-lg bg-gray-50 p-4">
@@ -190,28 +174,24 @@ export default function IncomeOverview() {
                                 {income.budgeted_percent}% of income
                             </div>
                         </div>
-                        <div className="rounded-lg bg-gray-50 p-4">
-                            <div className="text-sm text-gray-500">
-                                Left after spend
+                        <div className="rounded-lg bg-emerald-50 p-4">
+                            <div className="text-sm text-emerald-700">
+                                Potential saving
                             </div>
                             <div
                                 className={`mt-1 text-xl font-semibold ${
-                                    income.disposable < 0
+                                    potentialSaving < 0
                                         ? 'text-red-600'
-                                        : 'text-green-600'
+                                        : 'text-emerald-600'
                                 }`}
                             >
                                 {formatCurrency(
-                                    income.disposable,
+                                    potentialSaving,
                                     income.currency,
                                 )}
                             </div>
                             <div className="mt-1 text-xs text-gray-500">
-                                {formatCurrency(
-                                    income.remaining_after_budgets,
-                                    income.currency,
-                                )}{' '}
-                                after budgets
+                                income − contracts − spend
                             </div>
                         </div>
                     </div>
