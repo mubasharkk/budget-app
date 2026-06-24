@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class ConsumptionService
@@ -78,6 +79,45 @@ class ConsumptionService
         $this->applyReceiptDateRange($query, $startDate, $endDate, qualified: false);
 
         return $query->get();
+    }
+
+    /**
+     * Spend per calendar month for a given year, optionally scoped to a category
+     * (a parent category includes its subcategories). Always returns 12 entries,
+     * zero-filling months without spend.
+     *
+     * @return array<int, array{month: int, label: string, total: float}>
+     */
+    public function monthlySpendTrend(int $userId, int $year, ?int $categoryId = null): array
+    {
+        $start = sprintf('%04d-01-01 00:00:00', $year);
+        $end = sprintf('%04d-12-31 23:59:59', $year);
+
+        $query = ReceiptItem::query()
+            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->where('receipts.user_id', $userId)
+            ->whereBetween('receipts.receipt_date', [$start, $end])
+            ->select(['receipt_items.total', 'receipts.receipt_date']);
+
+        $this->applyCategoryFilter($query, $categoryId);
+
+        $totals = array_fill(1, 12, 0.0);
+
+        $query->get()->each(function (object $row) use (&$totals): void {
+            $month = (int) Carbon::parse($row->receipt_date)->format('n');
+            $totals[$month] += (float) $row->total;
+        });
+
+        $trend = [];
+        foreach ($totals as $month => $total) {
+            $trend[] = [
+                'month' => $month,
+                'label' => Carbon::create($year, $month, 1)->format('M'),
+                'total' => round($total, 2),
+            ];
+        }
+
+        return $trend;
     }
 
     /**

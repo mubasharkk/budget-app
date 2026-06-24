@@ -119,6 +119,7 @@ class DashboardController extends Controller
         }
 
         $userId = Auth::id();
+        $year = (int) ($request->get('year') ?: now()->year);
 
         return response()->json([
             'period' => $period,
@@ -126,6 +127,10 @@ class DashboardController extends Controller
             'end' => $endDate,
             'limit' => $limit,
             'metric' => $metric,
+            'year' => $year,
+            'monthly_trend' => $this->consumptionService->monthlySpendTrend(
+                $userId, $year, $categoryId
+            ),
             'items' => $this->consumptionService->topItems(
                 $userId, $metric, $startDate, $endDate, $categoryId, $limit
             ),

@@ -30,6 +30,36 @@ class ConsumptionServiceTest extends TestCase
         ReceiptItem::factory()->for($other)->create(['name' => 'Milk', 'quantity' => 99, 'unit_price' => 1]);
     }
 
+    public function test_monthly_spend_trend_totals_by_month_and_filters_by_category(): void
+    {
+        $user = User::factory()->create();
+        $groceries = Category::factory()->create(['name' => 'Groceries']);
+        $beverages = Category::factory()->create(['name' => 'Beverages']);
+
+        $march = Receipt::factory()->for($user)->create(['receipt_date' => '2026-03-10']);
+        ReceiptItem::factory()->for($march)->create(['quantity' => 1, 'unit_price' => 40, 'category_id' => $groceries->id]);
+        ReceiptItem::factory()->for($march)->create(['quantity' => 1, 'unit_price' => 10, 'category_id' => $beverages->id]);
+
+        $july = Receipt::factory()->for($user)->create(['receipt_date' => '2026-07-05']);
+        ReceiptItem::factory()->for($july)->create(['quantity' => 1, 'unit_price' => 25, 'category_id' => $groceries->id]);
+
+        // Different year must be excluded.
+        $prevYear = Receipt::factory()->for($user)->create(['receipt_date' => '2025-03-01']);
+        ReceiptItem::factory()->for($prevYear)->create(['quantity' => 1, 'unit_price' => 999, 'category_id' => $groceries->id]);
+
+        $trend = (new ConsumptionService)->monthlySpendTrend($user->id, 2026);
+
+        $this->assertCount(12, $trend);
+        $this->assertSame(3, $trend[2]['month']);
+        $this->assertSame(50.0, $trend[2]['total']); // 40 + 10
+        $this->assertSame(25.0, $trend[6]['total']); // July
+        $this->assertSame(0.0, $trend[0]['total']);  // January is zero-filled
+
+        $groceriesTrend = (new ConsumptionService)->monthlySpendTrend($user->id, 2026, $groceries->id);
+        $this->assertSame(40.0, $groceriesTrend[2]['total']); // beverages excluded
+        $this->assertSame(25.0, $groceriesTrend[6]['total']);
+    }
+
     public function test_top_items_rank_differently_by_quantity_and_spend(): void
     {
         $user = User::factory()->create();

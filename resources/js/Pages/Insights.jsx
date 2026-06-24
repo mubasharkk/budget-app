@@ -9,12 +9,18 @@ import TextInput from '@/Components/TextInput';
 import {
     BarChart,
     Bar,
+    LineChart,
+    Line,
+    CartesianGrid,
     XAxis,
     YAxis,
     Tooltip,
     ResponsiveContainer,
 } from 'recharts';
 import { formatCurrency } from '@/utils/money';
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 
 const selectClasses =
     'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500';
@@ -46,15 +52,17 @@ export default function Insights() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [categoryId, setCategoryId] = useState('');
+    const [year, setYear] = useState(CURRENT_YEAR);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchData = () => {
+    const fetchData = (overrides = {}) => {
         setLoading(true);
-        const params = {};
+        const params = { year };
         if (startDate) params.start_date = startDate;
         if (endDate) params.end_date = endDate;
         if (categoryId) params.category_id = categoryId;
+        Object.assign(params, overrides);
 
         axios
             .get('/dashboard/consumption', { params })
@@ -77,10 +85,11 @@ export default function Insights() {
         setStartDate('');
         setEndDate('');
         setCategoryId('');
+        setYear(CURRENT_YEAR);
         // refetch with cleared params on next tick via the values directly
         setLoading(true);
         axios
-            .get('/dashboard/consumption')
+            .get('/dashboard/consumption', { params: { year: CURRENT_YEAR } })
             .then((res) => setData(res.data))
             .finally(() => setLoading(false));
     };
@@ -88,6 +97,12 @@ export default function Insights() {
     const topByQuantity = data ? toNumber(data.top_by_quantity, ['total_quantity']) : [];
     const topBySpend = data ? toNumber(data.top_by_spend, ['total_spend']) : [];
     const vendors = data ? toNumber(data.vendors, ['receipt_count', 'total_spent']) : [];
+    const monthlyTrend = data ? toNumber(data.monthly_trend ?? [], ['total']) : [];
+    const trendYear = data?.year ?? year;
+    const selectedCategoryName =
+        categoryOptions.find((c) => String(c.id) === String(categoryId))?.name ??
+        'All categories';
+    const trendTotal = monthlyTrend.reduce((sum, row) => sum + row.total, 0);
 
     return (
         <AuthenticatedLayout
@@ -103,7 +118,7 @@ export default function Insights() {
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
                     {/* Filters */}
                     <div className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                             <div>
                                 <InputLabel htmlFor="start" value="From" />
                                 <TextInput
@@ -147,6 +162,25 @@ export default function Insights() {
                                     ))}
                                 </select>
                             </div>
+                            <div>
+                                <InputLabel htmlFor="year" value="Trend year" />
+                                <select
+                                    id="year"
+                                    className={selectClasses}
+                                    value={year}
+                                    onChange={(e) => {
+                                        const nextYear = Number(e.target.value);
+                                        setYear(nextYear);
+                                        fetchData({ year: nextYear });
+                                    }}
+                                >
+                                    {YEAR_OPTIONS.map((y) => (
+                                        <option key={y} value={y}>
+                                            {y}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             <div className="flex items-end gap-2">
                                 <PrimaryButton
                                     type="button"
@@ -167,6 +201,55 @@ export default function Insights() {
                     {loading ? (
                         <div className="h-72 animate-pulse rounded-lg bg-gray-200" />
                     ) : (
+                        <>
+                        <Panel
+                            title={`Monthly spend — ${selectedCategoryName} (${trendYear})`}
+                        >
+                            {trendTotal === 0 ? (
+                                <EmptyState>
+                                    No spending recorded in {trendYear}.
+                                </EmptyState>
+                            ) : (
+                                <>
+                                    <div className="mb-4 text-sm text-gray-500">
+                                        Total {trendYear}:{' '}
+                                        <span className="font-semibold text-gray-900">
+                                            {formatCurrency(trendTotal)}
+                                        </span>
+                                    </div>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <LineChart data={monthlyTrend}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis
+                                                dataKey="label"
+                                                tick={{ fontSize: 12 }}
+                                            />
+                                            <YAxis
+                                                tick={{ fontSize: 12 }}
+                                                tickFormatter={(v) =>
+                                                    formatCurrency(v)
+                                                }
+                                                width={80}
+                                            />
+                                            <Tooltip
+                                                formatter={(value) =>
+                                                    formatCurrency(value)
+                                                }
+                                            />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="total"
+                                                name="Spend"
+                                                stroke="#6366F1"
+                                                strokeWidth={2}
+                                                dot={{ r: 3 }}
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </>
+                            )}
+                        </Panel>
+
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                             <Panel title="Most consumed (by quantity)">
                                 {topByQuantity.length === 0 ? (
@@ -276,6 +359,7 @@ export default function Insights() {
                                 )}
                             </Panel>
                         </div>
+                        </>
                     )}
                 </div>
             </div>
