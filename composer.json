@@ -6,7 +6,7 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.4.1",
         "backpack/crud": "^6.8",
         "backpack/theme-tabler": "^1.2",
         "inertiajs/inertia-laravel": "^2.0",
