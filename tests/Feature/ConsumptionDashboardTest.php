@@ -32,7 +32,7 @@ class ConsumptionDashboardTest extends TestCase
             ->assertJsonPath('period', 'month')
             ->assertJsonPath('limit', 20)
             ->assertJsonPath('items.0.item_name', 'Milk')
-            ->assertJsonPath('items.0.total_quantity', '4.000');
+            ->assertJsonPath('items.0.total_quantity', 4);
     }
 
     public function test_consumption_endpoint_filters_by_category_and_quarter(): void

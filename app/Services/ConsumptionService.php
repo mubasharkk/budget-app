@@ -44,7 +44,13 @@ class ConsumptionService
         $this->applyReceiptDateRange($query, $startDate, $endDate);
         $this->applyCategoryFilter($query, $categoryId);
 
-        return $query->get();
+        return $query->get()->map(function (object $row): object {
+            $row->total_quantity = (float) $row->total_quantity;
+            $row->total_spend = round((float) $row->total_spend, 2);
+            $row->purchase_count = (int) $row->purchase_count;
+
+            return $row;
+        });
     }
 
     /**

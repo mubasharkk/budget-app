@@ -52,6 +52,7 @@ class PriceIntelligenceService
 
         return $query->get()->map(function (object $row) use ($cheapestVendors): object {
             $row->cheapest_vendor = $cheapestVendors->get($row->product_id)?->vendor;
+            $row->potential_savings = round((float) $row->potential_savings, 2);
 
             return $row;
         });
