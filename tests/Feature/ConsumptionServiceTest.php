@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
@@ -58,6 +59,67 @@ class ConsumptionServiceTest extends TestCase
         $groceriesTrend = (new ConsumptionService)->monthlySpendTrend($user->id, 2026, $groceries->id);
         $this->assertSame(40.0, $groceriesTrend[2]['total']); // beverages excluded
         $this->assertSame(25.0, $groceriesTrend[6]['total']);
+    }
+
+    public function test_monthly_contract_trend_respects_billing_window_and_category(): void
+    {
+        $user = User::factory()->create();
+        $utilities = Category::factory()->create(['name' => 'Utilities']);
+        $other = Category::factory()->create(['name' => 'Other']);
+
+        // Monthly contract active from April onward → 100/mo from April..December.
+        Contract::factory()->for($user)->create([
+            'amount' => 100,
+            'billing_cycle' => 'monthly',
+            'start_date' => '2026-04-01',
+            'end_date' => null,
+            'category_id' => $utilities->id,
+        ]);
+
+        // Different category — excluded when filtering on Utilities.
+        Contract::factory()->for($user)->create([
+            'amount' => 50,
+            'billing_cycle' => 'monthly',
+            'start_date' => '2026-01-01',
+            'end_date' => null,
+            'category_id' => $other->id,
+        ]);
+
+        $trend = (new ConsumptionService)->monthlyContractTrend($user->id, 2026, $utilities->id);
+
+        $this->assertCount(12, $trend);
+        $this->assertSame(0.0, $trend[2]['total']);   // March — before start
+        $this->assertSame(100.0, $trend[3]['total']); // April — active
+        $this->assertSame(100.0, $trend[11]['total']); // December — still active
+    }
+
+    public function test_monthly_contract_series_splits_by_category_when_unfiltered(): void
+    {
+        $user = User::factory()->create();
+        $utilities = Category::factory()->create(['name' => 'Utilities']);
+        $internet = Category::factory()->create(['name' => 'Internet']);
+
+        Contract::factory()->for($user)->create([
+            'amount' => 100, 'billing_cycle' => 'monthly',
+            'start_date' => '2026-01-01', 'end_date' => null, 'category_id' => $utilities->id,
+        ]);
+        Contract::factory()->for($user)->create([
+            'amount' => 30, 'billing_cycle' => 'monthly',
+            'start_date' => '2026-01-01', 'end_date' => null, 'category_id' => $internet->id,
+        ]);
+
+        $series = (new ConsumptionService)->monthlyContractSeries($user->id, 2026);
+
+        $this->assertCount(2, $series);
+        $utilitiesSeries = collect($series)->firstWhere('label', 'Utilities');
+        $this->assertNotNull($utilitiesSeries);
+        $this->assertCount(12, $utilitiesSeries['monthly']);
+        $this->assertSame(100.0, $utilitiesSeries['monthly'][1]);
+
+        // A single selected category collapses to one combined series.
+        $single = (new ConsumptionService)->monthlyContractSeries($user->id, 2026, $utilities->id);
+        $this->assertCount(1, $single);
+        $this->assertSame('contracts', $single[0]['key']);
     }
 
     public function test_top_items_rank_differently_by_quantity_and_spend(): void

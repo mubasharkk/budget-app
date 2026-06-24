@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Category;
+use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use Illuminate\Database\Eloquent\Builder;
@@ -121,6 +122,101 @@ class ConsumptionService
     }
 
     /**
+     * Fixed contract cost (normalized to a monthly equivalent) per calendar month
+     * for a given year, optionally scoped to a category. A contract contributes to
+     * a month when its billing window (start_date/end_date) overlaps that month.
+     * Always returns 12 entries.
+     *
+     * @return array<int, array{month: int, label: string, total: float}>
+     */
+    public function monthlyContractTrend(int $userId, int $year, ?int $categoryId = null): array
+    {
+        $contracts = $this->contractsForTrend($userId, $categoryId);
+
+        $trend = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
+            $trend[] = [
+                'month' => $month,
+                'label' => $monthStart->format('M'),
+                'total' => $this->contractTotalForMonth($contracts, $monthStart),
+            ];
+        }
+
+        return $trend;
+    }
+
+    /**
+     * Fixed contract cost per month, split into one series per contract category.
+     * When a single category is selected the result is a single combined series.
+     *
+     * @return array<int, array{key: string, label: string, monthly: array<int, float>}>
+     */
+    public function monthlyContractSeries(int $userId, int $year, ?int $categoryId = null): array
+    {
+        $contracts = $this->contractsForTrend($userId, $categoryId);
+
+        if ($contracts->isEmpty()) {
+            return [];
+        }
+
+        $groups = $categoryId
+            ? collect(['contracts' => ['label' => 'Contracts (fixed)', 'contracts' => $contracts]])
+            : $contracts->groupBy(fn (Contract $contract): string => $contract->category?->name ?? 'Uncategorized')
+                ->map(fn (Collection $group, string $name): array => ['label' => $name, 'contracts' => $group]);
+
+        return $groups->map(function (array $group, string $key) use ($year): array {
+            $monthly = [];
+            for ($month = 1; $month <= 12; $month++) {
+                $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
+                $monthly[$month] = $this->contractTotalForMonth($group['contracts'], $monthStart);
+            }
+
+            return [
+                'key' => is_numeric($key) ? "cat_{$key}" : $key,
+                'label' => $group['label'],
+                'monthly' => $monthly,
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * Contracts eligible for trend display, scoped to a category (incl. subcategories).
+     *
+     * @return Collection<int, Contract>
+     */
+    private function contractsForTrend(int $userId, ?int $categoryId): Collection
+    {
+        $categoryIds = $this->resolveCategoryIds($categoryId);
+
+        return Contract::query()
+            ->with('category:id,name')
+            ->where('user_id', $userId)
+            ->when($categoryIds !== null, fn (Builder $query) => $query->whereIn('category_id', $categoryIds))
+            ->get();
+    }
+
+    /**
+     * Sum of normalized monthly cost for contracts whose billing window covers the month.
+     *
+     * @param  Collection<int, Contract>  $contracts
+     */
+    private function contractTotalForMonth(Collection $contracts, Carbon $monthStart): float
+    {
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        return round($contracts
+            ->filter(function (Contract $contract) use ($monthStart, $monthEnd): bool {
+                if ($contract->start_date && $contract->start_date->gt($monthEnd)) {
+                    return false;
+                }
+
+                return ! ($contract->end_date && $contract->end_date->lt($monthStart));
+            })
+            ->sum(fn (Contract $contract): float => $contract->projectedMonthlyAmount()), 2);
+    }
+
+    /**
      * Constrain a query by receipt_date. When $qualified, the column is on the
      * joined receipts table; otherwise it is on the base receipts query.
      */
@@ -142,21 +238,33 @@ class ConsumptionService
      */
     private function applyCategoryFilter(Builder $query, ?int $categoryId): void
     {
+        $ids = $this->resolveCategoryIds($categoryId);
+
+        if ($ids !== null) {
+            $query->whereIn('receipt_items.category_id', $ids);
+        }
+    }
+
+    /**
+     * Expand a category id into itself plus any subcategories. Returns null when
+     * no (or an unknown) category is given, meaning "do not filter".
+     *
+     * @return array<int, int>|null
+     */
+    private function resolveCategoryIds(?int $categoryId): ?array
+    {
         if (! $categoryId) {
-            return;
+            return null;
         }
 
         $category = Category::find($categoryId);
 
         if (! $category) {
-            return;
+            return null;
         }
 
-        if ($category->isParent()) {
-            $ids = $category->subcategories->pluck('id')->push($categoryId)->all();
-            $query->whereIn('receipt_items.category_id', $ids);
-        } else {
-            $query->where('receipt_items.category_id', $categoryId);
-        }
+        return $category->isParent()
+            ? $category->subcategories->pluck('id')->push($categoryId)->all()
+            : [$categoryId];
     }
 }

@@ -121,6 +121,20 @@ class DashboardController extends Controller
         $userId = Auth::id();
         $year = (int) ($request->get('year') ?: now()->year);
 
+        $variableTrend = $this->consumptionService->monthlySpendTrend(
+            $userId, $year, $categoryId
+        );
+        $contractSeries = $this->consumptionService->monthlyContractSeries(
+            $userId, $year, $categoryId
+        );
+        $monthlyTrend = array_map(function (array $row) use ($contractSeries): array {
+            foreach ($contractSeries as $series) {
+                $row[$series['key']] = $series['monthly'][$row['month']] ?? 0.0;
+            }
+
+            return $row;
+        }, $variableTrend);
+
         return response()->json([
             'period' => $period,
             'start' => $startDate,
@@ -128,8 +142,10 @@ class DashboardController extends Controller
             'limit' => $limit,
             'metric' => $metric,
             'year' => $year,
-            'monthly_trend' => $this->consumptionService->monthlySpendTrend(
-                $userId, $year, $categoryId
+            'monthly_trend' => $monthlyTrend,
+            'contract_series' => array_map(
+                fn (array $series): array => ['key' => $series['key'], 'label' => $series['label']],
+                $contractSeries
             ),
             'items' => $this->consumptionService->topItems(
                 $userId, $metric, $startDate, $endDate, $categoryId, $limit

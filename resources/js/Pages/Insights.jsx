@@ -12,6 +12,7 @@ import {
     LineChart,
     Line,
     CartesianGrid,
+    Legend,
     XAxis,
     YAxis,
     Tooltip,
@@ -21,6 +22,19 @@ import { formatCurrency } from '@/utils/money';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
+
+const VARIABLE_COLOR = '#10B981';
+// Palette for per-category contract lines (first is the brand fixed color).
+const CONTRACT_COLORS = [
+    '#6366F1',
+    '#F59E0B',
+    '#EC4899',
+    '#0EA5E9',
+    '#8B5CF6',
+    '#14B8A6',
+    '#EF4444',
+    '#84CC16',
+];
 
 const selectClasses =
     'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500';
@@ -97,12 +111,25 @@ export default function Insights() {
     const topByQuantity = data ? toNumber(data.top_by_quantity, ['total_quantity']) : [];
     const topBySpend = data ? toNumber(data.top_by_spend, ['total_spend']) : [];
     const vendors = data ? toNumber(data.vendors, ['receipt_count', 'total_spent']) : [];
-    const monthlyTrend = data ? toNumber(data.monthly_trend ?? [], ['total']) : [];
+    const contractSeries = data?.contract_series ?? [];
+    const monthlyTrend = data
+        ? toNumber(data.monthly_trend ?? [], [
+              'total',
+              ...contractSeries.map((s) => s.key),
+          ])
+        : [];
     const trendYear = data?.year ?? year;
     const selectedCategoryName =
         categoryOptions.find((c) => String(c.id) === String(categoryId))?.name ??
         'All categories';
-    const trendTotal = monthlyTrend.reduce((sum, row) => sum + row.total, 0);
+    const variableTotal = monthlyTrend.reduce((sum, row) => sum + row.total, 0);
+    const contractsTotal = monthlyTrend.reduce(
+        (sum, row) =>
+            sum +
+            contractSeries.reduce((acc, s) => acc + (row[s.key] ?? 0), 0),
+        0,
+    );
+    const trendTotal = variableTotal + contractsTotal;
 
     return (
         <AuthenticatedLayout
@@ -211,10 +238,24 @@ export default function Insights() {
                                 </EmptyState>
                             ) : (
                                 <>
-                                    <div className="mb-4 text-sm text-gray-500">
-                                        Total {trendYear}:{' '}
-                                        <span className="font-semibold text-gray-900">
-                                            {formatCurrency(trendTotal)}
+                                    <div className="mb-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
+                                        <span>
+                                            Variable:{' '}
+                                            <span className="font-semibold text-gray-900">
+                                                {formatCurrency(variableTotal)}
+                                            </span>
+                                        </span>
+                                        <span>
+                                            Contracts:{' '}
+                                            <span className="font-semibold text-gray-900">
+                                                {formatCurrency(contractsTotal)}
+                                            </span>
+                                        </span>
+                                        <span>
+                                            Total {trendYear}:{' '}
+                                            <span className="font-semibold text-gray-900">
+                                                {formatCurrency(trendTotal)}
+                                            </span>
                                         </span>
                                     </div>
                                     <ResponsiveContainer width="100%" height={300}>
@@ -236,14 +277,31 @@ export default function Insights() {
                                                     formatCurrency(value)
                                                 }
                                             />
+                                            <Legend />
                                             <Line
                                                 type="monotone"
                                                 dataKey="total"
-                                                name="Spend"
-                                                stroke="#6366F1"
+                                                name="Variable (receipts)"
+                                                stroke={VARIABLE_COLOR}
                                                 strokeWidth={2}
                                                 dot={{ r: 3 }}
                                             />
+                                            {contractSeries.map((s, i) => (
+                                                <Line
+                                                    key={s.key}
+                                                    type="monotone"
+                                                    dataKey={s.key}
+                                                    name={s.label}
+                                                    stroke={
+                                                        CONTRACT_COLORS[
+                                                            i %
+                                                                CONTRACT_COLORS.length
+                                                        ]
+                                                    }
+                                                    strokeWidth={2}
+                                                    dot={{ r: 3 }}
+                                                />
+                                            ))}
                                         </LineChart>
                                     </ResponsiveContainer>
                                 </>
