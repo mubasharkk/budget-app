@@ -20,12 +20,36 @@ class ReceiptController extends Controller
     /**
      * Display a listing of receipts
      */
-    public function index()
+    public function index(Request $request)
     {
+        $allowedPerPage = [10, 25, 50, 100];
+        $perPage = (int) $request->integer('per_page', 50);
+        if (! in_array($perPage, $allowedPerPage, true)) {
+            $perPage = 50;
+        }
+
+        $allowedSorts = ['created_at', 'receipt_date', 'total_amount', 'vendor'];
+        $sort = in_array($request->get('sort'), $allowedSorts, true) ? $request->get('sort') : 'created_at';
+        $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
+
+        $status = in_array($request->get('status'), ['pending', 'processed', 'failed'], true)
+            ? $request->get('status')
+            : null;
+        $search = trim((string) $request->get('search')) ?: null;
+
         $receipts = Receipt::with(['items.category', 'items.subcategory'])
             ->where('user_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($search, function ($query) use ($search): void {
+                $query->where(function ($inner) use ($search): void {
+                    $inner->where('vendor', 'like', "%{$search}%")
+                        ->orWhere('original_filename', 'like', "%{$search}%")
+                        ->orWhere('receipt_number', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy($sort, $direction)
+            ->paginate($perPage)
+            ->withQueryString();
 
         // Append file URLs to each receipt
         $receipts->getCollection()->transform(function ($receipt) {
@@ -34,6 +58,13 @@ class ReceiptController extends Controller
 
         return Inertia::render('Receipts/Index', [
             'receipts' => $receipts,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'sort' => $sort,
+                'direction' => $direction,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 

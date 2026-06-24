@@ -1,18 +1,68 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
-import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon, CameraIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon, CameraIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/utils/money';
 
-export default function Index({ receipts }) {
+const SORT_OPTIONS = [
+    { value: 'created_at-desc', label: 'Newest uploaded' },
+    { value: 'created_at-asc', label: 'Oldest uploaded' },
+    { value: 'receipt_date-desc', label: 'Receipt date (newest)' },
+    { value: 'receipt_date-asc', label: 'Receipt date (oldest)' },
+    { value: 'total_amount-desc', label: 'Amount (high → low)' },
+    { value: 'total_amount-asc', label: 'Amount (low → high)' },
+    { value: 'vendor-asc', label: 'Vendor (A → Z)' },
+    { value: 'vendor-desc', label: 'Vendor (Z → A)' },
+];
+
+const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
+export default function Index({ receipts, filters = {} }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [receiptToDelete, setReceiptToDelete] = useState(null);
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'thumbnail'
+    const [search, setSearch] = useState(filters.search || '');
 
     const { delete: destroy, processing } = useForm();
+
+    const applyFilters = (overrides = {}) => {
+        const params = {
+            search,
+            status: filters.status || '',
+            sort: filters.sort || 'created_at',
+            direction: filters.direction || 'desc',
+            per_page: filters.per_page || 50,
+            ...overrides,
+        };
+
+        Object.keys(params).forEach((key) => {
+            if (params[key] === '' || params[key] == null) {
+                delete params[key];
+            }
+        });
+
+        router.get(route('receipts.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const hasActiveFilters = Boolean(filters.search || filters.status);
+
+    // Debounced search — skip the initial mount so we don't navigate on load.
+    const isFirstRender = useRef(true);
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        const timeout = setTimeout(() => applyFilters({ search }), 350);
+        return () => clearTimeout(timeout);
+    }, [search]);
 
     const getStatusBadge = (status) => {
         const badges = {
@@ -104,21 +154,95 @@ export default function Index({ receipts }) {
                                 </div>
                             </div>
 
+                            {/* Filter / sort / per-page controls */}
+                            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                <div className="relative flex-1 sm:min-w-[220px]">
+                                    <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        placeholder="Search vendor, filename, receipt no…"
+                                        className="w-full rounded-md border-gray-300 pl-9 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                </div>
+
+                                <select
+                                    value={filters.status || ''}
+                                    onChange={(e) => applyFilters({ status: e.target.value })}
+                                    className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+                                    <option value="">All statuses</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="processed">Processed</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+
+                                <select
+                                    value={`${filters.sort || 'created_at'}-${filters.direction || 'desc'}`}
+                                    onChange={(e) => {
+                                        const [sort, direction] = e.target.value.split('-');
+                                        applyFilters({ sort, direction });
+                                    }}
+                                    className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+                                    {SORT_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={filters.per_page || 50}
+                                    onChange={(e) => applyFilters({ per_page: e.target.value })}
+                                    className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    aria-label="Receipts per page"
+                                >
+                                    {PER_PAGE_OPTIONS.map((size) => (
+                                        <option key={size} value={size}>
+                                            {size} / page
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {receipts.data.length === 0 ? (
                                 <div className="text-center py-12">
                                     <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No receipts</h3>
-                                    <p className="mt-1 text-sm text-gray-500">Get started by uploading a new receipt.</p>
-                                    <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-                                        <Link href={route('receipts.scan')}>
-                                            <PrimaryButton icon={CameraIcon} iconOnly>Scan with camera</PrimaryButton>
-                                        </Link>
-                                        <Link href={route('receipts.create')}>
-                                            <PrimaryButton icon={PlusIcon} iconOnly>Upload files</PrimaryButton>
-                                        </Link>
-                                    </div>
+                                    {hasActiveFilters ? (
+                                        <>
+                                            <h3 className="mt-2 text-sm font-medium text-gray-900">No matching receipts</h3>
+                                            <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filters.</p>
+                                            <div className="mt-6 flex justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSearch('');
+                                                        applyFilters({ search: '', status: '' });
+                                                    }}
+                                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                                >
+                                                    Clear filters
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <h3 className="mt-2 text-sm font-medium text-gray-900">No receipts</h3>
+                                            <p className="mt-1 text-sm text-gray-500">Get started by uploading a new receipt.</p>
+                                            <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                                                <Link href={route('receipts.scan')}>
+                                                    <PrimaryButton icon={CameraIcon} iconOnly>Scan with camera</PrimaryButton>
+                                                </Link>
+                                                <Link href={route('receipts.create')}>
+                                                    <PrimaryButton icon={PlusIcon} iconOnly>Upload files</PrimaryButton>
+                                                </Link>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             ) : (
                                 <>
