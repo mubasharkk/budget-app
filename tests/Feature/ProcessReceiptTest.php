@@ -51,6 +51,7 @@ class ProcessReceiptTest extends TestCase
         $this->mockLlm([
             'is_receipt' => true,
             'vendor' => 'REWE',
+            'receipt_number' => '1234-5678',
             'currency' => 'EUR',
             'total_amount' => 14.39,
             'receipt_date' => '2026-05-01',
@@ -66,6 +67,7 @@ class ProcessReceiptTest extends TestCase
         $receipt->refresh();
         $this->assertSame('processed', $receipt->status);
         $this->assertSame('REWE', $receipt->vendor);
+        $this->assertSame('1234-5678', $receipt->receipt_number);
         $this->assertCount(2, $receipt->items);
 
         // find-or-create: parent + nested subcategory under it

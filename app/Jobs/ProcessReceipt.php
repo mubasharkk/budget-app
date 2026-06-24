@@ -50,6 +50,7 @@ class ProcessReceipt implements ShouldQueue
                 $this->receipt->update([
                     'ocr_data' => $data,
                     'vendor' => null,
+                    'receipt_number' => null,
                     'currency' => 'EUR',
                     'total_amount' => 0,
                     'receipt_date' => null,
@@ -70,6 +71,7 @@ class ProcessReceipt implements ShouldQueue
             $this->receipt->update([
                 'ocr_data' => $data,
                 'vendor' => $data['vendor'] ?? null,
+                'receipt_number' => $data['receipt_number'] ?? null,
                 'currency' => $data['currency'] ?? 'EUR',
                 'total_amount' => $data['total_amount'] ?? null,
                 'receipt_date' => $this->parseReceiptDateTime($data['receipt_date'] ?? null, $data['receipt_time'] ?? null),

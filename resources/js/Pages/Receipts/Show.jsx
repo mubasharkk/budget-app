@@ -19,6 +19,7 @@ export default function Show({ receipt }) {
 
     const { data, setData, patch, processing, errors, reset } = useForm({
         vendor: receipt.vendor || '',
+        receipt_number: receipt.receipt_number || '',
         currency: receipt.currency || 'EUR',
         total_amount: receipt.total_amount || '',
         receipt_date: receipt.receipt_date ? new Date(receipt.receipt_date).toISOString().slice(0, 16) : '',
@@ -161,6 +162,11 @@ export default function Show({ receipt }) {
                                                 • Receipt Date: {new Date(receipt.receipt_date).toLocaleDateString('de-DE')} {receipt.receipt_date && new Date(receipt.receipt_date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         )}
+                                        {receipt.receipt_number && (
+                                            <span className="ml-2">
+                                                • Receipt No: {receipt.receipt_number}
+                                            </span>
+                                        )}
                                     </span>
                                 </div>
                             </div>
@@ -278,6 +284,18 @@ export default function Show({ receipt }) {
                                                 className="mt-1 block w-full"
                                             />
                                             <InputError message={errors.vendor} className="mt-2" />
+                                        </div>
+
+                                        {/* Receipt Number */}
+                                        <div>
+                                            <InputLabel htmlFor="receipt_number" value="Receipt Number" />
+                                            <TextInput
+                                                id="receipt_number"
+                                                value={data.receipt_number}
+                                                onChange={(e) => setData('receipt_number', e.target.value)}
+                                                className="mt-1 block w-full"
+                                            />
+                                            <InputError message={errors.receipt_number} className="mt-2" />
                                         </div>
 
                                         {/* Receipt Date */}

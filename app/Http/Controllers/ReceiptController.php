@@ -102,6 +102,7 @@ class ReceiptController extends Controller
 
         $request->validate([
             'vendor' => 'nullable|string|max:255',
+            'receipt_number' => 'nullable|string|max:255',
             'currency' => 'nullable|string|in:EUR,USD,INR,PKR,TRY,GBP',
             'total_amount' => 'required|numeric|min:0',
             'receipt_date' => 'required|date|before_or_equal:now',
@@ -117,6 +118,7 @@ class ReceiptController extends Controller
         // Update receipt
         $receipt->update([
             'vendor' => $request->vendor,
+            'receipt_number' => $request->receipt_number,
             'currency' => $request->currency,
             'total_amount' => $request->total_amount,
             'receipt_date' => $request->receipt_date,

@@ -23,6 +23,7 @@ class Receipt extends Model
         'ocr_text',
         'ocr_data',
         'vendor',
+        'receipt_number',
         'currency',
         'total_amount',
         'receipt_date',

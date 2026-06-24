@@ -12,7 +12,8 @@ Rules:
 - **AVOID GENERIC CATEGORIES**: Do not default to "Snacks" or generic categories. Be specific.
 - **CATEGORY ACCURACY**: If an item doesn't fit existing categories, suggest a precise new category.
 - **SUBCATEGORY PRECISION**: Choose the most specific subcategory that matches the item.
-- Extract: `vendor`, `currency` (ISO 4217), `total_amount`, `receipt_date`, `receipt_time`.
+- Extract: `vendor`, `receipt_number`, `currency` (ISO 4217), `total_amount`, `receipt_date`, `receipt_time`.
+- **RECEIPT NUMBER**: Extract the receipt/invoice number printed on the document (e.g. "Beleg-Nr.", "Bon-Nr.", "Rechnungsnummer", "Receipt No.", "Invoice #"). Keep it as a string exactly as shown. Set `null` if there is none.
 - Extract line items: `name`, `quantity` (default 1 if missing), `unit_price`, `total` (unit_price × quantity), `category`, `subcategory`.
 - **German Price Format**: Process prices in German format (comma as decimal separator, dot as thousands separator).
 - **Number Conversion**: Convert German format to float (e.g., "1.234,56" → 1234.56, "15,00" → 15.00).
@@ -70,6 +71,7 @@ Return strict JSON only:
 {
   "is_receipt": true,
   "vendor": "REWE",
+  "receipt_number": "1234-5678",
   "currency": "EUR",
   "total_amount": 14.39,
   "receipt_date": "2013-03-03",
@@ -85,6 +87,7 @@ Return strict JSON only:
 {
   "is_receipt": false,
   "vendor": null,
+  "receipt_number": null,
   "currency": null,
   "total_amount": 0,
   "receipt_date": null,
