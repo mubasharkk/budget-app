@@ -42,7 +42,7 @@ class RelinkOrphanedReceiptFilesTest extends TestCase
         Storage::disk('public')->assertExists($path);
     }
 
-    public function test_it_breaks_size_ties_using_the_created_month(): void
+    public function test_it_breaks_size_ties_using_closest_modified_time(): void
     {
         $receipt = Receipt::factory()->create([
             'file_type' => 'png',
@@ -50,13 +50,15 @@ class RelinkOrphanedReceiptFilesTest extends TestCase
             'created_at' => now(),
         ]);
 
-        // Two same-size/type files; only one lives in the receipt's created month.
+        // Two same-size/type files; the decoy was written long before the receipt.
         $matchingPath = $this->legacyPath($receipt);
-        $otherMonth = now()->subMonths(3);
-        $decoyPath = 'receipts/'.$otherMonth->year.'/'.$otherMonth->format('m').'/'.Str::uuid().'.png';
+        $decoyPath = $this->legacyPath($receipt);
 
         Storage::disk('public')->put($matchingPath, str_repeat('b', 40));
         Storage::disk('public')->put($decoyPath, str_repeat('c', 40));
+
+        touch(Storage::disk('public')->path($matchingPath), $receipt->created_at->getTimestamp());
+        touch(Storage::disk('public')->path($decoyPath), $receipt->created_at->copy()->subMonths(3)->getTimestamp());
 
         $this->artisan('receipts:relink-orphaned-files')->assertSuccessful();
 

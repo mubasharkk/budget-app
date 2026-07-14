@@ -89,6 +89,7 @@ class RelinkOrphanedReceiptFiles extends Command
                     ->toMediaCollection(Receipt::RECEIPT_COLLECTION);
             } catch (\Throwable $e) {
                 $matched--;
+                array_pop($claimed);
                 $this->error(" Receipt {$receipt->id}: attach failed: {$e->getMessage()}");
             }
         }
@@ -102,7 +103,7 @@ class RelinkOrphanedReceiptFiles extends Command
     /**
      * Index every legacy file on the disk by "size:extension".
      *
-     * @return array<string, array<int, array{path: string, year: ?string, month: ?string}>>
+     * @return array<string, array<int, array{path: string, mtime: int}>>
      */
     private function indexLegacyFiles(string $disk): array
     {
@@ -111,12 +112,10 @@ class RelinkOrphanedReceiptFiles extends Command
         foreach (Storage::disk($disk)->allFiles('receipts') as $path) {
             $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
             $size = Storage::disk($disk)->size($path);
-            $segments = explode('/', $path);
 
             $index[$size.':'.$extension][] = [
                 'path' => $path,
-                'year' => $segments[1] ?? null,
-                'month' => $segments[2] ?? null,
+                'mtime' => Storage::disk($disk)->lastModified($path),
             ];
         }
 
@@ -124,11 +123,13 @@ class RelinkOrphanedReceiptFiles extends Command
     }
 
     /**
-     * Pick the single best candidate file for a receipt, using the created
-     * month to break ties when several files share the same size and type.
+     * Pick the single best candidate file for a receipt. When several files
+     * share the same size and type, choose the one whose on-disk modified time
+     * is closest to the receipt's upload time (created_at) — each file was
+     * written when its receipt was created, so this is a unique tiebreak.
      *
-     * @param  array<int, array{path: string, year: ?string, month: ?string}>  $candidates
-     * @return array{path: string, year: ?string, month: ?string}|null
+     * @param  array<int, array{path: string, mtime: int}>  $candidates
+     * @return array{path: string, mtime: int}|null
      */
     private function chooseCandidate(Receipt $receipt, array $candidates): ?array
     {
@@ -136,18 +137,22 @@ class RelinkOrphanedReceiptFiles extends Command
             return $candidates[0];
         }
 
-        if ($candidates === []) {
+        if ($candidates === [] || $receipt->created_at === null) {
             return null;
         }
 
-        $year = (string) $receipt->created_at?->year;
-        $month = $receipt->created_at?->format('m');
+        $createdAt = $receipt->created_at->getTimestamp();
 
-        $sameMonth = array_values(array_filter(
+        usort(
             $candidates,
-            fn (array $candidate): bool => $candidate['year'] === $year && $candidate['month'] === $month,
-        ));
+            fn (array $a, array $b): int => abs($a['mtime'] - $createdAt) <=> abs($b['mtime'] - $createdAt),
+        );
 
-        return count($sameMonth) === 1 ? $sameMonth[0] : null;
+        // Require a strictly-closest file; an exact tie in proximity is unsafe to guess.
+        if (abs($candidates[0]['mtime'] - $createdAt) === abs($candidates[1]['mtime'] - $createdAt)) {
+            return null;
+        }
+
+        return $candidates[0];
     }
 }
