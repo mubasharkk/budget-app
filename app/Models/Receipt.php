@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -21,8 +20,6 @@ class Receipt extends Model implements HasMedia
     protected $fillable = [
         'user_id',
         'original_filename',
-        'original_path',
-        'stored_path',
         'file_type',
         'mime',
         'file_size',
@@ -104,14 +101,6 @@ class Receipt extends Model implements HasMedia
     }
 
     /**
-     * The stored receipt file, whether on media-library or the legacy public disk.
-     */
-    private function legacyPath(): ?string
-    {
-        return $this->stored_path ?: $this->original_path;
-    }
-
-    /**
      * All file URL accessors resolve to the ownership-checked controller route;
      * the underlying file is private and never linked directly.
      */
@@ -131,34 +120,20 @@ class Receipt extends Model implements HasMedia
     }
 
     /**
-     * Check if the underlying file exists (media-library first, legacy fallback).
+     * Check if the underlying media file exists.
      */
     public function fileExists(): bool
     {
         $media = $this->getFirstMedia(self::RECEIPT_COLLECTION);
 
-        if ($media !== null) {
-            return file_exists($media->getPath());
-        }
-
-        $legacy = $this->legacyPath();
-
-        return $legacy !== null && Storage::disk('public')->exists($legacy);
+        return $media !== null && file_exists($media->getPath());
     }
 
     /**
-     * Absolute path to the underlying file (media-library first, legacy fallback).
+     * Absolute path to the underlying media file.
      */
     public function getFilePathAttribute(): ?string
     {
-        $media = $this->getFirstMedia(self::RECEIPT_COLLECTION);
-
-        if ($media !== null) {
-            return $media->getPath();
-        }
-
-        $legacy = $this->legacyPath();
-
-        return $legacy !== null ? Storage::disk('public')->path($legacy) : null;
+        return $this->getFirstMedia(self::RECEIPT_COLLECTION)?->getPath();
     }
 }

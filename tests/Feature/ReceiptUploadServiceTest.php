@@ -29,7 +29,6 @@ class ReceiptUploadServiceTest extends TestCase
         $this->assertInstanceOf(Receipt::class, $receipt);
         $this->assertSame($user->id, $receipt->user_id);
         $this->assertSame('pending', $receipt->status);
-        $this->assertNull($receipt->stored_path);
 
         $media = $receipt->getFirstMedia(Receipt::RECEIPT_COLLECTION);
         $this->assertNotNull($media);
@@ -52,7 +51,6 @@ class ReceiptUploadServiceTest extends TestCase
         $receipt = app(ReceiptUploadService::class)->storeOne($user->id, $file);
 
         $this->assertSame('pdf', $receipt->file_type);
-        $this->assertNull($receipt->stored_path);
 
         $media = $receipt->getFirstMedia(Receipt::RECEIPT_COLLECTION);
         $this->assertNotNull($media);

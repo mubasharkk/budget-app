@@ -25,12 +25,11 @@ class ProcessReceiptTest extends TestCase
 
     private function fakeReceipt(): Receipt
     {
-        Storage::fake('public');
-        $receipt = Receipt::factory()->pending()->create([
-            'stored_path' => 'receipts/2026/06/test.png',
-            'mime' => 'image/png',
-        ]);
-        Storage::disk('public')->put($receipt->stored_path, 'fake-image-bytes');
+        Storage::fake('local');
+        $receipt = Receipt::factory()->pending()->create(['mime' => 'image/png']);
+        $receipt->addMediaFromString('fake-image-bytes')
+            ->usingFileName('test.png')
+            ->toMediaCollection(Receipt::RECEIPT_COLLECTION);
 
         return $receipt;
     }

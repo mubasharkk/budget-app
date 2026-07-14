@@ -10,7 +10,6 @@ use App\Services\ReceiptUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ReceiptController extends Controller
@@ -240,15 +239,8 @@ class ReceiptController extends Controller
                 'filename' => $receipt->original_filename,
             ]);
 
-            // Delete the legacy public file if present; media-library files are
-            // removed automatically when the model is deleted.
-            $legacyPath = $receipt->stored_path ?: $receipt->original_path;
-            if ($legacyPath && Storage::disk('public')->exists($legacyPath)) {
-                Storage::disk('public')->delete($legacyPath);
-                Log::info('Legacy receipt file deleted', ['path' => $legacyPath]);
-            }
-
-            // Delete the receipt record (cascade deletes items and media)
+            // Delete the receipt record; media-library removes the attached file
+            // and the items cascade.
             $receipt->delete();
 
             Log::info('Receipt deleted successfully', ['receipt_id' => $receipt->id]);

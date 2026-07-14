@@ -3,38 +3,46 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\ReceiptRequest;
+use App\Models\Receipt;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
+use Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
+use Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
+use Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
+use Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
+use Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
+use Backpack\CRUD\app\Library\CrudPanel\CrudPanel;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
 /**
  * Class ReceiptCrudController
- * @package App\Http\Controllers\Admin
- * @property-read \Backpack\CRUD\app\Library\CrudPanel\CrudPanel $crud
+ *
+ * @property-read CrudPanel $crud
  */
 class ReceiptCrudController extends CrudController
 {
-    use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
-    use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
-    use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
-    use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
-    use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
+    use CreateOperation;
+    use DeleteOperation;
+    use ListOperation;
+    use ShowOperation;
+    use UpdateOperation;
 
     /**
      * Configure the CrudPanel object. Apply settings to all operations.
-     * 
+     *
      * @return void
      */
     public function setup()
     {
-        CRUD::setModel(\App\Models\Receipt::class);
-        CRUD::setRoute(config('backpack.base.route_prefix') . '/receipt');
+        CRUD::setModel(Receipt::class);
+        CRUD::setRoute(config('backpack.base.route_prefix').'/receipt');
         CRUD::setEntityNameStrings('receipt', 'receipts');
     }
 
     /**
      * Define what happens when the List operation is loaded.
-     * 
+     *
      * @see  https://backpackforlaravel.com/docs/crud-operation-list-entries
+     *
      * @return void
      */
     protected function setupListOperation()
@@ -51,18 +59,17 @@ class ReceiptCrudController extends CrudController
 
     /**
      * Define what happens when the Create operation is loaded.
-     * 
+     *
      * @see https://backpackforlaravel.com/docs/crud-operation-create
+     *
      * @return void
      */
     protected function setupCreateOperation()
     {
         CRUD::setValidation(ReceiptRequest::class);
-        
+
         CRUD::field('user_id')->label('User')->type('select2_from_ajax');
         CRUD::field('original_filename')->label('Original Filename')->type('text');
-        CRUD::field('original_path')->label('Original Path')->type('text');
-        CRUD::field('stored_path')->label('Stored Path')->type('text');
         CRUD::field('file_type')->label('File Type')->type('text');
         CRUD::field('mime')->label('MIME Type')->type('text');
         CRUD::field('file_size')->label('File Size')->type('number');
@@ -76,18 +83,17 @@ class ReceiptCrudController extends CrudController
 
     /**
      * Define what happens when the Update operation is loaded.
-     * 
+     *
      * @see https://backpackforlaravel.com/docs/crud-operation-update
+     *
      * @return void
      */
     protected function setupUpdateOperation()
     {
         CRUD::setValidation(ReceiptRequest::class);
-        
+
         CRUD::field('user_id')->label('User')->type('select2_from_ajax');
         CRUD::field('original_filename')->label('Original Filename')->type('text');
-        CRUD::field('original_path')->label('Original Path')->type('text');
-        CRUD::field('stored_path')->label('Stored Path')->type('text');
         CRUD::field('file_type')->label('File Type')->type('text');
         CRUD::field('mime')->label('MIME Type')->type('text');
         CRUD::field('file_size')->label('File Size')->type('number');

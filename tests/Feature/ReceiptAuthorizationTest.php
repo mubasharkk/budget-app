@@ -48,10 +48,7 @@ class ReceiptAuthorizationTest extends TestCase
         Storage::fake('local');
 
         $owner = User::factory()->create();
-        $receipt = Receipt::factory()->for($owner)->create([
-            'original_path' => null,
-            'stored_path' => null,
-        ]);
+        $receipt = Receipt::factory()->for($owner)->create();
         $receipt->addMedia(UploadedFile::fake()->create('receipt.pdf', 50, 'application/pdf'))
             ->toMediaCollection(Receipt::RECEIPT_COLLECTION);
 

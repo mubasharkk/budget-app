@@ -5,15 +5,14 @@ namespace Database\Factories;
 use App\Models\Receipt;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Receipt>
+ * @extends Factory<Receipt>
  */
 class ReceiptFactory extends Factory
 {
     /**
-     * @var class-string<\App\Models\Receipt>
+     * @var class-string<Receipt>
      */
     protected $model = Receipt::class;
 
@@ -24,14 +23,9 @@ class ReceiptFactory extends Factory
      */
     public function definition(): array
     {
-        $uuid = Str::uuid();
-        $path = 'receipts/'.now()->year.'/'.now()->format('m').'/';
-
         return [
             'user_id' => User::factory(),
             'original_filename' => fake()->word().'.png',
-            'original_path' => $path,
-            'stored_path' => $path.$uuid.'.png',
             'file_type' => 'png',
             'mime' => 'image/png',
             'file_size' => fake()->numberBetween(10_000, 5_000_000),
