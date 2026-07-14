@@ -218,11 +218,16 @@ class ReceiptController extends Controller
     {
         $this->authorize('view', $receipt);
 
-        if (! $receipt->fileExists()) {
+        $media = $receipt->getFirstMedia(Receipt::RECEIPT_COLLECTION);
+
+        if ($media === null || ! file_exists($media->getPath())) {
             abort(404);
         }
 
-        return response()->file($receipt->file_path);
+        return response()->file($media->getPath(), [
+            'Content-Type' => $media->mime_type,
+            'Content-Disposition' => 'inline; filename="'.addslashes($media->file_name).'"',
+        ]);
     }
 
     /**

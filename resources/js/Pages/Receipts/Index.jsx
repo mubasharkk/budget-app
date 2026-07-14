@@ -256,7 +256,7 @@ export default function Index({ receipts, filters = {} }) {
                                                         className="w-[75px] h-[75px] rounded-lg bg-gray-100 bg-cover bg-center flex-shrink-0"
                                                         style={{
                                                             backgroundImage: receipt.mime?.startsWith('image/') 
-                                                                ? `url(${receipt.public_file_url || receipt.file_url})`
+                                                                ? `url(${receipt.direct_file_url})`
                                                                 : 'none'
                                                         }}
                                                     >
@@ -298,7 +298,7 @@ export default function Index({ receipts, filters = {} }) {
                                                             </Link>
                                                             {receipt.mime === 'application/pdf' && (
                                                                 <a
-                                                                    href={receipt.public_file_url || receipt.file_url}
+                                                                    href={receipt.direct_file_url}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
@@ -356,7 +356,7 @@ export default function Index({ receipts, filters = {} }) {
                                                                 {receipt.mime?.startsWith('image/') ? (
                                                                     <img
                                                                         className="h-10 w-10 rounded-lg object-cover"
-                                                                        src={receipt.public_file_url || receipt.file_url}
+                                                                        src={receipt.direct_file_url}
                                                                         alt="Receipt"
                                                                     />
                                                                 ) : (
@@ -489,7 +489,7 @@ export default function Index({ receipts, filters = {} }) {
                                                         {receipt.mime?.startsWith('image/') ? (
                                                             <img
                                                                 className="w-full h-full object-cover"
-                                                                src={receipt.public_file_url || receipt.file_url}
+                                                                src={receipt.direct_file_url}
                                                                 alt="Receipt"
                                                             />
                                                         ) : (
@@ -530,7 +530,7 @@ export default function Index({ receipts, filters = {} }) {
                                                             </Link>
                                                             {receipt.mime === 'application/pdf' && (
                                                                 <a
-                                                                    href={receipt.public_file_url || receipt.file_url}
+                                                                    href={receipt.direct_file_url}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"

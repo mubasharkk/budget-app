@@ -178,7 +178,7 @@ export default function Show({ receipt }) {
                                 </Link>
                                 {receipt.mime === 'application/pdf' && (
                                     <a
-                                        href={receipt.public_file_url || receipt.file_url}
+                                        href={receipt.direct_file_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="inline-flex items-center px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white bg-blue-600 rounded-md border border-transparent transition duration-150 ease-in-out hover:bg-blue-500 focus:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-700"
@@ -209,17 +209,16 @@ export default function Show({ receipt }) {
                                     <div className="border rounded-lg p-4">
                                         {receipt.mime?.startsWith('image/') ? (
                                             <img
-                                                src={receipt.public_file_url || receipt.file_url}
+                                                src={receipt.direct_file_url}
                                                 alt="Receipt"
                                                 className="max-w-full h-auto rounded-lg"
                                             />
                                         ) : (
-                                            <div className="flex flex-col items-center justify-center h-64 bg-gray-100 rounded-lg">
-                                                <svg className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
-                                                <p className="mt-2 text-sm text-gray-500">PDF Document</p>
-                                            </div>
+                                            <iframe
+                                                src={receipt.direct_file_url}
+                                                title="Receipt document"
+                                                className="h-[600px] w-full rounded-lg border border-gray-200"
+                                            />
                                         )}
                                     </div>
 
@@ -227,7 +226,7 @@ export default function Show({ receipt }) {
                                     {receipt.mime === 'application/pdf' && (
                                         <div className="mt-4">
                                             <a
-                                                href={receipt.public_file_url || receipt.file_url}
+                                                href={receipt.direct_file_url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md border border-blue-200 hover:bg-blue-100 hover:text-blue-700 transition duration-150 ease-in-out"
