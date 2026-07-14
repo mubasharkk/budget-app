@@ -18,7 +18,7 @@ class ConsumptionDashboardTest extends TestCase
         $user = User::factory()->create();
         $groceries = Category::factory()->create(['name' => 'Groceries']);
 
-        $receipt = Receipt::factory()->for($user)->create(['receipt_date' => '2026-06-10']);
+        $receipt = Receipt::factory()->for($user)->create(['receipt_date' => now()->startOfMonth()->toDateString()]);
         ReceiptItem::factory()->for($receipt)->create([
             'name' => 'Milk',
             'quantity' => 4,
@@ -41,7 +41,7 @@ class ConsumptionDashboardTest extends TestCase
         $groceries = Category::factory()->create(['name' => 'Groceries']);
         $other = Category::factory()->create(['name' => 'Other', 'parent_id' => null]);
 
-        $receipt = Receipt::factory()->for($user)->create(['receipt_date' => '2026-05-15']);
+        $receipt = Receipt::factory()->for($user)->create(['receipt_date' => now()->startOfQuarter()->toDateString()]);
         ReceiptItem::factory()->for($receipt)->create([
             'name' => 'Milk',
             'quantity' => 2,

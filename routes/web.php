@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('incomes', IncomeController::class)->except('show');
 
     // One-time expense entries
+    Route::get('/expenses/{expense}/document', [ExpenseController::class, 'document'])->name('expenses.document');
     Route::resource('expenses', ExpenseController::class)->except('show');
 
     // Manual savings entries

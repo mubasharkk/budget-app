@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\ExpenseType;
 use App\Http\Requests\ExpenseRequest;
 use App\Models\Expense;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ExpenseController extends Controller
 {
@@ -15,6 +17,7 @@ class ExpenseController extends Controller
     {
         $expenses = Expense::query()
             ->where('user_id', Auth::id())
+            ->with('media')
             ->orderByDesc('spent_on')
             ->orderByDesc('id')
             ->get();
@@ -35,9 +38,11 @@ class ExpenseController extends Controller
         return Inertia::render('Expenses/Create', $this->formOptions());
     }
 
-    public function store(ExpenseRequest $request)
+    public function store(ExpenseRequest $request): RedirectResponse
     {
-        Auth::user()->expenses()->create($request->validated());
+        $expense = Auth::user()->expenses()->create($request->validated());
+
+        $this->syncDocument($request, $expense);
 
         return redirect()->route('expenses.index')
             ->with('success', 'Expense recorded successfully.');
@@ -48,22 +53,24 @@ class ExpenseController extends Controller
         $this->authorize('update', $expense);
 
         return Inertia::render('Expenses/Edit', array_merge(
-            ['expense' => $expense],
+            ['expense' => $expense->load('media')],
             $this->formOptions(),
         ));
     }
 
-    public function update(ExpenseRequest $request, Expense $expense)
+    public function update(ExpenseRequest $request, Expense $expense): RedirectResponse
     {
         $this->authorize('update', $expense);
 
         $expense->update($request->validated());
 
+        $this->syncDocument($request, $expense);
+
         return redirect()->route('expenses.index')
             ->with('success', 'Expense updated successfully.');
     }
 
-    public function destroy(Expense $expense)
+    public function destroy(Expense $expense): RedirectResponse
     {
         $this->authorize('delete', $expense);
 
@@ -71,6 +78,37 @@ class ExpenseController extends Controller
 
         return redirect()->route('expenses.index')
             ->with('success', 'Expense deleted successfully.');
+    }
+
+    /**
+     * Stream the attached document for owners only.
+     */
+    public function document(Expense $expense): BinaryFileResponse
+    {
+        $this->authorize('view', $expense);
+
+        $media = $expense->getFirstMedia(Expense::DOCUMENT_COLLECTION);
+
+        if ($media === null) {
+            abort(404);
+        }
+
+        return response()->file($media->getPath());
+    }
+
+    /**
+     * Apply the requested document change (add/replace or remove).
+     */
+    private function syncDocument(ExpenseRequest $request, Expense $expense): void
+    {
+        if ($request->boolean('remove_document')) {
+            $expense->clearMediaCollection(Expense::DOCUMENT_COLLECTION);
+        }
+
+        if ($request->hasFile('document')) {
+            $expense->addMediaFromRequest('document')
+                ->toMediaCollection(Expense::DOCUMENT_COLLECTION);
+        }
     }
 
     /**

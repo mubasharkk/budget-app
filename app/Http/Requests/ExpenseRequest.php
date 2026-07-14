@@ -25,6 +25,8 @@ class ExpenseRequest extends FormRequest
             'description' => 'nullable|string|max:255',
             'expense_type' => ['required', Rule::enum(ExpenseType::class)],
             'notes' => 'nullable|string|max:2000',
+            'document' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp,heic,heif|max:15360',
+            'remove_document' => 'boolean',
         ];
     }
 
@@ -37,6 +39,8 @@ class ExpenseRequest extends FormRequest
             'amount.required' => 'Please enter an expense amount.',
             'amount.min' => 'The expense amount must be greater than zero.',
             'spent_on.required' => 'Please enter when you made this expense.',
+            'document.mimes' => 'The document must be a PDF or image (JPG, PNG, WebP, HEIC).',
+            'document.max' => 'The document must be smaller than 15 MB.',
         ];
     }
 }

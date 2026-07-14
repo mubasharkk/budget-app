@@ -5,18 +5,21 @@ import CancelButton from '@/Components/CancelButton';
 import ExpenseForm from './ExpenseForm';
 
 export default function Edit({ expense, expenseTypes, currencies }) {
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
+        _method: 'put',
         amount: expense.amount,
         currency: expense.currency,
         spent_on: expense.spent_on?.slice(0, 10) ?? '',
         description: expense.description ?? '',
         expense_type: expense.expense_type,
         notes: expense.notes ?? '',
+        document: null,
+        remove_document: false,
     });
 
     const submit = (e) => {
         e.preventDefault();
-        put(route('expenses.update', expense.id));
+        post(route('expenses.update', expense.id), { forceFormData: true });
     };
 
     return (
@@ -41,6 +44,7 @@ export default function Edit({ expense, expenseTypes, currencies }) {
                             errors={errors}
                             expenseTypes={expenseTypes}
                             currencies={currencies}
+                            document={expense.document}
                         />
 
                         <div className="mt-6 flex items-center justify-end gap-3">

@@ -12,11 +12,12 @@ export default function Create({ expenseTypes, currencies }) {
         description: '',
         expense_type: 'personal',
         notes: '',
+        document: null,
     });
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('expenses.store'));
+        post(route('expenses.store'), { forceFormData: true });
     };
 
     return (

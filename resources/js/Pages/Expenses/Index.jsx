@@ -1,7 +1,12 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
-import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+import {
+    PlusIcon,
+    PencilSquareIcon,
+    TrashIcon,
+    PaperClipIcon,
+} from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/utils/money';
 
 const formatDate = (value) =>
@@ -121,8 +126,20 @@ export default function Index({ expenses, summary }) {
                                                     {expense.expense_type}
                                                 </span>
                                             </div>
-                                            <div className="mt-0.5 text-sm text-gray-500">
+                                            <div className="mt-0.5 flex items-center gap-2 text-sm text-gray-500">
                                                 {formatDate(expense.spent_on)}
+                                                {expense.document && (
+                                                    <a
+                                                        href={expense.document.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800"
+                                                        title={expense.document.name}
+                                                    >
+                                                        <PaperClipIcon className="h-4 w-4" />
+                                                        Invoice
+                                                    </a>
+                                                )}
                                             </div>
                                             {expense.notes && (
                                                 <div className="mt-1 text-sm text-gray-400">
