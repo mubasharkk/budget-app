@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ExpenseType;
 use App\Http\Requests\ExpenseRequest;
+use App\Jobs\ParseExpenseDocument;
 use App\Models\Expense;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -40,7 +41,7 @@ class ExpenseController extends Controller
 
     public function store(ExpenseRequest $request): RedirectResponse
     {
-        $expense = Auth::user()->expenses()->create($request->validated());
+        $expense = Auth::user()->expenses()->create($this->normalized($request));
 
         $this->syncDocument($request, $expense);
 
@@ -62,7 +63,7 @@ class ExpenseController extends Controller
     {
         $this->authorize('update', $expense);
 
-        $expense->update($request->validated());
+        $expense->update($this->normalized($request));
 
         $this->syncDocument($request, $expense);
 
@@ -108,7 +109,23 @@ class ExpenseController extends Controller
         if ($request->hasFile('document')) {
             $expense->addMediaFromRequest('document')
                 ->toMediaCollection(Expense::DOCUMENT_COLLECTION);
+
+            ParseExpenseDocument::dispatch($expense);
         }
+    }
+
+    /**
+     * Validated data with a blank amount coalesced to 0 — the signal that the
+     * amount should be read from the attached document.
+     *
+     * @return array<string, mixed>
+     */
+    private function normalized(ExpenseRequest $request): array
+    {
+        $data = $request->validated();
+        $data['amount'] = $data['amount'] ?? 0;
+
+        return $data;
     }
 
     /**

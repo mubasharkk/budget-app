@@ -37,6 +37,9 @@ export default function ExpenseForm({
                     onChange={(e) => setData('amount', e.target.value)}
                     isFocused
                 />
+                <p className="mt-1 text-xs text-gray-400">
+                    Leave blank to read it from an attached document.
+                </p>
                 <InputError message={errors.amount} className="mt-2" />
             </div>
 
@@ -164,7 +167,9 @@ export default function ExpenseForm({
                     }
                 />
                 <p className="mt-1 text-xs text-gray-400">
-                    PDF or image (JPG, PNG, WebP, HEIC), up to 15 MB.
+                    PDF or image (JPG, PNG, WebP, HEIC), up to 15 MB. We'll read
+                    the amount, date and vendor from it and fill any fields you
+                    leave blank.
                     {document && ' Uploading a new file replaces the current one.'}
                 </p>
                 <InputError message={errors.document} className="mt-2" />

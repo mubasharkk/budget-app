@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ParseExpenseDocument;
 use App\Models\Expense;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -40,6 +42,42 @@ class ExpenseDocumentTest extends TestCase
 
         $this->assertNotNull($media);
         $this->assertSame('invoice.pdf', $media->file_name);
+    }
+
+    public function test_amount_is_optional_and_parsing_is_queued_when_a_document_is_attached(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('expenses.store'), [
+                'currency' => 'EUR',
+                'spent_on' => '2026-06-01',
+                'expense_type' => 'business',
+                'document' => UploadedFile::fake()->create('invoice.pdf', 120, 'application/pdf'),
+            ])
+            ->assertRedirect(route('expenses.index'));
+
+        $this->assertDatabaseHas('expenses', [
+            'user_id' => $user->id,
+            'amount' => 0,
+            'expense_type' => 'business',
+        ]);
+
+        Queue::assertPushed(ParseExpenseDocument::class);
+    }
+
+    public function test_amount_is_required_without_a_document(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('expenses.store'), [
+                'currency' => 'EUR',
+                'spent_on' => '2026-06-01',
+                'expense_type' => 'personal',
+            ])
+            ->assertSessionHasErrors('amount');
     }
 
     public function test_owner_can_download_document_but_others_cannot(): void

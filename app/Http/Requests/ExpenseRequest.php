@@ -19,7 +19,7 @@ class ExpenseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required_without:document|nullable|numeric|min:0.01',
             'currency' => 'required|string|in:EUR,USD,INR,PKR,TRY,GBP',
             'spent_on' => 'required|date',
             'description' => 'nullable|string|max:255',
@@ -36,7 +36,7 @@ class ExpenseRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'amount.required' => 'Please enter an expense amount.',
+            'amount.required_without' => 'Please enter an amount, or attach a document to read it from.',
             'amount.min' => 'The expense amount must be greater than zero.',
             'spent_on.required' => 'Please enter when you made this expense.',
             'document.mimes' => 'The document must be a PDF or image (JPG, PNG, WebP, HEIC).',

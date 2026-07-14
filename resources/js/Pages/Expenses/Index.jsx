@@ -149,9 +149,16 @@ export default function Index({ expenses, summary }) {
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <div className="text-right font-semibold text-gray-900">
-                                                {formatCurrency(
-                                                    expense.amount,
-                                                    expense.currency,
+                                                {Number(expense.amount) === 0 &&
+                                                expense.document ? (
+                                                    <span className="text-sm font-normal text-gray-400">
+                                                        Reading…
+                                                    </span>
+                                                ) : (
+                                                    formatCurrency(
+                                                        expense.amount,
+                                                        expense.currency,
+                                                    )
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-2">
