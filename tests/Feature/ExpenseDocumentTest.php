@@ -18,7 +18,7 @@ class ExpenseDocumentTest extends TestCase
         parent::setUp();
 
         $this->withoutVite();
-        Storage::fake('public');
+        Storage::fake('local');
     }
 
     public function test_user_can_attach_a_document_when_recording_an_expense(): void

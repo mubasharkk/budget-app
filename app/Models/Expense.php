@@ -52,7 +52,7 @@ class Expense extends Model implements HasMedia
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection(self::DOCUMENT_COLLECTION)
-            ->useDisk('public')
+            ->useDisk('local')
             ->singleFile();
     }
 
