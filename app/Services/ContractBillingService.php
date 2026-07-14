@@ -31,7 +31,7 @@ class ContractBillingService
 
         if ($contract->end_date && $next->gt(CarbonImmutable::instance($contract->end_date))) {
             $contract->update([
-                'status' => ContractStatus::Cancelled,
+                'status' => ContractStatus::Archived,
                 'last_paid_at' => $today,
             ]);
 

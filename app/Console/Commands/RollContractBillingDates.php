@@ -11,26 +11,24 @@ class RollContractBillingDates extends Command
 {
     protected $signature = 'contracts:roll-billing-dates';
 
-    protected $description = 'Advance next_billing_date for active contracts and cancel expired ones';
+    protected $description = 'Advance next_billing_date for active contracts and archive finished ones';
 
     public function handle(): int
     {
         $today = CarbonImmutable::today();
         $rolled = 0;
-        $cancelled = 0;
+
+        $archived = Contract::query()
+            ->where('status', ContractStatus::Active)
+            ->whereNotNull('end_date')
+            ->whereDate('end_date', '<', $today)
+            ->update(['status' => ContractStatus::Archived]);
 
         Contract::query()
             ->where('status', ContractStatus::Active)
             ->whereNotNull('next_billing_date')
-            ->chunkById(200, function ($contracts) use ($today, &$rolled, &$cancelled): void {
+            ->chunkById(200, function ($contracts) use ($today, &$rolled, &$archived): void {
                 foreach ($contracts as $contract) {
-                    if ($contract->end_date && $contract->end_date->lt($today)) {
-                        $contract->update(['status' => ContractStatus::Cancelled]);
-                        $cancelled++;
-
-                        continue;
-                    }
-
                     if ($contract->next_billing_date->gte($today)) {
                         continue;
                     }
@@ -41,8 +39,8 @@ class RollContractBillingDates extends Command
                     }
 
                     if ($contract->end_date && $next->gt(CarbonImmutable::instance($contract->end_date))) {
-                        $contract->update(['status' => ContractStatus::Cancelled]);
-                        $cancelled++;
+                        $contract->update(['status' => ContractStatus::Archived]);
+                        $archived++;
 
                         continue;
                     }
@@ -52,7 +50,7 @@ class RollContractBillingDates extends Command
                 }
             });
 
-        $this->info("Rolled {$rolled} contract(s); cancelled {$cancelled} expired contract(s).");
+        $this->info("Rolled {$rolled} contract(s); archived {$archived} finished contract(s).");
 
         return self::SUCCESS;
     }

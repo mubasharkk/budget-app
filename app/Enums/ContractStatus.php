@@ -7,6 +7,7 @@ enum ContractStatus: string
     case Active = 'active';
     case Paused = 'paused';
     case Cancelled = 'cancelled';
+    case Archived = 'archived';
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum ContractStatus: string
             self::Active => 'Active',
             self::Paused => 'Paused',
             self::Cancelled => 'Cancelled',
+            self::Archived => 'Archived',
         };
     }
 

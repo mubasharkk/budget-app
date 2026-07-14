@@ -14,6 +14,7 @@ const statusBadge = {
     active: 'bg-green-100 text-green-800',
     paused: 'bg-yellow-100 text-yellow-800',
     cancelled: 'bg-gray-200 text-gray-600',
+    archived: 'bg-slate-100 text-slate-500',
 };
 
 const formatDate = (value) =>

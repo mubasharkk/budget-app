@@ -45,7 +45,7 @@ class ContractMarkPaidTest extends TestCase
         $this->assertFalse($contract->is_paid_this_month);
     }
 
-    public function test_mark_paid_cancels_contract_when_next_billing_exceeds_end_date(): void
+    public function test_mark_paid_archives_contract_when_next_billing_exceeds_end_date(): void
     {
         $user = User::factory()->create();
         $contract = Contract::factory()->for($user)->create([
@@ -62,7 +62,7 @@ class ContractMarkPaidTest extends TestCase
 
         $contract->refresh();
 
-        $this->assertSame(ContractStatus::Cancelled, $contract->status);
+        $this->assertSame(ContractStatus::Archived, $contract->status);
         $this->assertNotNull($contract->last_paid_at);
     }
 

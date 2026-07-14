@@ -43,7 +43,7 @@ class RollContractBillingDatesTest extends TestCase
         $this->assertSame($future->toDateString(), $contract->next_billing_date->toDateString());
     }
 
-    public function test_contract_past_end_date_is_cancelled(): void
+    public function test_contract_past_end_date_is_archived(): void
     {
         $contract = Contract::factory()->create([
             'billing_cycle' => 'monthly',
@@ -54,6 +54,20 @@ class RollContractBillingDatesTest extends TestCase
 
         $this->artisan('contracts:roll-billing-dates')->assertSuccessful();
 
-        $this->assertSame(ContractStatus::Cancelled, $contract->refresh()->status);
+        $this->assertSame(ContractStatus::Archived, $contract->refresh()->status);
+    }
+
+    public function test_finished_contract_without_next_billing_date_is_archived(): void
+    {
+        $contract = Contract::factory()->create([
+            'billing_cycle' => 'monthly',
+            'status' => ContractStatus::Active,
+            'next_billing_date' => null,
+            'end_date' => Carbon::today()->subDay(),
+        ]);
+
+        $this->artisan('contracts:roll-billing-dates')->assertSuccessful();
+
+        $this->assertSame(ContractStatus::Archived, $contract->refresh()->status);
     }
 }
