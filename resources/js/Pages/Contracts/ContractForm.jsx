@@ -13,6 +13,7 @@ export default function ContractForm({
     categories = [],
     billingCycles = [],
     statuses = [],
+    expenseTypes = [],
     currencies = [],
 }) {
     return (
@@ -99,6 +100,23 @@ export default function ContractForm({
                     ))}
                 </select>
                 <InputError message={errors.currency} className="mt-2" />
+            </div>
+
+            <div>
+                <InputLabel htmlFor="expense_type" value="Type" />
+                <select
+                    id="expense_type"
+                    className={selectClasses}
+                    value={data.expense_type}
+                    onChange={(e) => setData('expense_type', e.target.value)}
+                >
+                    {expenseTypes.map((t) => (
+                        <option key={t.value} value={t.value}>
+                            {t.label}
+                        </option>
+                    ))}
+                </select>
+                <InputError message={errors.expense_type} className="mt-2" />
             </div>
 
             <div>

@@ -1,9 +1,13 @@
 import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ReceiptUploader from '@/Components/ReceiptUploader';
+import ExpenseTypeToggle from '@/Components/ExpenseTypeToggle';
 import { CameraIcon } from '@heroicons/react/24/outline';
 
 export default function Create() {
+    const [expenseType, setExpenseType] = useState('personal');
+
     return (
         <AuthenticatedLayout>
             <Head title="Upload Receipt" />
@@ -30,8 +34,20 @@ export default function Create() {
                                 Images are converted automatically for OCR.
                             </p>
                         </div>
-                        <div className="p-6">
-                            <ReceiptUploader mode="batch" />
+                        <div className="space-y-5 p-6">
+                            <div>
+                                <div className="mb-2 text-sm font-medium text-gray-700">
+                                    Charge these receipts to
+                                </div>
+                                <ExpenseTypeToggle
+                                    value={expenseType}
+                                    onChange={setExpenseType}
+                                />
+                            </div>
+                            <ReceiptUploader
+                                mode="batch"
+                                expenseType={expenseType}
+                            />
                         </div>
                     </div>
 

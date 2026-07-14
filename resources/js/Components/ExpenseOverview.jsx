@@ -42,8 +42,15 @@ function Skeleton() {
     );
 }
 
+const SCOPES = [
+    { value: 'all', label: 'All' },
+    { value: 'personal', label: 'Personal' },
+    { value: 'business', label: 'Business' },
+];
+
 export default function ExpenseOverview() {
     const [period, setPeriod] = useState('month');
+    const [scope, setScope] = useState('all');
     const [overview, setOverview] = useState(null);
     const [trend, setTrend] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -52,9 +59,14 @@ export default function ExpenseOverview() {
         let cancelled = false;
         setLoading(true);
 
+        const params = { period };
+        if (scope !== 'all') {
+            params.scope = scope;
+        }
+
         Promise.all([
-            axios.get('/dashboard/overview', { params: { period } }),
-            axios.get('/dashboard/trend', { params: { period } }),
+            axios.get('/dashboard/overview', { params }),
+            axios.get('/dashboard/trend', { params }),
         ])
             .then(([overviewRes, trendRes]) => {
                 if (cancelled) return;
@@ -71,7 +83,7 @@ export default function ExpenseOverview() {
         return () => {
             cancelled = true;
         };
-    }, [period]);
+    }, [period, scope]);
 
     const periodLabel = period === 'week' ? 'This week' : 'This month';
 
@@ -108,21 +120,39 @@ export default function ExpenseOverview() {
                 <h3 className="text-lg font-medium text-gray-900">
                     Expense Overview
                 </h3>
-                <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
-                    {['month', 'week'].map((p) => (
-                        <button
-                            key={p}
-                            type="button"
-                            onClick={() => setPeriod(p)}
-                            className={`rounded px-3 py-1 text-sm font-medium capitalize transition ${
-                                period === p
-                                    ? 'bg-gray-800 text-white'
-                                    : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                        >
-                            {p}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-2">
+                    <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
+                        {SCOPES.map((s) => (
+                            <button
+                                key={s.value}
+                                type="button"
+                                onClick={() => setScope(s.value)}
+                                className={`rounded px-3 py-1 text-sm font-medium transition ${
+                                    scope === s.value
+                                        ? 'bg-gray-800 text-white'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                {s.label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
+                        {['month', 'week'].map((p) => (
+                            <button
+                                key={p}
+                                type="button"
+                                onClick={() => setPeriod(p)}
+                                className={`rounded px-3 py-1 text-sm font-medium capitalize transition ${
+                                    period === p
+                                        ? 'bg-gray-800 text-white'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                {p}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 

@@ -20,14 +20,14 @@ class ReceiptUploadService
      * @param  array<int, UploadedFile>  $files
      * @return Collection<int, Receipt>
      */
-    public function storeMany(int $userId, array $files): Collection
+    public function storeMany(int $userId, array $files, string $expenseType = 'personal'): Collection
     {
         $files = array_slice($files, 0, self::MAX_FILES);
 
-        return collect($files)->map(fn (UploadedFile $file): Receipt => $this->storeOne($userId, $file));
+        return collect($files)->map(fn (UploadedFile $file): Receipt => $this->storeOne($userId, $file, $expenseType));
     }
 
-    public function storeOne(int $userId, UploadedFile $file): Receipt
+    public function storeOne(int $userId, UploadedFile $file, string $expenseType = 'personal'): Receipt
     {
         $originalFilename = $file->getClientOriginalName() ?: $this->defaultFilename($file);
         $mimeType = $file->getMimeType() ?: 'application/octet-stream';
@@ -54,6 +54,7 @@ class ReceiptUploadService
             'file_type' => $extension,
             'mime' => $mimeType,
             'file_size' => $fileSize,
+            'expense_type' => $expenseType,
             'status' => 'pending',
         ]);
 

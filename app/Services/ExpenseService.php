@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ContractStatus;
+use App\Enums\ExpenseType;
 use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
@@ -16,13 +17,13 @@ class ExpenseService
      *
      * @return array{fixed: float, variable: float, total: float, by_category: array<int, array{category: string, fixed: float, variable: float, total: float}>}
      */
-    public function overview(int $userId, CarbonInterface $start, CarbonInterface $end, string $period): array
+    public function overview(int $userId, CarbonInterface $start, CarbonInterface $end, string $period, ?ExpenseType $type = null): array
     {
-        $fixedByCategory = $this->fixedByCategory($userId, $period);
-        $variableByCategory = $this->variableByCategory($userId, $start, $end);
+        $fixedByCategory = $this->fixedByCategory($userId, $period, $type);
+        $variableByCategory = $this->variableByCategory($userId, $start, $end, $type);
 
         $fixedTotal = round(array_sum($fixedByCategory), 2);
-        $variableTotal = round($this->variableTotal($userId, $start, $end), 2);
+        $variableTotal = round($this->variableTotal($userId, $start, $end, $type), 2);
 
         return [
             'fixed' => $fixedTotal,
@@ -35,10 +36,11 @@ class ExpenseService
     /**
      * Total variable spend (receipt totals) within the range, by receipt date.
      */
-    public function variableTotal(int $userId, CarbonInterface $start, CarbonInterface $end): float
+    public function variableTotal(int $userId, CarbonInterface $start, CarbonInterface $end, ?ExpenseType $type = null): float
     {
         return (float) Receipt::query()
             ->where('user_id', $userId)
+            ->when($type, fn ($query) => $query->where('expense_type', $type))
             ->whereBetween('receipt_date', [$start, $end])
             ->sum('total_amount');
     }
@@ -48,12 +50,13 @@ class ExpenseService
      *
      * @return array<string, float>
      */
-    public function variableByCategory(int $userId, CarbonInterface $start, CarbonInterface $end): array
+    public function variableByCategory(int $userId, CarbonInterface $start, CarbonInterface $end, ?ExpenseType $type = null): array
     {
         $rows = ReceiptItem::query()
             ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
             ->leftJoin('categories', 'receipt_items.category_id', '=', 'categories.id')
             ->where('receipts.user_id', $userId)
+            ->when($type, fn ($query) => $query->where('receipts.expense_type', $type))
             ->whereBetween('receipts.receipt_date', [$start, $end])
             ->groupBy('categories.name')
             ->selectRaw('categories.name as name, SUM(receipt_items.total) as total')
@@ -74,11 +77,12 @@ class ExpenseService
      * @param  string  $period  'week' or 'month'
      * @return array<string, float>
      */
-    public function fixedByCategory(int $userId, string $period): array
+    public function fixedByCategory(int $userId, string $period, ?ExpenseType $type = null): array
     {
         $contracts = Contract::query()
             ->with('category:id,name')
             ->where('user_id', $userId)
+            ->when($type, fn ($query) => $query->where('expense_type', $type))
             ->where('status', ContractStatus::Active)
             ->get();
 
@@ -100,10 +104,10 @@ class ExpenseService
      *
      * @return array<int, array{label: string, fixed: float, variable: float, total: float}>
      */
-    public function trend(int $userId, CarbonInterface $anchor, string $period, int $points): array
+    public function trend(int $userId, CarbonInterface $anchor, string $period, int $points, ?ExpenseType $type = null): array
     {
         $anchor = CarbonImmutable::instance($anchor);
-        $fixed = round(array_sum($this->fixedByCategory($userId, $period)), 2);
+        $fixed = round(array_sum($this->fixedByCategory($userId, $period, $type)), 2);
 
         $buckets = [];
         for ($i = $points - 1; $i >= 0; $i--) {
@@ -117,7 +121,7 @@ class ExpenseService
                 $label = $start->format('M Y');
             }
 
-            $variable = round($this->variableTotal($userId, $start, $end), 2);
+            $variable = round($this->variableTotal($userId, $start, $end, $type), 2);
 
             $buckets[] = [
                 'label' => $label,

@@ -92,6 +92,7 @@ class ReceiptController extends Controller
         $createdReceipts = $this->uploadService->storeMany(
             Auth::id(),
             $request->uploadedFiles(),
+            $request->input('expense_type', 'personal'),
         );
 
         $fileCount = $createdReceipts->count();

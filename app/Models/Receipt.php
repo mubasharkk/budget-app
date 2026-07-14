@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ExpenseType;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +26,7 @@ class Receipt extends Model
         'vendor',
         'receipt_number',
         'currency',
+        'expense_type',
         'total_amount',
         'receipt_date',
         'receipt_timezone',
@@ -37,10 +39,12 @@ class Receipt extends Model
         'file_size' => 'integer',
         'ocr_data' => 'array',
         'receipt_date' => 'datetime',
+        'expense_type' => ExpenseType::class,
     ];
 
     protected $attributes = [
         'currency' => 'EUR',
+        'expense_type' => 'personal',
     ];
 
     /**

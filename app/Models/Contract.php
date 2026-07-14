@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BillingCycle;
 use App\Enums\ContractStatus;
+use App\Enums\ExpenseType;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -23,6 +24,7 @@ class Contract extends Model
         'description',
         'amount',
         'currency',
+        'expense_type',
         'billing_cycle',
         'billing_day',
         'start_date',
@@ -36,6 +38,7 @@ class Contract extends Model
 
     protected $attributes = [
         'currency' => 'EUR',
+        'expense_type' => 'personal',
         'billing_cycle' => 'monthly',
         'status' => 'active',
         'auto_renew' => true,
@@ -48,6 +51,7 @@ class Contract extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'expense_type' => ExpenseType::class,
             'billing_cycle' => BillingCycle::class,
             'status' => ContractStatus::class,
             'billing_day' => 'integer',

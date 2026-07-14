@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ExpenseType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rule;
 
 class StoreReceiptRequest extends FormRequest
 {
@@ -19,6 +22,7 @@ class StoreReceiptRequest extends FormRequest
         return [
             'files' => 'required|array|min:1|max:5',
             'files.*' => 'required|file|mimes:jpg,jpeg,png,heic,heif,webp,pdf|max:15360',
+            'expense_type' => ['nullable', Rule::enum(ExpenseType::class)],
         ];
     }
 
@@ -36,7 +40,7 @@ class StoreReceiptRequest extends FormRequest
     }
 
     /**
-     * @return array<int, \Illuminate\Http\UploadedFile>
+     * @return array<int, UploadedFile>
      */
     public function uploadedFiles(): array
     {

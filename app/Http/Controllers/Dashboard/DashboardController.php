@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\BudgetPeriod;
+use App\Enums\ExpenseType;
 use App\Http\Controllers\Controller;
 use App\Services\BudgetService;
 use App\Services\ConsumptionService;
@@ -241,12 +242,13 @@ class DashboardController extends Controller
     public function overview(Request $request)
     {
         $period = $this->resolvePeriod($request);
+        $scope = $this->resolveScope($request);
         [$start, $end] = $this->currentPeriodRange($period);
         [$prevStart, $prevEnd] = $this->previousPeriodRange($period);
 
-        $current = $this->expenseService->overview(Auth::id(), $start, $end, $period);
+        $current = $this->expenseService->overview(Auth::id(), $start, $end, $period, $scope);
 
-        $previousVariable = round($this->expenseService->variableTotal(Auth::id(), $prevStart, $prevEnd), 2);
+        $previousVariable = round($this->expenseService->variableTotal(Auth::id(), $prevStart, $prevEnd, $scope), 2);
         $previousTotal = round($current['fixed'] + $previousVariable, 2);
 
         $delta = round($current['total'] - $previousTotal, 2);
@@ -256,6 +258,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'period' => $period,
+            'scope' => $scope?->value,
             'start' => $start->toDateString(),
             'end' => $end->toDateString(),
             'current' => $current,
@@ -277,17 +280,24 @@ class DashboardController extends Controller
     public function trend(Request $request)
     {
         $period = $this->resolvePeriod($request);
+        $scope = $this->resolveScope($request);
         $points = $period === 'week' ? 8 : 6;
 
         return response()->json([
             'period' => $period,
-            'trend' => $this->expenseService->trend(Auth::id(), CarbonImmutable::today(), $period, $points),
+            'scope' => $scope?->value,
+            'trend' => $this->expenseService->trend(Auth::id(), CarbonImmutable::today(), $period, $points, $scope),
         ]);
     }
 
     private function resolvePeriod(Request $request): string
     {
         return $request->get('period') === 'week' ? 'week' : 'month';
+    }
+
+    private function resolveScope(Request $request): ?ExpenseType
+    {
+        return ExpenseType::tryFrom((string) $request->get('scope'));
     }
 
     private function resolveConsumptionPeriod(Request $request): string

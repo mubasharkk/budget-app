@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\BillingCycle;
 use App\Enums\ContractStatus;
+use App\Enums\ExpenseType;
 use App\Http\Requests\ContractRequest;
 use App\Models\Category;
 use App\Models\Contract;
@@ -128,6 +129,7 @@ class ContractController extends Controller
                 ->get(['id', 'name']),
             'billingCycles' => BillingCycle::options(),
             'statuses' => ContractStatus::options(),
+            'expenseTypes' => ExpenseType::options(),
             'currencies' => ['EUR', 'USD', 'INR', 'PKR', 'TRY', 'GBP'],
         ];
     }
