@@ -219,14 +219,11 @@ class ReceiptController extends Controller
     {
         $this->authorize('view', $receipt);
 
-        $path = $receipt->stored_path ?: $receipt->original_path;
-        $filePath = storage_path('app/public/'.$path);
-
-        if (! file_exists($filePath)) {
+        if (! $receipt->fileExists()) {
             abort(404);
         }
 
-        return response()->file($filePath);
+        return response()->file($receipt->file_path);
     }
 
     /**
@@ -243,19 +240,15 @@ class ReceiptController extends Controller
                 'filename' => $receipt->original_filename,
             ]);
 
-            // Delete the physical file
-            if ($receipt->fileExists()) {
-                $path = $receipt->stored_path ?: $receipt->original_path;
-                Storage::disk('public')->delete($path);
-                Log::info('File deleted', ['path' => $path]);
-            } else {
-                Log::warning('File not found for deletion', [
-                    'receipt_id' => $receipt->id,
-                    'path' => $receipt->stored_path ?: $receipt->original_path,
-                ]);
+            // Delete the legacy public file if present; media-library files are
+            // removed automatically when the model is deleted.
+            $legacyPath = $receipt->stored_path ?: $receipt->original_path;
+            if ($legacyPath && Storage::disk('public')->exists($legacyPath)) {
+                Storage::disk('public')->delete($legacyPath);
+                Log::info('Legacy receipt file deleted', ['path' => $legacyPath]);
             }
 
-            // Delete the receipt record (this will cascade delete items)
+            // Delete the receipt record (cascade deletes items and media)
             $receipt->delete();
 
             Log::info('Receipt deleted successfully', ['receipt_id' => $receipt->id]);

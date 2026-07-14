@@ -9,7 +9,6 @@ use App\Services\LlmService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProcessReceipt implements ShouldQueue
@@ -31,13 +30,10 @@ class ProcessReceipt implements ShouldQueue
             Log::info('Starting receipt processing', ['receipt_id' => $this->receipt->id]);
 
             if (! $this->receipt->fileExists()) {
-                throw new \Exception('Receipt file not found: '.($this->receipt->stored_path ?: $this->receipt->original_path));
+                throw new \Exception('Receipt file not found for receipt '.$this->receipt->id);
             }
 
-            $path = $this->receipt->stored_path ?: $this->receipt->original_path;
-            $filePath = Storage::disk('public')->path($path);
-
-            $result = $llmService->parseReceiptFromFile($filePath, $this->receipt->mime);
+            $result = $llmService->parseReceiptFromFile($this->receipt->file_path, $this->receipt->mime);
 
             if (! $result['success']) {
                 throw new \Exception('Receipt parsing failed: '.($result['error'] ?? 'Unknown error'));

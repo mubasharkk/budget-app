@@ -8,10 +8,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Receipt extends Model
+class Receipt extends Model implements HasMedia
 {
-    use CrudTrait, HasFactory;
+    use CrudTrait, HasFactory, InteractsWithMedia;
+
+    public const RECEIPT_COLLECTION = 'receipt';
 
     protected $fillable = [
         'user_id',
@@ -88,52 +93,72 @@ class Receipt extends Model
     }
 
     /**
-     * Get the file URL
+     * The receipt file is stored on a private disk and served only through the
+     * ownership-checked receipts.file route.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::RECEIPT_COLLECTION)
+            ->useDisk('local')
+            ->singleFile();
+    }
+
+    /**
+     * The stored receipt file, whether on media-library or the legacy public disk.
+     */
+    private function legacyPath(): ?string
+    {
+        return $this->stored_path ?: $this->original_path;
+    }
+
+    /**
+     * All file URL accessors resolve to the ownership-checked controller route;
+     * the underlying file is private and never linked directly.
      */
     public function getFileUrlAttribute(): string
     {
-        // Use stored_path if available (for public access), otherwise fall back to original_path
-        $path = $this->stored_path ?: $this->original_path;
-
-        return asset('storage/'.$path);
+        return route('receipts.file', $this->id);
     }
 
-    /**
-     * Get the public file URL (for direct access)
-     */
     public function getPublicFileUrlAttribute(): string
     {
-        // Use stored_path if available (for public access), otherwise fall back to original_path
-        $path = $this->stored_path ?: $this->original_path;
-
-        return url('storage/'.$path);
+        return route('receipts.file', $this->id);
     }
 
-    /**
-     * Get the direct file access URL (through controller)
-     */
     public function getDirectFileUrlAttribute(): string
     {
         return route('receipts.file', $this->id);
     }
 
     /**
-     * Check if the physical file exists
+     * Check if the underlying file exists (media-library first, legacy fallback).
      */
     public function fileExists(): bool
     {
-        $path = $this->stored_path ?: $this->original_path;
+        $media = $this->getFirstMedia(self::RECEIPT_COLLECTION);
 
-        return $path && \Storage::disk('public')->exists($path);
+        if ($media !== null) {
+            return file_exists($media->getPath());
+        }
+
+        $legacy = $this->legacyPath();
+
+        return $legacy !== null && Storage::disk('public')->exists($legacy);
     }
 
     /**
-     * Get the full file path
+     * Absolute path to the underlying file (media-library first, legacy fallback).
      */
-    public function getFilePathAttribute(): string
+    public function getFilePathAttribute(): ?string
     {
-        $path = $this->stored_path ?: $this->original_path;
+        $media = $this->getFirstMedia(self::RECEIPT_COLLECTION);
 
-        return storage_path('app/public/'.$path);
+        if ($media !== null) {
+            return $media->getPath();
+        }
+
+        $legacy = $this->legacyPath();
+
+        return $legacy !== null ? Storage::disk('public')->path($legacy) : null;
     }
 }

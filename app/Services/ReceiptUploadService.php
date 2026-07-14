@@ -7,7 +7,6 @@ use App\Models\Receipt;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
@@ -30,32 +29,30 @@ class ReceiptUploadService
     public function storeOne(int $userId, UploadedFile $file, string $expenseType = 'personal'): Receipt
     {
         $originalFilename = $file->getClientOriginalName() ?: $this->defaultFilename($file);
-        $mimeType = $file->getMimeType() ?: 'application/octet-stream';
-        $fileSize = $file->getSize() ?? 0;
-
-        $year = now()->year;
-        $month = now()->format('m');
         $uuid = Str::uuid();
-        $path = "receipts/{$year}/{$month}/";
-
-        if ($this->isPdf($file)) {
-            $extension = 'pdf';
-            $filename = "{$uuid}.{$extension}";
-            $storedPath = $file->storeAs($path, $filename, 'public');
-        } else {
-            [$storedPath, $mimeType, $fileSize, $extension] = $this->storeImage($file, $path, $uuid, $originalFilename);
-        }
 
         $receipt = Receipt::create([
             'user_id' => $userId,
             'original_filename' => $originalFilename,
-            'original_path' => $path,
-            'stored_path' => $storedPath,
-            'file_type' => $extension,
-            'mime' => $mimeType,
-            'file_size' => $fileSize,
             'expense_type' => $expenseType,
             'status' => 'pending',
+        ]);
+
+        if ($this->isPdf($file)) {
+            $receipt->addMedia($file)
+                ->usingFileName("{$uuid}.pdf")
+                ->usingName($originalFilename)
+                ->toMediaCollection(Receipt::RECEIPT_COLLECTION);
+        } else {
+            $this->addImageMedia($receipt, $file, $uuid, $originalFilename);
+        }
+
+        $media = $receipt->getFirstMedia(Receipt::RECEIPT_COLLECTION);
+
+        $receipt->update([
+            'file_type' => pathinfo((string) $media->file_name, PATHINFO_EXTENSION),
+            'mime' => $media->mime_type,
+            'file_size' => $media->size,
         ]);
 
         ProcessReceipt::dispatch($receipt);
@@ -64,26 +61,24 @@ class ReceiptUploadService
     }
 
     /**
-     * @return array{0: string, 1: string, 2: int, 3: string}
+     * Convert the uploaded image to PNG and attach it; fall back to the original on failure.
      */
-    private function storeImage(UploadedFile $file, string $path, string $uuid, string $originalFilename): array
+    private function addImageMedia(Receipt $receipt, UploadedFile $file, string $uuid, string $originalFilename): void
     {
-        $extension = 'png';
-        $filename = "{$uuid}.{$extension}";
-        $storedPath = $path.$filename;
-
         try {
             $imageManager = new ImageManager(new Driver);
             $image = $imageManager->read($file->getRealPath());
-            $pngData = $image->toPng();
-            Storage::disk('public')->put($storedPath, $pngData);
+            $pngData = (string) $image->toPng();
+
+            $receipt->addMediaFromString($pngData)
+                ->usingFileName("{$uuid}.png")
+                ->usingName($originalFilename)
+                ->toMediaCollection(Receipt::RECEIPT_COLLECTION);
 
             Log::info('Receipt image converted to PNG', [
                 'original_filename' => $originalFilename,
                 'original_mime' => $file->getMimeType(),
             ]);
-
-            return [$storedPath, 'image/png', strlen($pngData), $extension];
         } catch (\Exception $e) {
             Log::error('Receipt image conversion failed', [
                 'original_filename' => $originalFilename,
@@ -91,15 +86,11 @@ class ReceiptUploadService
             ]);
 
             $extension = $file->getClientOriginalExtension() ?: 'bin';
-            $filename = "{$uuid}.{$extension}";
-            $storedPath = $file->storeAs($path, $filename, 'public');
 
-            return [
-                $storedPath,
-                $file->getMimeType() ?: 'application/octet-stream',
-                $file->getSize() ?? 0,
-                $extension,
-            ];
+            $receipt->addMedia($file)
+                ->usingFileName("{$uuid}.{$extension}")
+                ->usingName($originalFilename)
+                ->toMediaCollection(Receipt::RECEIPT_COLLECTION);
         }
     }
 
