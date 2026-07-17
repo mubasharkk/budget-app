@@ -5,6 +5,102 @@ import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
+const isActive = (match) =>
+    route().current(...(Array.isArray(match) ? match : [match]));
+
+const NAV_GROUPS = [
+    {
+        label: 'Finances',
+        items: [
+            { label: 'Income', route: 'incomes.index', match: 'incomes.*' },
+            { label: 'Expenses', route: 'expenses.index', match: 'expenses.*' },
+            { label: 'Savings', route: 'savings.index', match: 'savings.*' },
+            { label: 'Budgets', route: 'budgets.index', match: 'budgets.*' },
+        ],
+    },
+    {
+        label: 'Recurring',
+        items: [
+            { label: 'Contracts', route: 'contracts.index', match: 'contracts.*' },
+            { label: 'Providers', route: 'providers.index', match: 'providers.*' },
+        ],
+    },
+    {
+        label: 'Explore',
+        items: [
+            { label: 'Insights', route: 'insights', match: 'insights' },
+            { label: 'Deals', route: 'deals', match: ['deals', 'products.show'] },
+            { label: 'Assistant', route: 'agent', match: 'agent' },
+        ],
+    },
+];
+
+function Chevron({ open }) {
+    return (
+        <svg
+            className={`ms-1 h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+        >
+            <path
+                fillRule="evenodd"
+                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                clipRule="evenodd"
+            />
+        </svg>
+    );
+}
+
+function NavGroup({ label, items }) {
+    const [open, setOpen] = useState(false);
+    const active = items.some((item) => isActive(item.match));
+
+    return (
+        <div className="relative inline-flex">
+            <button
+                type="button"
+                onClick={() => setOpen((previous) => !previous)}
+                className={
+                    'inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none ' +
+                    (active
+                        ? 'border-indigo-400 text-gray-900'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700')
+                }
+            >
+                {label}
+                <Chevron open={open} />
+            </button>
+
+            {open && (
+                <>
+                    <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setOpen(false)}
+                    />
+                    <div className="absolute start-0 top-full z-50 mt-0 w-48 rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5">
+                        {items.map((item) => (
+                            <Link
+                                key={item.label}
+                                href={route(item.route)}
+                                onClick={() => setOpen(false)}
+                                className={
+                                    'block px-4 py-2 text-sm transition duration-150 ease-in-out ' +
+                                    (isActive(item.match)
+                                        ? 'bg-indigo-50 font-medium text-indigo-700'
+                                        : 'text-gray-700 hover:bg-gray-100')
+                                }
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
 
@@ -38,68 +134,13 @@ export default function AuthenticatedLayout({ header, children }) {
                                     Receipts
                                 </NavLink>
 
-                                <NavLink
-                                    href={route('insights')}
-                                    active={route().current('insights')}
-                                >
-                                    Insights
-                                </NavLink>
-
-                                <NavLink
-                                    href={route('deals')}
-                                    active={route().current('deals', 'products.show')}
-                                >
-                                    Deals
-                                </NavLink>
-
-                                <NavLink
-                                    href={route('budgets.index')}
-                                    active={route().current('budgets.*')}
-                                >
-                                    Budgets
-                                </NavLink>
-
-                                <NavLink
-                                    href={route('incomes.index')}
-                                    active={route().current('incomes.*')}
-                                >
-                                    Income
-                                </NavLink>
-
-                                <NavLink
-                                    href={route('expenses.index')}
-                                    active={route().current('expenses.*')}
-                                >
-                                    Expenses
-                                </NavLink>
-
-                                <NavLink
-                                    href={route('savings.index')}
-                                    active={route().current('savings.*')}
-                                >
-                                    Savings
-                                </NavLink>
-
-                                <NavLink
-                                    href={route('agent')}
-                                    active={route().current('agent')}
-                                >
-                                    Assistant
-                                </NavLink>
-
-                                <NavLink
-                                    href={route('contracts.index')}
-                                    active={route().current('contracts.*')}
-                                >
-                                    Contracts
-                                </NavLink>
-
-                                <NavLink
-                                    href={route('providers.index')}
-                                    active={route().current('providers.*')}
-                                >
-                                    Providers
-                                </NavLink>
+                                {NAV_GROUPS.map((group) => (
+                                    <NavGroup
+                                        key={group.label}
+                                        label={group.label}
+                                        items={group.items}
+                                    />
+                                ))}
                             </div>
                         </div>
 
@@ -212,68 +253,22 @@ export default function AuthenticatedLayout({ header, children }) {
                             Receipts
                         </ResponsiveNavLink>
 
-                        <ResponsiveNavLink
-                            href={route('insights')}
-                            active={route().current('insights')}
-                        >
-                            Insights
-                        </ResponsiveNavLink>
-
-                        <ResponsiveNavLink
-                            href={route('deals')}
-                            active={route().current('deals', 'products.show')}
-                        >
-                            Deals
-                        </ResponsiveNavLink>
-
-                        <ResponsiveNavLink
-                            href={route('budgets.index')}
-                            active={route().current('budgets.*')}
-                        >
-                            Budgets
-                        </ResponsiveNavLink>
-
-                        <ResponsiveNavLink
-                            href={route('incomes.index')}
-                            active={route().current('incomes.*')}
-                        >
-                            Income
-                        </ResponsiveNavLink>
-
-                        <ResponsiveNavLink
-                            href={route('expenses.index')}
-                            active={route().current('expenses.*')}
-                        >
-                            Expenses
-                        </ResponsiveNavLink>
-
-                        <ResponsiveNavLink
-                            href={route('savings.index')}
-                            active={route().current('savings.*')}
-                        >
-                            Savings
-                        </ResponsiveNavLink>
-
-                        <ResponsiveNavLink
-                            href={route('agent')}
-                            active={route().current('agent')}
-                        >
-                            Assistant
-                        </ResponsiveNavLink>
-
-                        <ResponsiveNavLink
-                            href={route('contracts.index')}
-                            active={route().current('contracts.*')}
-                        >
-                            Contracts
-                        </ResponsiveNavLink>
-
-                        <ResponsiveNavLink
-                            href={route('providers.index')}
-                            active={route().current('providers.*')}
-                        >
-                            Providers
-                        </ResponsiveNavLink>
+                        {NAV_GROUPS.map((group) => (
+                            <div key={group.label} className="pt-2">
+                                <div className="px-4 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                    {group.label}
+                                </div>
+                                {group.items.map((item) => (
+                                    <ResponsiveNavLink
+                                        key={item.label}
+                                        href={route(item.route)}
+                                        active={isActive(item.match)}
+                                    >
+                                        {item.label}
+                                    </ResponsiveNavLink>
+                                ))}
+                            </div>
+                        ))}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">
@@ -288,7 +283,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
                         <div className="mt-3 space-y-1">
                             <ResponsiveNavLink href={route('profile.edit')}>
-                                Profile 123
+                                Profile
                             </ResponsiveNavLink>
                             <ResponsiveNavLink href={route('backpack')}>
                                 Control Panel
