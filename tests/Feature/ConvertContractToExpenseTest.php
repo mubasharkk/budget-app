@@ -33,9 +33,9 @@ class ConvertContractToExpenseTest extends TestCase
             'amount' => 29.99,
             'currency' => 'EUR',
             'expense_type' => 'business',
-            'spent_on' => '2026-08-01',
             'description' => 'Gym membership',
         ]);
+        $this->assertSame('2026-08-01', Expense::query()->value('spent_on')->toDateString());
     }
 
     public function test_keep_option_archives_the_contract_instead_of_deleting(): void
@@ -56,7 +56,7 @@ class ConvertContractToExpenseTest extends TestCase
         $this->artisan('contracts:convert-to-expense', ['contract' => $contract->id, '--date' => '2026-06-15', '--force' => true])
             ->assertSuccessful();
 
-        $this->assertDatabaseHas('expenses', ['spent_on' => '2026-06-15']);
+        $this->assertSame('2026-06-15', Expense::query()->value('spent_on')->toDateString());
     }
 
     public function test_dry_run_makes_no_changes(): void
