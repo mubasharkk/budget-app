@@ -4,7 +4,8 @@ You are given a receipt/invoice as an attached image or PDF. Read it directly an
 Locale hint: "Country: DE (EUR default), language may vary."
 
 Rules:
-- **RECEIPT DETECTION**: First determine if the attached document is actually a receipt/invoice. If it's not a receipt (e.g., a random photo, a non-receipt document, or unreadable content), set `is_receipt: false` and return minimal data.
+- **RECEIPT DETECTION**: First determine if the attached document is a receipt, invoice, or bill — i.e. any document that records a purchase or payment. This is intentionally broad and is **not** limited to German or grocery-store receipts. It **includes** service invoices, digital/online purchases, subscriptions and SaaS, online courses, software, utility/telecom bills, tickets, and hotel/restaurant bills — in **any language and any currency** (USD, EUR, GBP, etc.). Only set `is_receipt: false` for documents that genuinely record no purchase (e.g. a random photo, a letter, a blank page, or unreadable content). When in doubt and the document shows a vendor and an amount owed or paid, treat it as a receipt (`is_receipt: true`).
+- **SERVICE / SINGLE-LINE INVOICES**: Many invoices bill a single service rather than a list of goods. If there is no itemized list, create one line item representing what was purchased (e.g. name = the product/service or course title, `quantity` 1, `unit_price` and `total` = the amount).
 - **ITEM-LEVEL CATEGORIZATION**: Each item in the list must have its own category and subcategory.
 - **CATEGORY REQUIRED**: Every item must have a category (required field).
 - **SUBCATEGORY PREFERRED**: Each item should have a subcategory when possible (optional but recommended).
@@ -15,8 +16,8 @@ Rules:
 - Extract: `vendor`, `receipt_number`, `currency` (ISO 4217), `total_amount`, `receipt_date`, `receipt_time`.
 - **RECEIPT NUMBER**: Extract the receipt/invoice number printed on the document (e.g. "Beleg-Nr.", "Bon-Nr.", "Rechnungsnummer", "Receipt No.", "Invoice #"). Keep it as a string exactly as shown. Set `null` if there is none.
 - Extract line items: `name`, `quantity` (default 1 if missing), `unit_price`, `total` (unit_price × quantity), `category`, `subcategory`.
-- **German Price Format**: Process prices in German format (comma as decimal separator, dot as thousands separator).
-- **Number Conversion**: Convert German format to float (e.g., "1.234,56" → 1234.56, "15,00" → 15.00).
+- **Price Format**: Detect the document's number format. For German/European format the comma is the decimal separator and the dot is the thousands separator; for US/international format it is the reverse. Interpret each amount according to the format actually used on the document.
+- **Number Conversion**: Convert to a dot-decimal float (e.g. German "1.234,56" → 1234.56, "15,00" → 15.00; US "1,234.56" → 1234.56).
 - **Quantity**: Extract as integer (whole numbers only).
 - **Prices**: Extract as float (decimal numbers).
 - **Total Amount**: Extract as float in German format and convert to standard float.
