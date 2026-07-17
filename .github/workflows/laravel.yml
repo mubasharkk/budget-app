@@ -11,12 +11,15 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
     - uses: shivammathur/setup-php@15c43e89cdef867065b0213be354c2841860869e
       with:
         php-version: '8.4'
-        extensions: mbstring, dom, fileinfo, gd, bcmath, pdo_sqlite, sqlite3
-        coverage: none
+        extensions: mbstring, dom, fileinfo, gd, bcmath, pdo_sqlite, sqlite3, pcov
+        coverage: pcov
     - uses: actions/checkout@v4
     - name: Copy .env
       run: php -r "file_exists('.env') || copy('.env.example', '.env');"
@@ -34,4 +37,18 @@ jobs:
       env:
         DB_CONNECTION: sqlite
         DB_DATABASE: database/database.sqlite
-      run: php artisan test
+      run: php artisan test --coverage-clover=build/logs/clover.xml
+    - name: Generate coverage badge
+      run: php bin/coverage-badge.php build/logs/clover.xml .github/badges/coverage.svg
+    - name: Commit coverage badge
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      run: |
+        if [ -n "$(git status --porcelain .github/badges/coverage.svg)" ]; then
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/badges/coverage.svg
+          git commit -m "Update coverage badge [skip ci]"
+          git push
+        else
+          echo "Coverage badge unchanged."
+        fi

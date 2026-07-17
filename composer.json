@@ -67,6 +67,11 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "test:coverage": [
+            "@php artisan config:clear --ansi",
+            "@php -d pcov.enabled=1 artisan test --coverage-clover=build/logs/clover.xml",
+            "@php bin/coverage-badge.php build/logs/clover.xml .github/badges/coverage.svg"
         ]
     },
     "extra": {

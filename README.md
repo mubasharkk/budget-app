@@ -1,6 +1,7 @@
 # Budget Wise
 
 [![Laravel](https://github.com/mubasharkk/budget-app/actions/workflows/laravel.yml/badge.svg)](https://github.com/mubasharkk/budget-app/actions/workflows/laravel.yml)
+[![Coverage](https://raw.githubusercontent.com/mubasharkk/budget-app/master/.github/badges/coverage.svg)](https://github.com/mubasharkk/budget-app/actions/workflows/laravel.yml)
 
 A modern Laravel-based budget application with intelligent receipt processing capabilities. This app allows users to upload receipts via camera or file upload, automatically extracts text using OCR, and intelligently categorizes expenses using AI.
 
