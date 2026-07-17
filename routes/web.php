@@ -60,7 +60,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/contracts/{contract}/mark-paid', [ContractController::class, 'markPaid'])
         ->name('contracts.mark-paid');
 
-    // One-time income entries
+    // Recurring monthly income (stored on the user) + one-time income entries
+    Route::patch('/incomes/monthly', [IncomeController::class, 'updateMonthly'])
+        ->name('incomes.monthly.update');
     Route::resource('incomes', IncomeController::class)->except('show');
 
     // One-time expense entries

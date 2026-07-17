@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\IncomeType;
 use App\Http\Requests\IncomeRequest;
+use App\Http\Requests\IncomeUpdateRequest;
 use App\Models\Income;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,21 +15,50 @@ class IncomeController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Incomes/Index', [
+        $user = Auth::user();
+
+        return Inertia::render('Incomes/Index', array_merge([
             'incomes' => Income::query()
-                ->where('user_id', Auth::id())
+                ->where('user_id', $user->id)
                 ->orderByDesc('received_on')
                 ->orderByDesc('id')
                 ->get(),
             'summary' => [
                 'total' => round((float) Income::query()
-                    ->where('user_id', Auth::id())
+                    ->where('user_id', $user->id)
                     ->sum('amount'), 2),
                 'count' => Income::query()
-                    ->where('user_id', Auth::id())
+                    ->where('user_id', $user->id)
                     ->count(),
             ],
-        ]);
+            'monthlyIncome' => [
+                'amount' => $user->monthly_income !== null ? (float) $user->monthly_income : null,
+                'income_type' => $user->income_type?->value,
+                'income_currency' => $user->income_currency ?? 'EUR',
+            ],
+        ], $this->formOptions()));
+    }
+
+    public function updateMonthly(IncomeUpdateRequest $request): RedirectResponse
+    {
+        $user = $request->user();
+        $validated = $request->validated();
+
+        if (! isset($validated['monthly_income']) || $validated['monthly_income'] === null) {
+            $user->monthly_income = null;
+            $user->income_type = null;
+        } else {
+            $user->fill([
+                'monthly_income' => $validated['monthly_income'],
+                'income_type' => $validated['income_type'] ?? IncomeType::Net,
+                'income_currency' => $validated['income_currency'] ?? 'EUR',
+            ]);
+        }
+
+        $user->save();
+
+        return redirect()->route('incomes.index')
+            ->with('success', 'Monthly income updated successfully.');
     }
 
     public function create(): Response
