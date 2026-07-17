@@ -4,8 +4,58 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
-import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon, CameraIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon, CameraIcon, MagnifyingGlassIcon, EyeIcon, PencilSquareIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/utils/money';
+
+const ACTION_BASE = 'inline-flex items-center gap-1 rounded-md font-medium transition-colors';
+
+function ReceiptActions({ receipt, onDelete, onRetry, size = 'sm' }) {
+    const pad = size === 'xs' ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-xs';
+
+    return (
+        <div className="flex flex-wrap gap-2">
+            <Link
+                href={route('receipts.show', receipt.id)}
+                className={`${ACTION_BASE} ${pad} text-indigo-600 bg-indigo-50 hover:bg-indigo-100`}
+            >
+                <EyeIcon className="h-4 w-4" /> View
+            </Link>
+            <Link
+                href={route('receipts.edit', receipt.id)}
+                className={`${ACTION_BASE} ${pad} text-gray-700 bg-gray-100 hover:bg-gray-200`}
+            >
+                <PencilSquareIcon className="h-4 w-4" /> Edit
+            </Link>
+            {receipt.mime === 'application/pdf' && (
+                <a
+                    href={receipt.direct_file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${ACTION_BASE} ${pad} text-blue-600 bg-blue-50 hover:bg-blue-100`}
+                    title="Open PDF in new tab"
+                >
+                    <DocumentArrowDownIcon className="h-4 w-4" /> PDF
+                </a>
+            )}
+            {receipt.status === 'failed' && (
+                <button
+                    type="button"
+                    onClick={() => onRetry(receipt)}
+                    className={`${ACTION_BASE} ${pad} text-amber-700 bg-amber-50 hover:bg-amber-100`}
+                >
+                    <ArrowPathIcon className="h-4 w-4" /> Retry
+                </button>
+            )}
+            <button
+                type="button"
+                onClick={() => onDelete(receipt)}
+                className={`${ACTION_BASE} ${pad} text-red-600 bg-red-50 hover:bg-red-100`}
+            >
+                <TrashIcon className="h-4 w-4" /> Delete
+            </button>
+        </div>
+    );
+}
 
 const SORT_OPTIONS = [
     { value: 'created_at-desc', label: 'Newest uploaded' },
@@ -99,6 +149,13 @@ export default function Index({ receipts, filters = {} }) {
         setReceiptToDelete(null);
     };
 
+    const handleRetry = (receipt) => {
+        router.post(route('receipts.retry', receipt.id), {}, {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    };
+
     const formatDate = (date) => {
         return new Date(date).toLocaleDateString('de-DE', {
             year: 'numeric',
@@ -114,7 +171,7 @@ export default function Index({ receipts, filters = {} }) {
             <Head title="Receipts" />
 
             <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
                             <div className="flex justify-between items-center mb-6">
@@ -289,31 +346,12 @@ export default function Index({ receipts, filters = {} }) {
                                                         </p>
                                                         
                                                         {/* Actions */}
-                                                        <div className="flex space-x-2">
-                                                            <Link
-                                                                href={route('receipts.show', receipt.id)}
-                                                                className="flex-1 text-center px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100 transition-colors"
-                                                            >
-                                                                View
-                                                            </Link>
-                                                            {receipt.mime === 'application/pdf' && (
-                                                                <a
-                                                                    href={receipt.direct_file_url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
-                                                                    title="Open PDF in new tab"
-                                                                >
-                                                                    <DocumentArrowDownIcon className="h-3 w-3" />
-                                                                </a>
-                                                            )}
-                                                            <button
-                                                                onClick={() => handleDeleteClick(receipt)}
-                                                                className="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors"
-                                                            >
-                                                                <TrashIcon className="h-3 w-3" />
-                                                            </button>
-                                                        </div>
+                                                        <ReceiptActions
+                                                            receipt={receipt}
+                                                            onDelete={handleDeleteClick}
+                                                            onRetry={handleRetry}
+                                                            size="xs"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -405,21 +443,12 @@ export default function Index({ receipts, filters = {} }) {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                        <div className="flex space-x-2">
-                                                            <Link
-                                                                href={route('receipts.show', receipt.id)}
-                                                                className="text-indigo-600 hover:text-indigo-900"
-                                                            >
-                                                                View
-                                                            </Link>
-                                                            <button
-                                                                onClick={() => handleDeleteClick(receipt)}
-                                                                className="text-red-600 hover:text-red-900"
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </div>
+                                                    <td className="px-6 py-4 text-sm font-medium">
+                                                        <ReceiptActions
+                                                            receipt={receipt}
+                                                            onDelete={handleDeleteClick}
+                                                            onRetry={handleRetry}
+                                                        />
                                                     </td>
                                                 </tr>
                                             ))}
@@ -521,31 +550,11 @@ export default function Index({ receipts, filters = {} }) {
                                                         </p>
                                                         
                                                         {/* Actions */}
-                                                        <div className="flex space-x-2">
-                                                            <Link
-                                                                href={route('receipts.show', receipt.id)}
-                                                                className="flex-1 text-center px-3 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors"
-                                                            >
-                                                                View
-                                                            </Link>
-                                                            {receipt.mime === 'application/pdf' && (
-                                                                <a
-                                                                    href={receipt.direct_file_url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
-                                                                    title="Open PDF in new tab"
-                                                                >
-                                                                    <DocumentArrowDownIcon className="h-4 w-4" />
-                                                                </a>
-                                                            )}
-                                                            <button
-                                                                onClick={() => handleDeleteClick(receipt)}
-                                                                className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-                                                            >
-                                                                <TrashIcon className="h-4 w-4" />
-                                                            </button>
-                                                        </div>
+                                                        <ReceiptActions
+                                                            receipt={receipt}
+                                                            onDelete={handleDeleteClick}
+                                                            onRetry={handleRetry}
+                                                        />
                                                     </div>
                                                 </div>
                                             ))}
