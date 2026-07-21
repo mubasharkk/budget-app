@@ -4,7 +4,6 @@ use App\Http\Controllers\AgentController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\Dashboard\DashboardController;
-use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -64,10 +63,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/incomes/monthly', [IncomeController::class, 'updateMonthly'])
         ->name('incomes.monthly.update');
     Route::resource('incomes', IncomeController::class)->except('show');
-
-    // One-time expense entries
-    Route::get('/expenses/{expense}/document', [ExpenseController::class, 'document'])->name('expenses.document');
-    Route::resource('expenses', ExpenseController::class)->except('show');
 
     // Manual savings entries
     Route::resource('savings', SavingController::class)->except('show');
