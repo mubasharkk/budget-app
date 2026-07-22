@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\AgentMessage;
 use App\Models\Category;
+use App\Models\Contract;
+use App\Models\Receipt;
 use Carbon\CarbonImmutable;
 
 class NaturalLanguageQueryService
@@ -36,15 +38,24 @@ class NaturalLanguageQueryService
             'mentions' => $mentions ?: null,
         ]);
 
-        $context = $this->buildContext($userId, $history);
-        $parseResult = $this->llmService->parseSpendingQuestion($question, $context);
+        $filters = $this->resolveMentions($userId, $mentions);
 
-        if (! $parseResult['success']) {
-            throw new \RuntimeException($parseResult['error'] ?? 'Could not understand the question.');
+        if ($filters['receipt_id'] !== null) {
+            $validated = ['intent' => 'receipt_lookup', 'receipt_id' => $filters['receipt_id']];
+        } elseif ($filters['contract_id'] !== null) {
+            $validated = ['intent' => 'contract_lookup', 'contract_id' => $filters['contract_id']];
+        } else {
+            $context = $this->buildContext($userId, $history);
+            $parseResult = $this->llmService->parseSpendingQuestion($question, $context);
+
+            if (! $parseResult['success']) {
+                throw new \RuntimeException($parseResult['error'] ?? 'Could not understand the question.');
+            }
+
+            $validated = $this->executor->validateParsedQuery($userId, $parseResult['data']);
+            $validated['category_id'] = $filters['category_id'];
         }
 
-        $validated = $this->executor->validateParsedQuery($userId, $parseResult['data']);
-        $validated['category_id'] = $this->resolveCategoryMention($mentions);
         $data = $this->executor->execute($userId, $validated);
 
         $answerResult = $this->llmService->formatSpendingAnswer($question, $data);
@@ -70,26 +81,40 @@ class NaturalLanguageQueryService
     }
 
     /**
-     * Resolve a `@category` mention into an authoritative category id filter.
-     * Categories are shared, so the guard is existence; the last one wins.
+     * Resolve @-mentions into authoritative id filters. Receipts and contracts
+     * are ownership-checked against the user (a forged id is silently dropped,
+     * never leaked); categories are shared, so the guard is existence. The last
+     * mention of each type wins.
      *
      * @param  array<int, array{type: string, id: int}>  $mentions
+     * @return array{category_id: ?int, receipt_id: ?int, contract_id: ?int}
      */
-    private function resolveCategoryMention(array $mentions): ?int
+    private function resolveMentions(int $userId, array $mentions): array
     {
-        $categoryId = null;
+        $filters = ['category_id' => null, 'receipt_id' => null, 'contract_id' => null];
 
         foreach ($mentions as $mention) {
-            if (($mention['type'] ?? null) !== 'category') {
+            $id = (int) ($mention['id'] ?? 0);
+
+            if ($id <= 0) {
                 continue;
             }
 
-            if (Category::whereKey($mention['id'])->exists()) {
-                $categoryId = (int) $mention['id'];
-            }
+            match ($mention['type'] ?? null) {
+                'category' => Category::whereKey($id)->exists()
+                    ? $filters['category_id'] = $id
+                    : null,
+                'receipt' => Receipt::where('user_id', $userId)->whereKey($id)->exists()
+                    ? $filters['receipt_id'] = $id
+                    : null,
+                'contract' => Contract::where('user_id', $userId)->whereKey($id)->exists()
+                    ? $filters['contract_id'] = $id
+                    : null,
+                default => null,
+            };
         }
 
-        return $categoryId;
+        return $filters;
     }
 
     /**

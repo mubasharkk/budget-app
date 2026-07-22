@@ -121,6 +121,67 @@ function CategoryResults({ data }) {
     );
 }
 
+function ReceiptResult({ data }) {
+    const r = data?.receipt;
+    if (!r) {
+        return null;
+    }
+
+    return (
+        <div className="mt-2 text-xs">
+            <div className="text-gray-500">
+                #{r.id} · {r.vendor ?? '—'}
+                {r.date ? ` · ${r.date}` : ''} ·{' '}
+                {formatCurrency(r.total, r.currency)}
+            </div>
+            {data.items?.length > 0 && (
+                <ul className="mt-1 space-y-0.5">
+                    {data.items.map((item, i) => (
+                        <li key={i} className="flex justify-between gap-4">
+                            <span className="text-gray-900">
+                                {item.name} ×{item.quantity}
+                            </span>
+                            <span className="whitespace-nowrap font-medium text-gray-900">
+                                {formatCurrency(item.spend)}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
+
+function ContractResult({ data }) {
+    const c = data?.contract;
+    if (!c) {
+        return null;
+    }
+
+    return (
+        <ul className="mt-2 space-y-0.5 text-xs">
+            <li className="flex justify-between gap-4">
+                <span className="text-gray-500">Amount</span>
+                <span className="font-medium text-gray-900">
+                    {formatCurrency(c.amount, c.currency)} / {c.billing_cycle}
+                </span>
+            </li>
+            <li className="flex justify-between gap-4">
+                <span className="text-gray-500">Monthly equivalent</span>
+                <span className="font-medium text-gray-900">
+                    {formatCurrency(c.monthly_amount, c.currency)}
+                </span>
+            </li>
+            {c.next_billing_date && (
+                <li className="flex justify-between gap-4">
+                    <span className="text-gray-500">Next billing</span>
+                    <span className="text-gray-900">{c.next_billing_date}</span>
+                </li>
+            )}
+        </ul>
+    );
+}
+
 function ResultBlock({ data }) {
     if (!data) {
         return null;
@@ -131,6 +192,12 @@ function ResultBlock({ data }) {
     if (data.intent === 'category_search') {
         return <CategoryResults data={data} />;
     }
+    if (data.intent === 'receipt_lookup') {
+        return <ReceiptResult data={data} />;
+    }
+    if (data.intent === 'contract_lookup') {
+        return <ContractResult data={data} />;
+    }
     return null;
 }
 
@@ -140,6 +207,7 @@ export default function AssistantChat() {
     const [plainText, setPlainText] = useState('');
     const [mentionState, setMentionState] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [contracts, setContracts] = useState([]);
     const [asking, setAsking] = useState(false);
     const [loading, setLoading] = useState(true);
     const [portalHost, setPortalHost] = useState(null);
@@ -158,9 +226,23 @@ export default function AssistantChat() {
 
         axios
             .get(route('agent.mentionables'))
-            .then((res) => setCategories(res.data.categories))
+            .then((res) => {
+                setCategories(res.data.categories);
+                setContracts(res.data.contracts);
+            })
             .catch(() => {});
     }, []);
+
+    const fetchReceipts = (query, callback) => {
+        if (!query) {
+            callback([]);
+            return;
+        }
+        axios
+            .get(route('agent.mentionables'), { params: { q: query } })
+            .then((res) => callback(res.data.receipts))
+            .catch(() => callback([]));
+    };
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -314,6 +396,22 @@ export default function AssistantChat() {
                             displayTransform={(id, display) => `@${display}`}
                             appendSpaceOnAdd
                             style={mentionStyle}
+                        />
+                        <Mention
+                            trigger="@"
+                            data={contracts}
+                            markup="@[__display__](__id__)"
+                            displayTransform={(id, display) => `@${display}`}
+                            appendSpaceOnAdd
+                            style={{ ...mentionStyle, backgroundColor: '#fce7f3' }}
+                        />
+                        <Mention
+                            trigger="@"
+                            data={fetchReceipts}
+                            markup="@[__display__](__id__)"
+                            displayTransform={(id, display) => `@${display}`}
+                            appendSpaceOnAdd
+                            style={{ ...mentionStyle, backgroundColor: '#dcfce7' }}
                         />
                     </MentionsInput>
                 </div>

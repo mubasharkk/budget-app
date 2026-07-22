@@ -19,7 +19,7 @@ class AgentAskRequest extends FormRequest
         return [
             'question' => 'required|string|min:5|max:500',
             'mentions' => 'sometimes|array|max:10',
-            'mentions.*.type' => 'required_with:mentions|string|in:category',
+            'mentions.*.type' => 'required_with:mentions|string|in:category,receipt,contract',
             'mentions.*.id' => 'required_with:mentions|integer',
         ];
     }

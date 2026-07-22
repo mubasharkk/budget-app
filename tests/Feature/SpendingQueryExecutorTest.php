@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
@@ -137,6 +138,48 @@ class SpendingQueryExecutorTest extends TestCase
         $this->assertSame('category_search', $result['intent']);
         $this->assertSame('Groceries', $result['categories'][0]['category']);
         $this->assertSame(40.0, $result['categories'][0]['spend']);
+    }
+
+    public function test_receipt_lookup_returns_items_and_is_scoped_to_owner(): void
+    {
+        $user = User::factory()->create();
+        $receipt = Receipt::factory()->for($user)->create(['vendor' => 'ALDI']);
+        ReceiptItem::factory()->for($receipt)->create(['name' => 'Bread', 'quantity' => 1, 'unit_price' => 2]);
+
+        $result = $this->executor()->execute($user->id, [
+            'intent' => 'receipt_lookup',
+            'receipt_id' => $receipt->id,
+        ]);
+
+        $this->assertSame('ALDI', $result['receipt']['vendor']);
+        $this->assertCount(1, $result['items']);
+        $this->assertSame('Bread', $result['items'][0]['name']);
+
+        // A stranger cannot read the same receipt.
+        $stranger = User::factory()->create();
+        $blocked = $this->executor()->execute($stranger->id, [
+            'intent' => 'receipt_lookup',
+            'receipt_id' => $receipt->id,
+        ]);
+
+        $this->assertNull($blocked['receipt']);
+    }
+
+    public function test_contract_lookup_returns_details(): void
+    {
+        $user = User::factory()->create();
+        $contract = Contract::factory()->for($user)->create([
+            'name' => 'Netflix', 'amount' => 12, 'billing_cycle' => 'monthly',
+        ]);
+
+        $result = $this->executor()->execute($user->id, [
+            'intent' => 'contract_lookup',
+            'contract_id' => $contract->id,
+        ]);
+
+        $this->assertSame('Netflix', $result['contract']['name']);
+        $this->assertSame(12.0, $result['contract']['amount']);
+        $this->assertSame('monthly', $result['contract']['billing_cycle']);
     }
 
     public function test_rejects_unknown_intent(): void

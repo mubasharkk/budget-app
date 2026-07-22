@@ -142,9 +142,60 @@ class AgentTest extends TestCase
         $this->actingAs($user)
             ->postJson(route('agent.ask'), [
                 'question' => 'How much did I spend?',
-                'mentions' => [['type' => 'receipt', 'id' => 1]],
+                'mentions' => [['type' => 'provider', 'id' => 1]],
             ])
             ->assertStatus(422);
+    }
+
+    public function test_ask_receipt_mention_routes_to_lookup_without_calling_the_parser(): void
+    {
+        $user = User::factory()->create();
+        $receipt = Receipt::factory()->for($user)->create(['vendor' => 'REWE']);
+        ReceiptItem::factory()->for($receipt)->create(['name' => 'Milk', 'quantity' => 2, 'unit_price' => 1]);
+
+        $this->mock(LlmService::class, function ($mock): void {
+            $mock->shouldReceive('parseSpendingQuestion')->never();
+            $mock->shouldReceive('formatSpendingAnswer')->once()->andReturn([
+                'success' => true,
+                'data' => ['answer' => 'That receipt has 1 item.'],
+            ]);
+        });
+
+        $this->actingAs($user)
+            ->postJson(route('agent.ask'), [
+                'question' => 'what did I buy on this receipt',
+                'mentions' => [['type' => 'receipt', 'id' => $receipt->id]],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.intent', 'receipt_lookup')
+            ->assertJsonPath('data.receipt.vendor', 'REWE')
+            ->assertJsonCount(1, 'data.items');
+    }
+
+    public function test_ask_ignores_a_receipt_mention_owned_by_another_user(): void
+    {
+        $user = User::factory()->create();
+        $otherReceipt = Receipt::factory()->create(); // belongs to a different user
+
+        $this->mock(LlmService::class, function ($mock): void {
+            // The forged mention is dropped, so it falls back to the normal parse path.
+            $mock->shouldReceive('parseSpendingQuestion')->once()->andReturn([
+                'success' => true,
+                'data' => ['intent' => 'budget_status', 'start_date' => null, 'end_date' => null],
+            ]);
+            $mock->shouldReceive('formatSpendingAnswer')->once()->andReturn([
+                'success' => true,
+                'data' => ['answer' => 'Budget looks fine.'],
+            ]);
+        });
+
+        $this->actingAs($user)
+            ->postJson(route('agent.ask'), [
+                'question' => 'what did I buy on this receipt',
+                'mentions' => [['type' => 'receipt', 'id' => $otherReceipt->id]],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.intent', 'budget_status'); // not receipt_lookup — no leak
     }
 
     public function test_ask_applies_a_category_mention_and_persists_it(): void

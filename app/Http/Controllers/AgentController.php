@@ -6,7 +6,9 @@ use App\Http\Requests\AgentAskRequest;
 use App\Jobs\GenerateMonthlyDigest;
 use App\Models\AgentMessage;
 use App\Models\Category;
+use App\Models\Contract;
 use App\Models\Digest;
+use App\Models\Receipt;
 use App\Services\AnomalyDetectionService;
 use App\Services\NaturalLanguageQueryService;
 use App\Services\RecommendationService;
@@ -96,10 +98,14 @@ class AgentController extends Controller
     }
 
     /**
-     * Entities the chat can @-mention. Phase B: categories (parent + sub).
+     * Entities the chat can @-mention: categories and contracts are preloaded;
+     * receipts (potentially many) are matched by the `q` query as the user types.
      */
-    public function mentionables(): JsonResponse
+    public function mentionables(Request $request): JsonResponse
     {
+        $userId = Auth::id();
+        $q = trim((string) $request->query('q', ''));
+
         $categories = Category::query()
             ->orderBy('name')
             ->get(['id', 'name', 'parent_id'])
@@ -110,7 +116,43 @@ class AgentController extends Controller
                 'is_parent' => $category->parent_id === null,
             ]);
 
-        return response()->json(['categories' => $categories->values()]);
+        $contracts = Contract::query()
+            ->where('user_id', $userId)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Contract $contract): array => [
+                'id' => 'contract:'.$contract->id,
+                'display' => $contract->name,
+                'type' => 'contract',
+            ]);
+
+        $receipts = collect();
+
+        if ($q !== '') {
+            $receipts = Receipt::query()
+                ->where('user_id', $userId)
+                ->where(function ($query) use ($q): void {
+                    $query->where('vendor', 'like', '%'.$q.'%');
+
+                    if (ctype_digit($q)) {
+                        $query->orWhere('id', (int) $q);
+                    }
+                })
+                ->orderByDesc('receipt_date')
+                ->limit(10)
+                ->get(['id', 'vendor', 'receipt_date'])
+                ->map(fn (Receipt $receipt): array => [
+                    'id' => 'receipt:'.$receipt->id,
+                    'display' => '#'.$receipt->id.' '.($receipt->vendor ?? 'receipt').' '.$receipt->receipt_date?->format('Y-m-d'),
+                    'type' => 'receipt',
+                ]);
+        }
+
+        return response()->json([
+            'categories' => $categories->values(),
+            'contracts' => $contracts->values(),
+            'receipts' => $receipts->values(),
+        ]);
     }
 
     /**

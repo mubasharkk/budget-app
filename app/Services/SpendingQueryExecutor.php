@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Enums\BudgetPeriod;
 use App\Models\Category;
+use App\Models\Contract;
+use App\Models\Receipt;
+use App\Models\ReceiptItem;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 
@@ -23,8 +26,8 @@ class SpendingQueryExecutor
      */
     public function execute(int $userId, array $parsed): array
     {
-        $start = CarbonImmutable::parse($parsed['start_date'])->startOfDay();
-        $end = CarbonImmutable::parse($parsed['end_date'])->endOfDay();
+        $start = CarbonImmutable::parse($parsed['start_date'] ?? 'today')->startOfDay();
+        $end = CarbonImmutable::parse($parsed['end_date'] ?? 'today')->endOfDay();
 
         return match ($parsed['intent']) {
             'total_spend' => $this->totalSpend($userId, $start, $end),
@@ -34,6 +37,8 @@ class SpendingQueryExecutor
             'top_items' => $this->topItems($userId, $start, $end, $parsed['metric'] ?? 'spend', $parsed['category_id'] ?? null),
             'item_search' => $this->itemSearch($userId, $start, $end, $parsed['item'] ?? '', $parsed['metric'] ?? 'quantity', $parsed['category_id'] ?? null),
             'category_search' => $this->categorySearch($userId, $parsed['category'] ?? ''),
+            'receipt_lookup' => $this->receiptLookup($userId, (int) ($parsed['receipt_id'] ?? 0)),
+            'contract_lookup' => $this->contractLookup($userId, (int) ($parsed['contract_id'] ?? 0)),
             default => throw new \InvalidArgumentException('Unsupported query intent.'),
         };
     }
@@ -269,6 +274,73 @@ class SpendingQueryExecutor
                 'spend' => (float) $row->total_spend,
                 'item_count' => (int) $row->item_count,
             ])->all(),
+        ];
+    }
+
+    /**
+     * A single receipt's line items — used by the receipt_lookup intent when
+     * the user @-mentions a receipt. Ownership-scoped by user id.
+     *
+     * @return array<string, mixed>
+     */
+    private function receiptLookup(int $userId, int $receiptId): array
+    {
+        $receipt = Receipt::query()
+            ->with('items:id,receipt_id,name,quantity,total,category_id')
+            ->where('user_id', $userId)
+            ->find($receiptId);
+
+        if (! $receipt) {
+            return ['intent' => 'receipt_lookup', 'receipt' => null, 'items' => []];
+        }
+
+        return [
+            'intent' => 'receipt_lookup',
+            'receipt' => [
+                'id' => $receipt->id,
+                'vendor' => $receipt->vendor,
+                'date' => $receipt->receipt_date?->toDateString(),
+                'currency' => $receipt->currency,
+                'total' => (float) $receipt->total_amount,
+            ],
+            'items' => $receipt->items->map(fn (ReceiptItem $item): array => [
+                'name' => $item->name,
+                'quantity' => (float) $item->quantity,
+                'spend' => (float) $item->total,
+            ])->all(),
+        ];
+    }
+
+    /**
+     * A single contract's details — used by the contract_lookup intent when the
+     * user @-mentions a contract. Ownership-scoped by user id.
+     *
+     * @return array<string, mixed>
+     */
+    private function contractLookup(int $userId, int $contractId): array
+    {
+        $contract = Contract::query()
+            ->with(['provider:id,name', 'category:id,name'])
+            ->where('user_id', $userId)
+            ->find($contractId);
+
+        if (! $contract) {
+            return ['intent' => 'contract_lookup', 'contract' => null];
+        }
+
+        return [
+            'intent' => 'contract_lookup',
+            'contract' => [
+                'name' => $contract->name,
+                'provider' => $contract->provider?->name,
+                'category' => $contract->category?->name,
+                'amount' => (float) $contract->amount,
+                'currency' => $contract->currency,
+                'billing_cycle' => $contract->billing_cycle->value,
+                'monthly_amount' => $contract->projectedMonthlyAmount(),
+                'next_billing_date' => $contract->next_billing_date?->toDateString(),
+                'status' => $contract->status->value,
+            ],
         ];
     }
 
