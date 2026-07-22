@@ -56,6 +56,84 @@ class ConsumptionService
     }
 
     /**
+     * Line items whose name matches a search term, grouped by item + category,
+     * ranked by quantity or spend. Used by the assistant's item_search intent.
+     *
+     * @param  string  $metric  'quantity' or 'spend'
+     * @return Collection<int, object>
+     */
+    public function searchItems(
+        int $userId,
+        string $term,
+        ?string $startDate = null,
+        ?string $endDate = null,
+        ?int $categoryId = null,
+        string $metric = 'quantity',
+        int $limit = 10,
+    ): Collection {
+        $orderColumn = $metric === 'spend' ? 'total_spend' : 'total_quantity';
+
+        $query = ReceiptItem::query()
+            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->leftJoin('categories', 'receipt_items.category_id', '=', 'categories.id')
+            ->where('receipts.user_id', $userId)
+            ->where('receipt_items.name', 'like', '%'.$term.'%')
+            ->groupBy('receipt_items.name', 'categories.name')
+            ->selectRaw('receipt_items.name as item_name')
+            ->selectRaw('categories.name as category_name')
+            ->selectRaw('SUM(receipt_items.quantity) as total_quantity')
+            ->selectRaw('SUM(receipt_items.total) as total_spend')
+            ->selectRaw('COUNT(*) as purchase_count')
+            ->orderByDesc($orderColumn)
+            ->limit($limit);
+
+        $this->applyReceiptDateRange($query, $startDate, $endDate);
+        $this->applyCategoryFilter($query, $categoryId);
+
+        return $query->get()->map(function (object $row): object {
+            $row->total_quantity = (float) $row->total_quantity;
+            $row->total_spend = round((float) $row->total_spend, 2);
+            $row->purchase_count = (int) $row->purchase_count;
+
+            return $row;
+        });
+    }
+
+    /**
+     * Categories (parent or sub) whose name matches a term, each with rolled-up
+     * spend (a parent includes its subcategories) and the number of line items.
+     *
+     * @return Collection<int, object>
+     */
+    public function searchCategories(int $userId, string $term): Collection
+    {
+        return Category::query()
+            ->where('name', 'like', '%'.$term.'%')
+            ->orderBy('name')
+            ->get()
+            ->map(function (Category $category) use ($userId): object {
+                $ids = $category->isParent()
+                    ? $category->subcategories->pluck('id')->push($category->id)->all()
+                    : [$category->id];
+
+                $agg = ReceiptItem::query()
+                    ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+                    ->where('receipts.user_id', $userId)
+                    ->whereIn('receipt_items.category_id', $ids)
+                    ->selectRaw('COALESCE(SUM(receipt_items.total), 0) as total_spend')
+                    ->selectRaw('COUNT(*) as item_count')
+                    ->first();
+
+                return (object) [
+                    'category' => $category->name,
+                    'is_parent' => $category->isParent(),
+                    'total_spend' => round((float) $agg->total_spend, 2),
+                    'item_count' => (int) $agg->item_count,
+                ];
+            });
+    }
+
+    /**
      * Vendors ranked by total spend, with receipt counts.
      *
      * @return Collection<int, object>

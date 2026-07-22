@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\GenerateMonthlyDigest;
+use App\Models\AgentMessage;
 use App\Models\Digest;
 use App\Models\User;
 use App\Services\LlmService;
@@ -70,6 +72,51 @@ class AgentTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('answer', 'You are on track with your budgets this month.');
+
+        // The exchange is persisted so the conversation is preserved.
+        $this->assertDatabaseHas('agent_messages', [
+            'user_id' => $user->id,
+            'role' => 'user',
+            'content' => 'How am I doing against my budgets?',
+        ]);
+        $this->assertDatabaseHas('agent_messages', [
+            'user_id' => $user->id,
+            'role' => 'assistant',
+            'content' => 'You are on track with your budgets this month.',
+        ]);
+    }
+
+    public function test_history_returns_only_the_users_messages_oldest_first(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        AgentMessage::factory()->for($user)->create(['content' => 'first']);
+        AgentMessage::factory()->for($user)->assistant()->create(['content' => 'second']);
+        AgentMessage::factory()->for($other)->create(['content' => 'not mine']);
+
+        $this->actingAs($user)
+            ->getJson(route('agent.history'))
+            ->assertOk()
+            ->assertJsonCount(2, 'messages')
+            ->assertJsonPath('messages.0.content', 'first')
+            ->assertJsonPath('messages.1.content', 'second');
+    }
+
+    public function test_clear_history_deletes_only_the_users_messages(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        AgentMessage::factory()->for($user)->count(3)->create();
+        AgentMessage::factory()->for($other)->create();
+
+        $this->actingAs($user)
+            ->deleteJson(route('agent.history.clear'))
+            ->assertOk();
+
+        $this->assertSame(0, AgentMessage::where('user_id', $user->id)->count());
+        $this->assertSame(1, AgentMessage::where('user_id', $other->id)->count());
     }
 
     public function test_generate_digest_queues_job(): void
@@ -82,6 +129,6 @@ class AgentTest extends TestCase
             ->postJson(route('agent.digest'))
             ->assertOk();
 
-        Queue::assertPushed(\App\Jobs\GenerateMonthlyDigest::class);
+        Queue::assertPushed(GenerateMonthlyDigest::class);
     }
 }

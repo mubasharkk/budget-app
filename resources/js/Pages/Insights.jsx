@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AssistantChat from '@/Components/AssistantChat';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import InputLabel from '@/Components/InputLabel';
@@ -143,6 +144,8 @@ export default function Insights() {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                    <AssistantChat />
+
                     {/* Filters */}
                     <div className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">

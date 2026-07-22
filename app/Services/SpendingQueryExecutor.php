@@ -18,7 +18,7 @@ class SpendingQueryExecutor
     /**
      * Execute a validated structured query and return raw results.
      *
-     * @param  array{intent: string, category?: ?string, vendor?: ?string, start_date: string, end_date: string, metric?: ?string}  $parsed
+     * @param  array{intent: string, category?: ?string, vendor?: ?string, item?: ?string, start_date: string, end_date: string, metric?: ?string}  $parsed
      * @return array<string, mixed>
      */
     public function execute(int $userId, array $parsed): array
@@ -32,17 +32,19 @@ class SpendingQueryExecutor
             'vendor_spend' => $this->vendorSpend($userId, $start, $end, $parsed['vendor'] ?? null),
             'budget_status' => $this->budgetStatus($userId),
             'top_items' => $this->topItems($userId, $start, $end, $parsed['metric'] ?? 'spend'),
+            'item_search' => $this->itemSearch($userId, $start, $end, $parsed['item'] ?? '', $parsed['metric'] ?? 'quantity'),
+            'category_search' => $this->categorySearch($userId, $parsed['category'] ?? ''),
             default => throw new \InvalidArgumentException('Unsupported query intent.'),
         };
     }
 
     /**
-     * @return array{intent: string, category?: ?string, vendor?: ?string, start_date: string, end_date: string, metric?: ?string}
+     * @return array{intent: string, category?: ?string, vendor?: ?string, item?: ?string, start_date: string, end_date: string, metric?: ?string}
      */
     public function validateParsedQuery(int $userId, array $parsed): array
     {
         $intent = $parsed['intent'] ?? '';
-        $allowed = ['total_spend', 'category_spend', 'vendor_spend', 'budget_status', 'top_items'];
+        $allowed = ['total_spend', 'category_spend', 'vendor_spend', 'budget_status', 'top_items', 'item_search', 'category_search'];
 
         if (! in_array($intent, $allowed, true)) {
             throw new \InvalidArgumentException('Query intent is not allowed.');
@@ -56,8 +58,25 @@ class SpendingQueryExecutor
                 'intent' => $intent,
                 'category' => null,
                 'vendor' => null,
+                'item' => null,
                 'start_date' => CarbonImmutable::today()->startOfMonth()->toDateString(),
                 'end_date' => CarbonImmutable::today()->endOfMonth()->toDateString(),
+                'metric' => null,
+            ];
+        }
+
+        if ($intent === 'category_search') {
+            if (empty($parsed['category'])) {
+                throw new \InvalidArgumentException('A category to search for is required.');
+            }
+
+            return [
+                'intent' => $intent,
+                'category' => $parsed['category'],
+                'vendor' => null,
+                'item' => null,
+                'start_date' => $start ?: CarbonImmutable::today()->startOfYear()->toDateString(),
+                'end_date' => $end ?: CarbonImmutable::today()->endOfYear()->toDateString(),
                 'metric' => null,
             ];
         }
@@ -78,15 +97,25 @@ class SpendingQueryExecutor
             throw new \InvalidArgumentException('Vendor name is required.');
         }
 
+        if ($intent === 'item_search' && empty($parsed['item'])) {
+            throw new \InvalidArgumentException('An item to search for is required.');
+        }
+
         if ($intent === 'top_items') {
             $metric = $parsed['metric'] ?? 'spend';
             $parsed['metric'] = in_array($metric, ['spend', 'quantity'], true) ? $metric : 'spend';
+        }
+
+        if ($intent === 'item_search') {
+            $metric = $parsed['metric'] ?? 'quantity';
+            $parsed['metric'] = in_array($metric, ['spend', 'quantity'], true) ? $metric : 'quantity';
         }
 
         return [
             'intent' => $intent,
             'category' => $parsed['category'] ?? null,
             'vendor' => $parsed['vendor'] ?? null,
+            'item' => $parsed['item'] ?? null,
             'start_date' => $start,
             'end_date' => $end,
             'metric' => $parsed['metric'] ?? null,
@@ -189,6 +218,56 @@ class SpendingQueryExecutor
                 'category' => $row->category_name,
                 'quantity' => (float) $row->total_quantity,
                 'spend' => (float) $row->total_spend,
+            ])->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function itemSearch(int $userId, CarbonImmutable $start, CarbonImmutable $end, string $item, string $metric): array
+    {
+        $items = $this->consumptionService->searchItems(
+            $userId,
+            $item,
+            $start->toDateString(),
+            $end->toDateString(),
+            null,
+            $metric,
+            10,
+        );
+
+        return [
+            'intent' => 'item_search',
+            'item' => $item,
+            'metric' => $metric,
+            'start_date' => $start->toDateString(),
+            'end_date' => $end->toDateString(),
+            'items' => $items->map(fn ($row): array => [
+                'name' => $row->item_name,
+                'category' => $row->category_name,
+                'quantity' => (float) $row->total_quantity,
+                'spend' => (float) $row->total_spend,
+                'purchases' => (int) $row->purchase_count,
+            ])->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function categorySearch(int $userId, string $term): array
+    {
+        $categories = $this->consumptionService->searchCategories($userId, $term);
+
+        return [
+            'intent' => 'category_search',
+            'term' => $term,
+            'categories' => $categories->map(fn ($row): array => [
+                'category' => $row->category,
+                'is_parent' => $row->is_parent,
+                'spend' => (float) $row->total_spend,
+                'item_count' => (int) $row->item_count,
             ])->all(),
         ];
     }

@@ -185,7 +185,7 @@ class LlmService
     /**
      * Parse a natural-language spending question into a structured query.
      *
-     * @param  array{categories: array<int, string>, today: string}  $context
+     * @param  array{categories: array<int, string>, today: string, history?: array<int, array{role: string, content: string}>}  $context
      * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
      */
     public function parseSpendingQuestion(string $question, array $context): array
@@ -195,6 +195,7 @@ class LlmService
                 'question' => $question,
                 'categories' => $context['categories'],
                 'today' => $context['today'],
+                'history' => $context['history'] ?? [],
             ])->render();
 
             $response = $this->client->chat()->create([

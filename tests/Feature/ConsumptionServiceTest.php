@@ -149,6 +149,56 @@ class ConsumptionServiceTest extends TestCase
         $this->assertSame(1, (int) $vendors->first()->receipt_count);
     }
 
+    public function test_search_items_matches_by_name_and_is_scoped(): void
+    {
+        $user = User::factory()->create();
+        $this->seedData($user);
+
+        $milk = (new ConsumptionService)->searchItems($user->id, 'milk');
+
+        $this->assertCount(1, $milk); // "Steak" excluded; other user's Milk excluded
+        $this->assertSame('Milk', $milk->first()->item_name);
+        $this->assertSame(8.0, $milk->first()->total_quantity); // 5 + 3, not the other user's 99
+        $this->assertSame(2, $milk->first()->purchase_count);
+    }
+
+    public function test_search_items_honours_metric_and_date_range(): void
+    {
+        $user = User::factory()->create();
+        $groceries = Category::factory()->create(['name' => 'Groceries']);
+
+        $old = Receipt::factory()->for($user)->create(['receipt_date' => '2026-01-05']);
+        ReceiptItem::factory()->for($old)->create(['name' => 'Eggs 10-pack', 'quantity' => 9, 'unit_price' => 2, 'category_id' => $groceries->id]);
+
+        $june = Receipt::factory()->for($user)->create(['receipt_date' => '2026-06-15']);
+        ReceiptItem::factory()->for($june)->create(['name' => 'Eggs 10-pack', 'quantity' => 3, 'unit_price' => 3, 'category_id' => $groceries->id]);
+
+        $juneEggs = (new ConsumptionService)->searchItems($user->id, 'egg', '2026-06-01', '2026-06-30', null, 'quantity');
+
+        $this->assertCount(1, $juneEggs);
+        $this->assertSame(3.0, $juneEggs->first()->total_quantity); // January excluded
+        $this->assertSame(9.0, $juneEggs->first()->total_spend);    // 3 * 3
+    }
+
+    public function test_search_categories_rolls_up_parent_and_subcategories(): void
+    {
+        $user = User::factory()->create();
+        $groceries = Category::factory()->create(['name' => 'Groceries']);
+        $dairy = Category::factory()->create(['name' => 'Dairy', 'parent_id' => $groceries->id]);
+
+        $receipt = Receipt::factory()->for($user)->create();
+        ReceiptItem::factory()->for($receipt)->create(['quantity' => 1, 'unit_price' => 20, 'category_id' => $groceries->id]);
+        ReceiptItem::factory()->for($receipt)->create(['quantity' => 1, 'unit_price' => 5, 'category_id' => $dairy->id]);
+
+        $results = (new ConsumptionService)->searchCategories($user->id, 'grocer');
+
+        $this->assertCount(1, $results);
+        $this->assertSame('Groceries', $results->first()->category);
+        $this->assertTrue($results->first()->is_parent);
+        $this->assertSame(25.0, $results->first()->total_spend); // parent 20 + subcategory 5
+        $this->assertSame(2, $results->first()->item_count);
+    }
+
     public function test_date_range_filters_items(): void
     {
         $user = User::factory()->create();

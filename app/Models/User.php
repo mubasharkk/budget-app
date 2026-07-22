@@ -93,4 +93,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Digest::class);
     }
+
+    public function agentMessages(): HasMany
+    {
+        return $this->hasMany(AgentMessage::class);
+    }
 }

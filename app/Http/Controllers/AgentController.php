@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AgentAskRequest;
 use App\Jobs\GenerateMonthlyDigest;
+use App\Models\AgentMessage;
 use App\Models\Digest;
 use App\Services\AnomalyDetectionService;
 use App\Services\NaturalLanguageQueryService;
 use App\Services\RecommendationService;
 use App\Services\RenewalReminderService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -63,6 +65,29 @@ class AgentController extends Controller
                 'error' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * The current user's preserved chat history, oldest first.
+     */
+    public function history(): JsonResponse
+    {
+        $messages = AgentMessage::query()
+            ->where('user_id', Auth::id())
+            ->orderBy('id')
+            ->get(['id', 'role', 'content', 'data', 'created_at']);
+
+        return response()->json(['messages' => $messages]);
+    }
+
+    /**
+     * Clear the current user's chat history — starts a new chat.
+     */
+    public function clearHistory(): JsonResponse
+    {
+        AgentMessage::query()->where('user_id', Auth::id())->delete();
+
+        return response()->json(['messages' => []]);
     }
 
     /**
