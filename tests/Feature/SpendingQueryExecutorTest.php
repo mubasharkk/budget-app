@@ -76,6 +76,33 @@ class SpendingQueryExecutorTest extends TestCase
         $this->assertSame(9.0, $result['items'][0]['spend']);
     }
 
+    public function test_item_search_is_scoped_to_a_mentioned_category(): void
+    {
+        $user = User::factory()->create();
+        $groceries = Category::factory()->create(['name' => 'Groceries']);
+        $electronics = Category::factory()->create(['name' => 'Electronics']);
+
+        $receipt = Receipt::factory()->for($user)->create(['receipt_date' => '2026-06-10']);
+        ReceiptItem::factory()->for($receipt)->create([
+            'name' => 'Battery pack', 'quantity' => 2, 'unit_price' => 5, 'category_id' => $groceries->id,
+        ]);
+        ReceiptItem::factory()->for($receipt)->create([
+            'name' => 'Battery pack', 'quantity' => 9, 'unit_price' => 5, 'category_id' => $electronics->id,
+        ]);
+
+        $result = $this->executor()->execute($user->id, [
+            'intent' => 'item_search',
+            'item' => 'battery',
+            'metric' => 'quantity',
+            'category_id' => $groceries->id,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+        ]);
+
+        $this->assertCount(1, $result['items']);
+        $this->assertSame(2.0, $result['items'][0]['quantity']); // electronics batteries excluded
+    }
+
     public function test_item_search_requires_an_item_term(): void
     {
         $user = User::factory()->create();

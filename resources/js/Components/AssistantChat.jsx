@@ -1,9 +1,57 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { MentionsInput, Mention } from 'react-mentions';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
-import TextInput from '@/Components/TextInput';
 import { formatCurrency } from '@/utils/money';
+
+const mentionsInputStyle = {
+    control: { fontSize: 14, fontWeight: 'normal' },
+    '&singleLine': {
+        display: 'block',
+        highlighter: {
+            padding: '8px 12px',
+            border: '1px solid transparent',
+        },
+        input: {
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: 6,
+            outline: 'none',
+        },
+    },
+    suggestions: {
+        zIndex: 50,
+        list: {
+            backgroundColor: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: 6,
+            fontSize: 14,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            overflow: 'hidden',
+            maxHeight: 240,
+            overflowY: 'auto',
+        },
+        item: {
+            padding: '6px 12px',
+            '&focused': { backgroundColor: '#eef2ff' },
+        },
+    },
+};
+
+const mentionStyle = {
+    backgroundColor: '#e0e7ff',
+    borderRadius: 4,
+    padding: '1px 0',
+};
+
+const parseMentions = (mentions) =>
+    mentions
+        .map((m) => {
+            const [type, id] = String(m.id).split(':');
+            return { type, id: Number(id) };
+        })
+        .filter((m) => m.type && Number.isInteger(m.id));
 
 function ItemResults({ data }) {
     if (!data?.items?.length) {
@@ -88,10 +136,18 @@ function ResultBlock({ data }) {
 
 export default function AssistantChat() {
     const [messages, setMessages] = useState([]);
-    const [question, setQuestion] = useState('');
+    const [value, setValue] = useState('');
+    const [plainText, setPlainText] = useState('');
+    const [mentionState, setMentionState] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [asking, setAsking] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [portalHost, setPortalHost] = useState(null);
     const endRef = useRef(null);
+
+    useEffect(() => {
+        setPortalHost(document.body);
+    }, []);
 
     useEffect(() => {
         axios
@@ -99,6 +155,11 @@ export default function AssistantChat() {
             .then((res) => setMessages(res.data.messages))
             .catch(() => {})
             .finally(() => setLoading(false));
+
+        axios
+            .get(route('agent.mentionables'))
+            .then((res) => setCategories(res.data.categories))
+            .catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -107,20 +168,24 @@ export default function AssistantChat() {
 
     const send = (e) => {
         e.preventDefault();
-        const q = question.trim();
+        const q = plainText.trim();
         if (!q || asking) {
             return;
         }
+
+        const mentions = parseMentions(mentionState);
 
         setMessages((m) => [
             ...m,
             { id: `tmp-${Date.now()}`, role: 'user', content: q },
         ]);
-        setQuestion('');
+        setValue('');
+        setPlainText('');
+        setMentionState([]);
         setAsking(true);
 
         axios
-            .post(route('agent.ask'), { question: q })
+            .post(route('agent.ask'), { question: q, mentions })
             .then((res) =>
                 setMessages((m) => [
                     ...m,
@@ -219,15 +284,40 @@ export default function AssistantChat() {
 
             <form
                 onSubmit={send}
-                className="flex gap-3 border-t border-gray-100 px-6 py-4"
+                className="flex items-start gap-3 border-t border-gray-100 px-6 py-4"
             >
-                <TextInput
-                    className="block w-full"
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="Ask about your spending…"
-                />
-                <PrimaryButton disabled={asking || !question.trim()}>
+                <div className="flex-1">
+                    <MentionsInput
+                        value={value}
+                        onChange={(e, newValue, newPlainText, mentions) => {
+                            setValue(newValue);
+                            setPlainText(newPlainText);
+                            setMentionState(mentions);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                send(e);
+                            }
+                        }}
+                        singleLine
+                        allowSuggestionsAboveCursor
+                        suggestionsPortalHost={portalHost}
+                        placeholder="Ask about your spending… use @ to mention a category"
+                        style={mentionsInputStyle}
+                        a11ySuggestionsListLabel="Suggested categories"
+                    >
+                        <Mention
+                            trigger="@"
+                            data={categories}
+                            markup="@[__display__](__id__)"
+                            displayTransform={(id, display) => `@${display}`}
+                            appendSpaceOnAdd
+                            style={mentionStyle}
+                        />
+                    </MentionsInput>
+                </div>
+                <PrimaryButton disabled={asking || !plainText.trim()}>
                     Ask
                 </PrimaryButton>
             </form>

@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Jobs\GenerateMonthlyDigest;
 use App\Models\AgentMessage;
+use App\Models\Category;
 use App\Models\Digest;
+use App\Models\Receipt;
+use App\Models\ReceiptItem;
 use App\Models\User;
 use App\Services\LlmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -117,6 +120,78 @@ class AgentTest extends TestCase
 
         $this->assertSame(0, AgentMessage::where('user_id', $user->id)->count());
         $this->assertSame(1, AgentMessage::where('user_id', $other->id)->count());
+    }
+
+    public function test_mentionables_endpoint_returns_categories(): void
+    {
+        $user = User::factory()->create();
+        Category::factory()->create(['name' => 'Groceries']);
+
+        $this->actingAs($user)
+            ->getJson(route('agent.mentionables'))
+            ->assertOk()
+            ->assertJsonPath('categories.0.type', 'category')
+            ->assertJsonPath('categories.0.display', 'Groceries')
+            ->assertJsonPath('categories.0.id', 'category:'.Category::first()->id);
+    }
+
+    public function test_ask_rejects_unsupported_mention_type(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson(route('agent.ask'), [
+                'question' => 'How much did I spend?',
+                'mentions' => [['type' => 'receipt', 'id' => 1]],
+            ])
+            ->assertStatus(422);
+    }
+
+    public function test_ask_applies_a_category_mention_and_persists_it(): void
+    {
+        $user = User::factory()->create();
+        $groceries = Category::factory()->create(['name' => 'Groceries']);
+        $electronics = Category::factory()->create(['name' => 'Electronics']);
+
+        $receipt = Receipt::factory()->for($user)->create(['receipt_date' => '2026-06-10']);
+        ReceiptItem::factory()->for($receipt)->create([
+            'name' => 'Battery', 'quantity' => 2, 'unit_price' => 5, 'category_id' => $groceries->id,
+        ]);
+        ReceiptItem::factory()->for($receipt)->create([
+            'name' => 'Battery', 'quantity' => 9, 'unit_price' => 5, 'category_id' => $electronics->id,
+        ]);
+
+        $this->mock(LlmService::class, function ($mock): void {
+            $mock->shouldReceive('parseSpendingQuestion')->once()->andReturn([
+                'success' => true,
+                'data' => [
+                    'intent' => 'item_search',
+                    'item' => 'battery',
+                    'metric' => 'quantity',
+                    'start_date' => '2026-06-01',
+                    'end_date' => '2026-06-30',
+                ],
+            ]);
+            $mock->shouldReceive('formatSpendingAnswer')->once()->andReturn([
+                'success' => true,
+                'data' => ['answer' => 'You bought 2 batteries.'],
+            ]);
+        });
+
+        $this->actingAs($user)
+            ->postJson(route('agent.ask'), [
+                'question' => 'how many batteries did I buy',
+                'mentions' => [['type' => 'category', 'id' => $groceries->id]],
+            ])
+            ->assertOk()
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.quantity', 2); // electronics batteries excluded by the mention
+
+        $this->assertDatabaseHas('agent_messages', [
+            'user_id' => $user->id,
+            'role' => 'user',
+            'content' => 'how many batteries did I buy',
+        ]);
     }
 
     public function test_generate_digest_queues_job(): void

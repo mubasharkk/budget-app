@@ -76,6 +76,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/agent/ask', [AgentController::class, 'ask'])->name('agent.ask');
     Route::get('/agent/history', [AgentController::class, 'history'])->name('agent.history');
     Route::delete('/agent/history', [AgentController::class, 'clearHistory'])->name('agent.history.clear');
+    Route::get('/agent/mentionables', [AgentController::class, 'mentionables'])->name('agent.mentionables');
     Route::post('/agent/digest', [AgentController::class, 'generateDigest'])->name('agent.digest');
 });
 

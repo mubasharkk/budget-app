@@ -25,6 +25,7 @@
     },
     "dependencies": {
         "@heroicons/react": "^2.2.0",
+        "react-mentions": "^4.4.10",
         "recharts": "^3.2.1"
     }
 }

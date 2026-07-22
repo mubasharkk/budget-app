@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AgentAskRequest;
 use App\Jobs\GenerateMonthlyDigest;
 use App\Models\AgentMessage;
+use App\Models\Category;
 use App\Models\Digest;
 use App\Services\AnomalyDetectionService;
 use App\Services\NaturalLanguageQueryService;
@@ -56,7 +57,11 @@ class AgentController extends Controller
     public function ask(AgentAskRequest $request)
     {
         try {
-            $result = $this->queryService->ask(Auth::id(), $request->validated('question'));
+            $result = $this->queryService->ask(
+                Auth::id(),
+                $request->validated('question'),
+                $request->validated('mentions', []),
+            );
 
             return response()->json($result);
         } catch (\Exception $e) {
@@ -88,6 +93,24 @@ class AgentController extends Controller
         AgentMessage::query()->where('user_id', Auth::id())->delete();
 
         return response()->json(['messages' => []]);
+    }
+
+    /**
+     * Entities the chat can @-mention. Phase B: categories (parent + sub).
+     */
+    public function mentionables(): JsonResponse
+    {
+        $categories = Category::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'parent_id'])
+            ->map(fn (Category $category): array => [
+                'id' => 'category:'.$category->id,
+                'display' => $category->name,
+                'type' => 'category',
+                'is_parent' => $category->parent_id === null,
+            ]);
+
+        return response()->json(['categories' => $categories->values()]);
     }
 
     /**

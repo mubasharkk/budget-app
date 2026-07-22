@@ -31,8 +31,8 @@ class SpendingQueryExecutor
             'category_spend' => $this->categorySpend($userId, $start, $end, $parsed['category'] ?? null),
             'vendor_spend' => $this->vendorSpend($userId, $start, $end, $parsed['vendor'] ?? null),
             'budget_status' => $this->budgetStatus($userId),
-            'top_items' => $this->topItems($userId, $start, $end, $parsed['metric'] ?? 'spend'),
-            'item_search' => $this->itemSearch($userId, $start, $end, $parsed['item'] ?? '', $parsed['metric'] ?? 'quantity'),
+            'top_items' => $this->topItems($userId, $start, $end, $parsed['metric'] ?? 'spend', $parsed['category_id'] ?? null),
+            'item_search' => $this->itemSearch($userId, $start, $end, $parsed['item'] ?? '', $parsed['metric'] ?? 'quantity', $parsed['category_id'] ?? null),
             'category_search' => $this->categorySearch($userId, $parsed['category'] ?? ''),
             default => throw new \InvalidArgumentException('Unsupported query intent.'),
         };
@@ -197,14 +197,14 @@ class SpendingQueryExecutor
     /**
      * @return array<string, mixed>
      */
-    private function topItems(int $userId, CarbonImmutable $start, CarbonImmutable $end, string $metric): array
+    private function topItems(int $userId, CarbonImmutable $start, CarbonImmutable $end, string $metric, ?int $categoryId = null): array
     {
         $items = $this->consumptionService->topItems(
             $userId,
             $metric,
             $start->toDateString(),
             $end->toDateString(),
-            null,
+            $categoryId,
             5,
         );
 
@@ -225,14 +225,14 @@ class SpendingQueryExecutor
     /**
      * @return array<string, mixed>
      */
-    private function itemSearch(int $userId, CarbonImmutable $start, CarbonImmutable $end, string $item, string $metric): array
+    private function itemSearch(int $userId, CarbonImmutable $start, CarbonImmutable $end, string $item, string $metric, ?int $categoryId = null): array
     {
         $items = $this->consumptionService->searchItems(
             $userId,
             $item,
             $start->toDateString(),
             $end->toDateString(),
-            null,
+            $categoryId,
             $metric,
             10,
         );

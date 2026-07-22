@@ -22,9 +22,10 @@ class NaturalLanguageQueryService
      * Answer a natural-language spending question for a user, persisting the
      * exchange so the conversation is preserved and follow-ups have context.
      *
+     * @param  array<int, array{type: string, id: int}>  $mentions
      * @return array{answer: string, data: array<string, mixed>, parsed: array<string, mixed>}
      */
-    public function ask(int $userId, string $question): array
+    public function ask(int $userId, string $question, array $mentions = []): array
     {
         $history = $this->recentHistory($userId);
 
@@ -32,6 +33,7 @@ class NaturalLanguageQueryService
             'user_id' => $userId,
             'role' => 'user',
             'content' => $question,
+            'mentions' => $mentions ?: null,
         ]);
 
         $context = $this->buildContext($userId, $history);
@@ -42,6 +44,7 @@ class NaturalLanguageQueryService
         }
 
         $validated = $this->executor->validateParsedQuery($userId, $parseResult['data']);
+        $validated['category_id'] = $this->resolveCategoryMention($mentions);
         $data = $this->executor->execute($userId, $validated);
 
         $answerResult = $this->llmService->formatSpendingAnswer($question, $data);
@@ -64,6 +67,29 @@ class NaturalLanguageQueryService
             'data' => $data,
             'parsed' => $validated,
         ];
+    }
+
+    /**
+     * Resolve a `@category` mention into an authoritative category id filter.
+     * Categories are shared, so the guard is existence; the last one wins.
+     *
+     * @param  array<int, array{type: string, id: int}>  $mentions
+     */
+    private function resolveCategoryMention(array $mentions): ?int
+    {
+        $categoryId = null;
+
+        foreach ($mentions as $mention) {
+            if (($mention['type'] ?? null) !== 'category') {
+                continue;
+            }
+
+            if (Category::whereKey($mention['id'])->exists()) {
+                $categoryId = (int) $mention['id'];
+            }
+        }
+
+        return $categoryId;
     }
 
     /**
