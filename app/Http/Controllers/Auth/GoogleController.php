@@ -12,6 +12,11 @@ use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse
 
 class GoogleController extends Controller
 {
+    /**
+     * Google sign-ins stay logged in for 30 days via the remember-me cookie.
+     */
+    public const REMEMBER_MINUTES = 60 * 24 * 30;
+
     public function __construct(private GoogleAccountService $googleAccountService) {}
 
     public function redirectToGoogle(): SymfonyRedirectResponse
@@ -27,7 +32,8 @@ class GoogleController extends Controller
             return redirect('/login')->with('error', 'Something went wrong with Google authentication.');
         }
 
-        Auth::login($user);
+        Auth::guard('web')->setRememberDuration(self::REMEMBER_MINUTES);
+        Auth::guard('web')->login($user, remember: true);
 
         return redirect()->intended('/dashboard');
     }
