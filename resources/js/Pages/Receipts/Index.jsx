@@ -606,7 +606,7 @@ export default function Index({ receipts, filters = {} }) {
 
             <Link
                 href={route('receipts.scan')}
-                className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg transition hover:bg-indigo-700 sm:hidden"
+                className="fixed bottom-24 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg transition hover:bg-indigo-700 sm:hidden"
                 aria-label="Scan receipt"
             >
                 <CameraIcon className="h-7 w-7" />
