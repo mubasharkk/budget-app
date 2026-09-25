@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Assistant\Services\RecommendationService;
+use App\Domain\Budgets\Services\BudgetService;
+use App\Domain\Products\Services\PriceIntelligenceService;
 use App\Enums\BudgetPeriod;
 use App\Models\Budget;
 use App\Models\Category;
@@ -10,7 +13,6 @@ use App\Models\Product;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\RecommendationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -59,8 +61,8 @@ class RecommendationServiceTest extends TestCase
         ]);
 
         $recommendations = (new RecommendationService(
-            app(\App\Services\PriceIntelligenceService::class),
-            app(\App\Services\BudgetService::class),
+            app(PriceIntelligenceService::class),
+            app(BudgetService::class),
         ))->recommendations($user->id);
 
         $types = collect($recommendations)->pluck('type')->unique()->all();

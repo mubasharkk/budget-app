@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\BillingCycle;
 use App\Enums\ContractStatus;
 use App\Enums\ExpenseType;
@@ -24,7 +25,7 @@ class ContractRequest extends FormRequest
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'amount' => 'required|numeric|min:0',
-            'currency' => 'required|string|in:EUR,USD,INR,PKR,TRY,GBP',
+            'currency' => 'required|string|'.SupportedCurrencies::rule(),
             'expense_type' => ['nullable', Rule::enum(ExpenseType::class)],
             'billing_cycle' => ['required', Rule::enum(BillingCycle::class)],
             'billing_day' => 'nullable|integer|min:1|max:31',

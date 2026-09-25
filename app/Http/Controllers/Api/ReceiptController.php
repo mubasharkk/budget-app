@@ -2,25 +2,28 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domain\Receipts\Services\ReceiptService;
+use App\Domain\Receipts\Services\ReceiptUploadService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreReceiptRequest;
 use App\Http\Resources\ReceiptResource;
 use App\Models\Receipt;
-use App\Services\ReceiptUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ReceiptController extends Controller
 {
-    public function __construct(private ReceiptUploadService $uploadService) {}
+    public function __construct(
+        private ReceiptService $receiptService,
+        private ReceiptUploadService $uploadService,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
-        $receipts = Receipt::query()
-            ->where('user_id', $request->user()->id)
-            ->withCount('items')
-            ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 20));
+        $receipts = $this->receiptService->paginateForApi(
+            $request->user()->id,
+            $request->integer('per_page', 20),
+        );
 
         return ReceiptResource::collection($receipts)->response();
     }
@@ -40,7 +43,7 @@ class ReceiptController extends Controller
         ], 201);
     }
 
-    public function show(Request $request, Receipt $receipt): JsonResponse
+    public function show(Receipt $receipt): JsonResponse
     {
         $this->authorize('view', $receipt);
 

@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Shared\Services\LlmService;
 use App\Jobs\MatchReceiptItems;
 use App\Jobs\ProcessReceipt;
 use App\Models\Category;
 use App\Models\Receipt;
-use App\Services\LlmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;

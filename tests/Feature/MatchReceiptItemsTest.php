@@ -2,13 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Products\Services\ProductMatchingService;
+use App\Domain\Shared\Services\LlmService;
 use App\Jobs\MatchReceiptItems;
 use App\Models\PriceObservation;
 use App\Models\Product;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\LlmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -54,7 +55,7 @@ class MatchReceiptItemsTest extends TestCase
                 ]);
         });
 
-        (new MatchReceiptItems($receipt))->handle(app(\App\Services\ProductMatchingService::class));
+        (new MatchReceiptItems($receipt))->handle(app(ProductMatchingService::class));
 
         $item->refresh();
         $this->assertSame($existing->id, $item->product_id);
@@ -103,7 +104,7 @@ class MatchReceiptItemsTest extends TestCase
                 ]);
         });
 
-        (new MatchReceiptItems($receipt))->handle(app(\App\Services\ProductMatchingService::class));
+        (new MatchReceiptItems($receipt))->handle(app(ProductMatchingService::class));
 
         $item->refresh();
         $this->assertNotNull($item->product_id);
@@ -124,7 +125,7 @@ class MatchReceiptItemsTest extends TestCase
             $mock->shouldNotReceive('matchLineItemsToProducts');
         });
 
-        (new MatchReceiptItems($receipt))->handle(app(\App\Services\ProductMatchingService::class));
+        (new MatchReceiptItems($receipt))->handle(app(ProductMatchingService::class));
 
         $this->assertDatabaseCount('products', 0);
     }

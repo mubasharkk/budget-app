@@ -47,10 +47,10 @@ options, ranked:
 Adapter pattern, mirroring how `LlmService` is injected and mockable.
 
 ```
-App\Services\Deals\DealSource (interface)   → fetch(string $region): array<NormalizedDeal>
+App\Domain\Deals\Services\DealSource (interface)   → fetch(string $region): array<NormalizedDeal>
   ├─ MarktguruSource                          (Phase 1)
   ├─ LidlSource, KauflandSource, …            (Phase 3, optional)
-App\Services\Deals\DealSyncService          → run sources → normalize → map category → upsert → prune
+App\Domain\Deals\Services\DealSyncService          → run sources → normalize → map category → upsert → prune
 ```
 
 ## 4. Data model
@@ -80,7 +80,7 @@ Unique index on **`(source, external_id, region)`** for idempotent upserts.
 
 ## 5. Ingestion
 
-- `App\Services\Deals\DealSyncService`: run each `DealSource`, normalize →
+- `App\Domain\Deals\Services\DealSyncService`: run each `DealSource`, normalize →
   map to the app's `Category` taxonomy → upsert → prune expired.
 - `deals:sync` console command, scheduled **daily** in `routes/console.php`
   (alongside `contracts:roll-billing-dates`).

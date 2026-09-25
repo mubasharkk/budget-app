@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Incomes\Services\IncomeService;
 use App\Enums\IncomeType;
 use App\Models\Income;
 use App\Models\User;
-use App\Services\IncomeService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

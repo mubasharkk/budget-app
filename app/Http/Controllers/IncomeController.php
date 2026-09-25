@@ -2,60 +2,36 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Incomes\Services\IncomeService;
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\IncomeType;
 use App\Http\Requests\IncomeRequest;
 use App\Http\Requests\IncomeUpdateRequest;
 use App\Models\Income;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class IncomeController extends Controller
 {
-    public function index(): Response
-    {
-        $user = Auth::user();
+    public function __construct(private IncomeService $incomeService) {}
 
-        return Inertia::render('Incomes/Index', array_merge([
-            'incomes' => Income::query()
-                ->where('user_id', $user->id)
-                ->orderByDesc('received_on')
-                ->orderByDesc('id')
-                ->get(),
-            'summary' => [
-                'total' => round((float) Income::query()
-                    ->where('user_id', $user->id)
-                    ->sum('amount'), 2),
-                'count' => Income::query()
-                    ->where('user_id', $user->id)
-                    ->count(),
-            ],
-            'monthlyIncome' => [
-                'amount' => $user->monthly_income !== null ? (float) $user->monthly_income : null,
-                'income_type' => $user->income_type?->value,
-                'income_currency' => $user->income_currency ?? 'EUR',
-            ],
-        ], $this->formOptions()));
+    public function index(Request $request): Response
+    {
+        $user = $request->user();
+
+        return Inertia::render('Incomes/Index', [
+            'incomes' => $this->incomeService->listForUser($user->id),
+            'summary' => $this->incomeService->summary($user->id),
+            'monthlyIncome' => $this->incomeService->monthlyIncome($user),
+            ...$this->formOptions(),
+        ]);
     }
 
     public function updateMonthly(IncomeUpdateRequest $request): RedirectResponse
     {
-        $user = $request->user();
-        $validated = $request->validated();
-
-        if (! isset($validated['monthly_income']) || $validated['monthly_income'] === null) {
-            $user->monthly_income = null;
-            $user->income_type = null;
-        } else {
-            $user->fill([
-                'monthly_income' => $validated['monthly_income'],
-                'income_type' => $validated['income_type'] ?? IncomeType::Net,
-                'income_currency' => $validated['income_currency'] ?? 'EUR',
-            ]);
-        }
-
-        $user->save();
+        $this->incomeService->updateMonthlyIncome($request->user(), $request->validated());
 
         return redirect()->route('incomes.index')
             ->with('success', 'Monthly income updated successfully.');
@@ -66,9 +42,9 @@ class IncomeController extends Controller
         return Inertia::render('Incomes/Create', $this->formOptions());
     }
 
-    public function store(IncomeRequest $request)
+    public function store(IncomeRequest $request): RedirectResponse
     {
-        Auth::user()->incomes()->create($request->validated());
+        $this->incomeService->create($request->user(), $request->validated());
 
         return redirect()->route('incomes.index')
             ->with('success', 'Income recorded successfully.');
@@ -78,27 +54,27 @@ class IncomeController extends Controller
     {
         $this->authorize('update', $income);
 
-        return Inertia::render('Incomes/Edit', array_merge(
-            ['income' => $income],
-            $this->formOptions(),
-        ));
+        return Inertia::render('Incomes/Edit', [
+            'income' => $income,
+            ...$this->formOptions(),
+        ]);
     }
 
-    public function update(IncomeRequest $request, Income $income)
+    public function update(IncomeRequest $request, Income $income): RedirectResponse
     {
         $this->authorize('update', $income);
 
-        $income->update($request->validated());
+        $this->incomeService->update($income, $request->validated());
 
         return redirect()->route('incomes.index')
             ->with('success', 'Income updated successfully.');
     }
 
-    public function destroy(Income $income)
+    public function destroy(Income $income): RedirectResponse
     {
         $this->authorize('delete', $income);
 
-        $income->delete();
+        $this->incomeService->delete($income);
 
         return redirect()->route('incomes.index')
             ->with('success', 'Income deleted successfully.');
@@ -111,7 +87,7 @@ class IncomeController extends Controller
     {
         return [
             'incomeTypes' => IncomeType::options(),
-            'currencies' => ['EUR', 'USD', 'INR', 'PKR', 'TRY', 'GBP'],
+            'currencies' => SupportedCurrencies::all(),
         ];
     }
 }

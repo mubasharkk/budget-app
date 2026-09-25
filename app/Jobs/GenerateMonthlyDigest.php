@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Domain\Assistant\Services\DigestService;
 use App\Models\User;
-use App\Services\DigestService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;

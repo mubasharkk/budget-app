@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Analytics\Services\ConsumptionService;
 use App\Models\Category;
 use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\ConsumptionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

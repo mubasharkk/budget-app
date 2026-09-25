@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Domain\Products\Services\ProductMatchingService;
 use App\Models\Receipt;
-use App\Services\ProductMatchingService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;

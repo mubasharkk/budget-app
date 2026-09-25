@@ -2,15 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Analytics\Services\ConsumptionService;
+use App\Domain\Analytics\Services\ExpenseService;
+use App\Domain\Assistant\Services\SpendingQueryExecutor;
+use App\Domain\Budgets\Services\BudgetService;
 use App\Models\Category;
 use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\BudgetService;
-use App\Services\ConsumptionService;
-use App\Services\ExpenseService;
-use App\Services\SpendingQueryExecutor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

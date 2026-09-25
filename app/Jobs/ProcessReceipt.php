@@ -2,10 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Domain\Shared\Services\LlmService;
 use App\Models\Category;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
-use App\Services\LlmService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;

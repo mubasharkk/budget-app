@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Assistant\Services\AnomalyDetectionService;
 use App\Models\Category;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\AnomalyDetectionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

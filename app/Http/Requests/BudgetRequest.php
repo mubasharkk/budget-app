@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\BudgetPeriod;
 use App\Models\Budget;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,7 +25,7 @@ class BudgetRequest extends FormRequest
             'category_id' => 'nullable|exists:categories,id',
             'period' => ['required', Rule::enum(BudgetPeriod::class)],
             'amount' => 'required|numeric|min:0.01',
-            'currency' => 'required|string|in:EUR,USD,INR,PKR,TRY,GBP',
+            'currency' => 'required|string|'.SupportedCurrencies::rule(),
             'starts_on' => 'required|date',
         ];
     }

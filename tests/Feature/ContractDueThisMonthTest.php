@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Contracts\Services\ContractBillingService;
 use App\Enums\ContractStatus;
 use App\Models\Contract;
 use App\Models\User;
-use App\Services\ContractBillingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

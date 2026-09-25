@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Analytics\Services\ExpenseService;
 use App\Enums\ExpenseType;
 use App\Models\Category;
 use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\ExpenseService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

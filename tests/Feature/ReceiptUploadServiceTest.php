@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Receipts\Services\ReceiptUploadService;
 use App\Jobs\ProcessReceipt;
 use App\Models\Receipt;
 use App\Models\User;
-use App\Services\ReceiptUploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;

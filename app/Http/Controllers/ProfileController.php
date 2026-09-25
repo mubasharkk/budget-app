@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Identity\Services\ProfileService;
+use App\Domain\Incomes\Services\IncomeService;
 use App\Enums\IncomeType;
 use App\Http\Requests\IncomeUpdateRequest;
 use App\Http\Requests\ProfileUpdateRequest;
@@ -15,6 +17,11 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        private ProfileService $profileService,
+        private IncomeService $incomeService,
+    ) {}
+
     /**
      * Display the user's profile form.
      */
@@ -29,21 +36,7 @@ class ProfileController extends Controller
 
     public function updateIncome(IncomeUpdateRequest $request): RedirectResponse
     {
-        $user = $request->user();
-        $validated = $request->validated();
-
-        if (! isset($validated['monthly_income']) || $validated['monthly_income'] === null) {
-            $user->monthly_income = null;
-            $user->income_type = null;
-        } else {
-            $user->fill([
-                'monthly_income' => $validated['monthly_income'],
-                'income_type' => $validated['income_type'] ?? IncomeType::Net,
-                'income_currency' => $validated['income_currency'] ?? 'EUR',
-            ]);
-        }
-
-        $user->save();
+        $this->incomeService->updateMonthlyIncome($request->user(), $request->validated());
 
         return Redirect::route('profile.edit')->with('status', 'income-updated');
     }
@@ -53,13 +46,7 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
+        $this->profileService->update($request->user(), $request->validated());
 
         return Redirect::route('profile.edit');
     }
@@ -77,7 +64,7 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        $user->delete();
+        $this->profileService->deleteAccount($user);
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

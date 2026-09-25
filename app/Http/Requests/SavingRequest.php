@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Shared\Support\SupportedCurrencies;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SavingRequest extends FormRequest
@@ -18,7 +19,7 @@ class SavingRequest extends FormRequest
     {
         return [
             'amount' => 'required|numeric|min:0.01',
-            'currency' => 'required|string|in:EUR,USD,INR,PKR,TRY,GBP',
+            'currency' => 'required|string|'.SupportedCurrencies::rule(),
             'saved_on' => 'required|date',
             'source' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:2000',

@@ -2,59 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\BillingCycle;
-use App\Enums\ContractStatus;
-use App\Enums\ExpenseType;
+use App\Domain\Contracts\Services\ContractService;
 use App\Http\Requests\ContractRequest;
-use App\Models\Category;
 use App\Models\Contract;
-use App\Models\Provider;
-use App\Services\ContractBillingService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ContractController extends Controller
 {
-    public function __construct(private ContractBillingService $contractBillingService) {}
+    public function __construct(private ContractService $contractService) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $contracts = Contract::query()
-            ->with(['provider', 'category'])
-            ->where('user_id', Auth::id())
-            ->orderBy('name')
-            ->get();
-
-        $monthlyTotal = $contracts
-            ->where('status', ContractStatus::Active)
-            ->sum(fn (Contract $contract): float => $contract->projectedMonthlyAmount());
-
-        $dueThisMonth = $this->contractBillingService->dueThisMonthSummary(Auth::id());
+        $userId = $request->user()->id;
+        $contracts = $this->contractService->listForUser($userId);
 
         return Inertia::render('Contracts/Index', [
             'contracts' => $contracts,
-            'summary' => [
-                'due_this_month' => $dueThisMonth['total'],
-                'due_this_month_count' => $dueThisMonth['count'],
-                'paid_this_month_count' => $dueThisMonth['paid_count'],
-                'month_label' => $dueThisMonth['month'],
-                'monthly_total' => round($monthlyTotal, 2),
-                'yearly_total' => round($monthlyTotal * 12, 2),
-                'active_count' => $contracts->where('status', ContractStatus::Active)->count(),
-            ],
+            'summary' => $this->contractService->summary($userId, $contracts),
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Contracts/Create', $this->formOptions());
+        return Inertia::render('Contracts/Create', $this->contractService->formOptions($request->user()->id));
     }
 
-    public function store(ContractRequest $request)
+    public function store(ContractRequest $request): RedirectResponse
     {
-        Auth::user()->contracts()->create($request->validated());
+        $this->contractService->create($request->user(), $request->validated());
 
         return redirect()->route('contracts.index')
             ->with('success', 'Contract created successfully.');
@@ -64,38 +42,36 @@ class ContractController extends Controller
     {
         $this->authorize('view', $contract);
 
-        $contract->load(['provider', 'category']);
-
         return Inertia::render('Contracts/Show', [
-            'contract' => $contract,
+            'contract' => $contract->load(['provider', 'category']),
         ]);
     }
 
-    public function edit(Contract $contract): Response
+    public function edit(Request $request, Contract $contract): Response
     {
         $this->authorize('update', $contract);
 
-        return Inertia::render('Contracts/Edit', array_merge(
-            ['contract' => $contract],
-            $this->formOptions(),
-        ));
+        return Inertia::render('Contracts/Edit', [
+            'contract' => $contract,
+            ...$this->contractService->formOptions($request->user()->id),
+        ]);
     }
 
-    public function update(ContractRequest $request, Contract $contract)
+    public function update(ContractRequest $request, Contract $contract): RedirectResponse
     {
         $this->authorize('update', $contract);
 
-        $contract->update($request->validated());
+        $this->contractService->update($contract, $request->validated());
 
         return redirect()->route('contracts.index')
             ->with('success', 'Contract updated successfully.');
     }
 
-    public function destroy(Contract $contract)
+    public function destroy(Contract $contract): RedirectResponse
     {
         $this->authorize('delete', $contract);
 
-        $contract->delete();
+        $this->contractService->delete($contract);
 
         return redirect()->route('contracts.index')
             ->with('success', 'Contract deleted successfully.');
@@ -105,32 +81,9 @@ class ContractController extends Controller
     {
         $this->authorize('markPaid', $contract);
 
-        $this->contractBillingService->markAsPaid($contract);
+        $this->contractService->markAsPaid($contract);
 
         return redirect()->back()
             ->with('success', 'Contract marked as paid.');
-    }
-
-    /**
-     * Shared select options for the create/edit forms.
-     *
-     * @return array<string, mixed>
-     */
-    private function formOptions(): array
-    {
-        return [
-            'providers' => Provider::query()
-                ->where('user_id', Auth::id())
-                ->orderBy('name')
-                ->get(['id', 'name']),
-            'categories' => Category::query()
-                ->whereNull('parent_id')
-                ->orderBy('name')
-                ->get(['id', 'name']),
-            'billingCycles' => BillingCycle::options(),
-            'statuses' => ContractStatus::options(),
-            'expenseTypes' => ExpenseType::options(),
-            'currencies' => ['EUR', 'USD', 'INR', 'PKR', 'TRY', 'GBP'],
-        ];
     }
 }

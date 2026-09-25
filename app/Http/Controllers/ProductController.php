@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Products\Services\PriceIntelligenceService;
 use App\Models\Product;
-use App\Services\PriceIntelligenceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class ProductController extends Controller
 {
@@ -14,7 +17,7 @@ class ProductController extends Controller
     /**
      * Product detail page with price history and purchase history.
      */
-    public function show(Request $request, Product $product)
+    public function show(Product $product): Response
     {
         $this->authorize('view', $product);
 
@@ -26,17 +29,13 @@ class ProductController extends Controller
     /**
      * JSON data for the product detail charts and tables.
      */
-    public function data(Request $request, Product $product)
+    public function data(Request $request, Product $product): JsonResponse
     {
         $this->authorize('view', $product);
 
-        $detail = $this->priceIntelligenceService->productDetail($request->user()->id, $product);
-
-        return response()->json([
-            'product' => $detail['product'],
-            'price_history' => $detail['price_history'],
-            'by_vendor' => $detail['by_vendor'],
-            'purchases' => $detail['purchases'],
-        ]);
+        return response()->json(Arr::only(
+            $this->priceIntelligenceService->productDetail($request->user()->id, $product),
+            ['product', 'price_history', 'by_vendor', 'purchases'],
+        ));
     }
 }

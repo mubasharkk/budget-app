@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Budgets\Services\BudgetService;
 use App\Enums\BudgetPeriod;
 use App\Enums\IncomeType;
 use App\Models\Budget;
@@ -10,7 +11,6 @@ use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\BudgetService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

@@ -2,10 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Analytics\Services\ExpenseService;
+use App\Domain\Assistant\Services\AnomalyDetectionService;
+use App\Domain\Assistant\Services\DigestService;
+use App\Domain\Assistant\Services\RecommendationService;
+use App\Domain\Budgets\Services\BudgetService;
+use App\Domain\Contracts\Services\RenewalReminderService;
+use App\Domain\Shared\Services\LlmService;
+use App\Mail\MonthlyDigestMail;
 use App\Models\Digest;
 use App\Models\User;
-use App\Services\DigestService;
-use App\Services\LlmService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -35,11 +41,11 @@ class DigestServiceTest extends TestCase
         });
 
         $digest = (new DigestService(
-            app(\App\Services\ExpenseService::class),
-            app(\App\Services\BudgetService::class),
-            app(\App\Services\RecommendationService::class),
-            app(\App\Services\AnomalyDetectionService::class),
-            app(\App\Services\RenewalReminderService::class),
+            app(ExpenseService::class),
+            app(BudgetService::class),
+            app(RecommendationService::class),
+            app(AnomalyDetectionService::class),
+            app(RenewalReminderService::class),
             app(LlmService::class),
         ))->generateForUser($user, CarbonImmutable::parse('2026-06-01'), sendEmail: true);
 
@@ -47,7 +53,7 @@ class DigestServiceTest extends TestCase
         $this->assertSame('You spent less on groceries this month.', $digest->summary);
         $this->assertDatabaseHas('digests', ['user_id' => $user->id]);
 
-        Mail::assertSent(\App\Mail\MonthlyDigestMail::class);
+        Mail::assertSent(MonthlyDigestMail::class);
 
         CarbonImmutable::setTestNow();
     }

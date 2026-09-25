@@ -2,35 +2,33 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Budgets\Services\BudgetService;
+use App\Domain\Categories\Services\CategoryService;
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\BudgetPeriod;
 use App\Http\Requests\BudgetRequest;
 use App\Models\Budget;
-use App\Models\Category;
-use App\Services\BudgetService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class BudgetController extends Controller
 {
-    public function __construct(private BudgetService $budgetService) {}
+    public function __construct(
+        private BudgetService $budgetService,
+        private CategoryService $categoryService,
+    ) {}
 
     public function index(Request $request): Response
     {
-        $period = $request->get('period') === 'weekly'
-            ? BudgetPeriod::Weekly
-            : BudgetPeriod::Monthly;
+        $userId = $request->user()->id;
+        $period = BudgetPeriod::tryFrom((string) $request->query('period')) ?? BudgetPeriod::Monthly;
 
         return Inertia::render('Budgets/Index', [
             'period' => $period->value,
-            'summary' => $this->budgetService->summary(Auth::id(), $period),
-            'budgets' => Budget::query()
-                ->with('category:id,name')
-                ->where('user_id', Auth::id())
-                ->where('period', $period)
-                ->orderBy('category_id')
-                ->get(),
+            'summary' => $this->budgetService->summary($userId, $period),
+            'budgets' => $this->budgetService->listForUser($userId, $period),
         ]);
     }
 
@@ -39,9 +37,9 @@ class BudgetController extends Controller
         return Inertia::render('Budgets/Create', $this->formOptions());
     }
 
-    public function store(BudgetRequest $request)
+    public function store(BudgetRequest $request): RedirectResponse
     {
-        Auth::user()->budgets()->create($request->validated());
+        $this->budgetService->create($request->user(), $request->validated());
 
         return redirect()->route('budgets.index', ['period' => $request->input('period')])
             ->with('success', 'Budget created successfully.');
@@ -51,28 +49,28 @@ class BudgetController extends Controller
     {
         $this->authorize('update', $budget);
 
-        return Inertia::render('Budgets/Edit', array_merge(
-            ['budget' => $budget->load('category:id,name')],
-            $this->formOptions(),
-        ));
+        return Inertia::render('Budgets/Edit', [
+            'budget' => $budget->load('category:id,name'),
+            ...$this->formOptions(),
+        ]);
     }
 
-    public function update(BudgetRequest $request, Budget $budget)
+    public function update(BudgetRequest $request, Budget $budget): RedirectResponse
     {
         $this->authorize('update', $budget);
 
-        $budget->update($request->validated());
+        $this->budgetService->update($budget, $request->validated());
 
         return redirect()->route('budgets.index', ['period' => $request->input('period')])
             ->with('success', 'Budget updated successfully.');
     }
 
-    public function destroy(Budget $budget)
+    public function destroy(Budget $budget): RedirectResponse
     {
         $this->authorize('delete', $budget);
 
         $period = $budget->period->value;
-        $budget->delete();
+        $this->budgetService->delete($budget);
 
         return redirect()->route('budgets.index', ['period' => $period])
             ->with('success', 'Budget deleted successfully.');
@@ -84,12 +82,9 @@ class BudgetController extends Controller
     private function formOptions(): array
     {
         return [
-            'categories' => Category::query()
-                ->whereNull('parent_id')
-                ->orderBy('name')
-                ->get(['id', 'name']),
+            'categories' => $this->categoryService->parentOptions(),
             'periods' => BudgetPeriod::options(),
-            'currencies' => ['EUR', 'USD', 'INR', 'PKR', 'TRY', 'GBP'],
+            'currencies' => SupportedCurrencies::all(),
         ];
     }
 }

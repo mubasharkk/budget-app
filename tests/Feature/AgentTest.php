@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Shared\Services\LlmService;
 use App\Jobs\GenerateMonthlyDigest;
 use App\Models\AgentMessage;
 use App\Models\Category;
@@ -9,7 +10,6 @@ use App\Models\Digest;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\LlmService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;

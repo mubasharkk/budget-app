@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Analytics\Services\DashboardSnapshotService;
 use App\Enums\IncomeType;
 use App\Models\Budget;
 use App\Models\Category;
@@ -10,7 +11,6 @@ use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\Saving;
 use App\Models\User;
-use App\Services\DashboardSnapshotService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

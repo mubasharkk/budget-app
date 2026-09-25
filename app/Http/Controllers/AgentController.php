@@ -2,29 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Assistant\Services\AssistantService;
+use App\Domain\Assistant\Services\NaturalLanguageQueryService;
 use App\Http\Requests\AgentAskRequest;
-use App\Jobs\GenerateMonthlyDigest;
-use App\Models\AgentMessage;
-use App\Models\Category;
-use App\Models\Contract;
-use App\Models\Digest;
-use App\Models\Receipt;
-use App\Services\AnomalyDetectionService;
-use App\Services\NaturalLanguageQueryService;
-use App\Services\RecommendationService;
-use App\Services\RenewalReminderService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AgentController extends Controller
 {
     public function __construct(
-        private RecommendationService $recommendationService,
-        private AnomalyDetectionService $anomalyDetectionService,
-        private RenewalReminderService $renewalReminderService,
+        private AssistantService $assistantService,
         private NaturalLanguageQueryService $queryService,
     ) {}
 
@@ -36,37 +26,23 @@ class AgentController extends Controller
     /**
      * Agent dashboard data: latest digest, recommendations, anomalies, renewals.
      */
-    public function dashboard(Request $request)
+    public function dashboard(Request $request): JsonResponse
     {
-        $userId = Auth::id();
-
-        $latestDigest = Digest::query()
-            ->where('user_id', $userId)
-            ->orderByDesc('period_end')
-            ->first();
-
-        return response()->json([
-            'digest' => $latestDigest,
-            'recommendations' => $this->recommendationService->recommendations($userId),
-            'anomalies' => $this->anomalyDetectionService->detect($userId),
-            'renewals' => $this->renewalReminderService->upcoming($userId),
-        ]);
+        return response()->json($this->assistantService->dashboard($request->user()->id));
     }
 
     /**
      * Answer a natural-language spending question.
      */
-    public function ask(AgentAskRequest $request)
+    public function ask(AgentAskRequest $request): JsonResponse
     {
         try {
-            $result = $this->queryService->ask(
-                Auth::id(),
+            return response()->json($this->queryService->ask(
+                $request->user()->id,
                 $request->validated('question'),
                 $request->validated('mentions', []),
-            );
-
-            return response()->json($result);
-        } catch (\Exception $e) {
+            ));
+        } catch (Exception $e) {
             return response()->json([
                 'answer' => 'Sorry, I could not answer that question. Try rephrasing it.',
                 'error' => $e->getMessage(),
@@ -74,93 +50,31 @@ class AgentController extends Controller
         }
     }
 
-    /**
-     * The current user's preserved chat history, oldest first.
-     */
-    public function history(): JsonResponse
+    public function history(Request $request): JsonResponse
     {
-        $messages = AgentMessage::query()
-            ->where('user_id', Auth::id())
-            ->orderBy('id')
-            ->get(['id', 'role', 'content', 'data', 'created_at']);
-
-        return response()->json(['messages' => $messages]);
+        return response()->json(['messages' => $this->assistantService->history($request->user()->id)]);
     }
 
-    /**
-     * Clear the current user's chat history — starts a new chat.
-     */
-    public function clearHistory(): JsonResponse
+    public function clearHistory(Request $request): JsonResponse
     {
-        AgentMessage::query()->where('user_id', Auth::id())->delete();
+        $this->assistantService->clearHistory($request->user()->id);
 
         return response()->json(['messages' => []]);
     }
 
     /**
-     * Entities the chat can @-mention: categories and contracts are preloaded;
-     * receipts (potentially many) are matched by the `q` query as the user types.
+     * Entities the chat can @-mention; receipts are matched by the `q` query as the user types.
      */
     public function mentionables(Request $request): JsonResponse
     {
-        $userId = Auth::id();
-        $q = trim((string) $request->query('q', ''));
-
-        $categories = Category::query()
-            ->orderBy('name')
-            ->get(['id', 'name', 'parent_id'])
-            ->map(fn (Category $category): array => [
-                'id' => 'category:'.$category->id,
-                'display' => $category->name,
-                'type' => 'category',
-                'is_parent' => $category->parent_id === null,
-            ]);
-
-        $contracts = Contract::query()
-            ->where('user_id', $userId)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Contract $contract): array => [
-                'id' => 'contract:'.$contract->id,
-                'display' => $contract->name,
-                'type' => 'contract',
-            ]);
-
-        $receipts = collect();
-
-        if ($q !== '') {
-            $receipts = Receipt::query()
-                ->where('user_id', $userId)
-                ->where(function ($query) use ($q): void {
-                    $query->where('vendor', 'like', '%'.$q.'%');
-
-                    if (ctype_digit($q)) {
-                        $query->orWhere('id', (int) $q);
-                    }
-                })
-                ->orderByDesc('receipt_date')
-                ->limit(10)
-                ->get(['id', 'vendor', 'receipt_date'])
-                ->map(fn (Receipt $receipt): array => [
-                    'id' => 'receipt:'.$receipt->id,
-                    'display' => '#'.$receipt->id.' '.($receipt->vendor ?? 'receipt').' '.$receipt->receipt_date?->format('Y-m-d'),
-                    'type' => 'receipt',
-                ]);
-        }
-
-        return response()->json([
-            'categories' => $categories->values(),
-            'contracts' => $contracts->values(),
-            'receipts' => $receipts->values(),
-        ]);
+        return response()->json(
+            $this->assistantService->mentionables($request->user()->id, (string) $request->query('q', ''))
+        );
     }
 
-    /**
-     * Manually queue a monthly digest for the current user.
-     */
-    public function generateDigest(Request $request)
+    public function generateDigest(Request $request): JsonResponse
     {
-        GenerateMonthlyDigest::dispatch(Auth::user(), $request->get('month'));
+        $this->assistantService->queueMonthlyDigest($request->user(), $request->input('month'));
 
         return response()->json(['message' => 'Digest generation queued.']);
     }

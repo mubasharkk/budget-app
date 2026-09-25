@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Dashboard;
 
+use App\Domain\Analytics\Services\DashboardService;
 use App\Models\Category;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\Dashboard\DashboardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

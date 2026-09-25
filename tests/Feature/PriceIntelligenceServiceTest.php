@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Products\Services\PriceIntelligenceService;
 use App\Models\PriceObservation;
 use App\Models\Product;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
-use App\Services\PriceIntelligenceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

@@ -2,30 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Savings\Services\SavingService;
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Http\Requests\SavingRequest;
 use App\Models\Saving;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SavingController extends Controller
 {
-    public function index(): Response
+    public function __construct(private SavingService $savingService) {}
+
+    public function index(Request $request): Response
     {
+        $userId = $request->user()->id;
+
         return Inertia::render('Savings/Index', [
-            'savings' => Saving::query()
-                ->where('user_id', Auth::id())
-                ->orderByDesc('saved_on')
-                ->orderByDesc('id')
-                ->get(),
-            'summary' => [
-                'total' => round((float) Saving::query()
-                    ->where('user_id', Auth::id())
-                    ->sum('amount'), 2),
-                'count' => Saving::query()
-                    ->where('user_id', Auth::id())
-                    ->count(),
-            ],
+            'savings' => $this->savingService->listForUser($userId),
+            'summary' => $this->savingService->summary($userId),
         ]);
     }
 
@@ -34,9 +30,9 @@ class SavingController extends Controller
         return Inertia::render('Savings/Create', $this->formOptions());
     }
 
-    public function store(SavingRequest $request)
+    public function store(SavingRequest $request): RedirectResponse
     {
-        Auth::user()->savings()->create($request->validated());
+        $this->savingService->create($request->user(), $request->validated());
 
         return redirect()->route('savings.index')
             ->with('success', 'Savings recorded successfully.');
@@ -46,27 +42,27 @@ class SavingController extends Controller
     {
         $this->authorize('update', $saving);
 
-        return Inertia::render('Savings/Edit', array_merge(
-            ['saving' => $saving],
-            $this->formOptions(),
-        ));
+        return Inertia::render('Savings/Edit', [
+            'saving' => $saving,
+            ...$this->formOptions(),
+        ]);
     }
 
-    public function update(SavingRequest $request, Saving $saving)
+    public function update(SavingRequest $request, Saving $saving): RedirectResponse
     {
         $this->authorize('update', $saving);
 
-        $saving->update($request->validated());
+        $this->savingService->update($saving, $request->validated());
 
         return redirect()->route('savings.index')
             ->with('success', 'Savings updated successfully.');
     }
 
-    public function destroy(Saving $saving)
+    public function destroy(Saving $saving): RedirectResponse
     {
         $this->authorize('delete', $saving);
 
-        $saving->delete();
+        $this->savingService->delete($saving);
 
         return redirect()->route('savings.index')
             ->with('success', 'Savings deleted successfully.');
@@ -78,7 +74,7 @@ class SavingController extends Controller
     private function formOptions(): array
     {
         return [
-            'currencies' => ['EUR', 'USD', 'INR', 'PKR', 'TRY', 'GBP'],
+            'currencies' => SupportedCurrencies::all(),
         ];
     }
 }

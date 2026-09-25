@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\IncomeType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,7 +26,7 @@ class IncomeUpdateRequest extends FormRequest
                 'nullable',
                 Rule::enum(IncomeType::class),
             ],
-            'income_currency' => 'nullable|string|in:EUR,USD,INR,PKR,TRY,GBP',
+            'income_currency' => 'nullable|string|'.SupportedCurrencies::rule(),
         ];
     }
 
