@@ -38,6 +38,7 @@ class ProcessReceipt implements ShouldQueue
                 $this->receipt->file_path,
                 $this->receipt->mime,
                 $this->receipt->isIncome(),
+                $this->receipt->user->default_currency,
             );
 
             if (! $result['success']) {

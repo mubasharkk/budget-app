@@ -59,15 +59,31 @@ class DefaultCurrencyTest extends TestCase
             ->toMediaCollection(Receipt::RECEIPT_COLLECTION);
 
         $this->mock(LlmService::class, function ($mock): void {
-            $mock->shouldReceive('parseReceiptFromFile')->once()->andReturn([
-                'success' => true,
-                'data' => ['is_receipt' => true, 'vendor' => 'Tesco', 'total_amount' => 4.2, 'items' => []],
-            ]);
+            $mock->shouldReceive('parseReceiptFromFile')
+                ->once()
+                ->withArgs(fn (string $path, string $mime, bool $isIncome, ?string $currency): bool => $currency === 'GBP')
+                ->andReturn([
+                    'success' => true,
+                    'data' => ['is_receipt' => true, 'vendor' => 'Tesco', 'total_amount' => 4.2, 'items' => []],
+                ]);
         });
 
         app()->call([new ProcessReceipt($receipt), 'handle']);
 
         $this->assertSame('GBP', $receipt->fresh()->currency);
+    }
+
+    public function test_receipt_prompt_asks_for_the_users_currency_first(): void
+    {
+        $prompt = view('prompts.receipt-parsing', [
+            'categories' => [],
+            'isIncome' => false,
+            'preferredCurrency' => 'USD',
+        ])->render();
+
+        $this->assertStringContainsString("The user's preferred currency is **USD**", $prompt);
+        $this->assertStringContainsString('Otherwise use the currency actually stated on the document', $prompt);
+        $this->assertStringNotContainsString('EUR default', $prompt);
     }
 
     public function test_assistant_text_uses_the_users_currency_symbol(): void

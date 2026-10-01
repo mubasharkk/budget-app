@@ -2,6 +2,7 @@
 
 namespace App\Domain\Shared\Services;
 
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Models\Category;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
@@ -28,13 +29,15 @@ class LlmService
 
     /**
      * Read a receipt file (image or PDF) with a vision model and extract structured data.
+     * Amounts are taken in the preferred currency when the document states them in it,
+     * otherwise in the currency printed on the document.
      *
      * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
      */
-    public function parseReceiptFromFile(string $filePath, string $mime, bool $isIncome = false): array
+    public function parseReceiptFromFile(string $filePath, string $mime, bool $isIncome = false, ?string $preferredCurrency = null): array
     {
         try {
-            $prompt = $this->buildPrompt($this->getExistingCategories(), $isIncome);
+            $prompt = $this->buildPrompt($this->getExistingCategories(), $isIncome, $preferredCurrency);
 
             $response = $this->client->chat()->create([
                 'model' => $this->model,
@@ -268,11 +271,12 @@ class LlmService
      *
      * @param  array<int, array{name: string, slug: string, subcategories: array<int, string>}>  $categories
      */
-    private function buildPrompt(array $categories, bool $isIncome = false): string
+    private function buildPrompt(array $categories, bool $isIncome = false, ?string $preferredCurrency = null): string
     {
         return View::make('prompts.receipt-parsing', [
             'categories' => $categories,
             'isIncome' => $isIncome,
+            'preferredCurrency' => $preferredCurrency ?? SupportedCurrencies::FALLBACK,
         ])->render();
     }
 
