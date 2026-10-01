@@ -7,6 +7,7 @@ use App\Domain\Analytics\Services\ConsumptionService;
 use App\Domain\Analytics\Services\DashboardService;
 use App\Domain\Analytics\Services\DashboardSnapshotService;
 use App\Domain\Analytics\Services\ExpenseOverviewService;
+use App\Domain\Analytics\Services\TransactionLedgerService;
 use App\Domain\Budgets\Services\BudgetService;
 use App\Domain\Identity\Services\UserSettingsService;
 use App\Domain\Products\Services\PriceIntelligenceService;
@@ -15,6 +16,7 @@ use App\Enums\DashboardSection;
 use App\Enums\ExpenseType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardSettingsRequest;
+use App\Http\Requests\TransactionLedgerRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,6 +33,7 @@ class DashboardController extends Controller
         private BudgetService $budgetService,
         private DashboardSnapshotService $dashboardSnapshotService,
         private UserSettingsService $userSettingsService,
+        private TransactionLedgerService $transactionLedgerService,
     ) {}
 
     public function index(Request $request): Response
@@ -62,6 +65,18 @@ class DashboardController extends Controller
     public function deals(): Response
     {
         return Inertia::render('Deals');
+    }
+
+    /**
+     * Every dated income and expense entry for the selected date range.
+     */
+    public function transactions(TransactionLedgerRequest $request): JsonResponse
+    {
+        return response()->json($this->transactionLedgerService->forRange(
+            $request->user()->id,
+            $request->validated('start_date'),
+            $request->validated('end_date'),
+        ));
     }
 
     /**

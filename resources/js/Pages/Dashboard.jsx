@@ -9,8 +9,10 @@ import ExpenseOverview from '@/Components/ExpenseOverview';
 import IncomeOverview from '@/Components/IncomeOverview';
 import ConsumedItemsWidget from '@/Components/ConsumedItemsWidget';
 import MostBoughtItemsChart from '@/Components/MostBoughtItemsChart';
+import TransactionsWidget from '@/Components/TransactionsWidget';
 
 const OPTIONAL_SECTIONS = {
+    transactions: { Component: TransactionsWidget, half: false },
     expense_overview: { Component: ExpenseOverview, half: false },
     items_consumed: { Component: ConsumedItemsWidget, half: false },
     budget_vs_actual: { Component: BudgetOverview, half: true },
