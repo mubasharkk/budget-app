@@ -28,7 +28,7 @@ class IncomeServiceTest extends TestCase
         $user = User::factory()->create([
             'monthly_income' => 4000,
             'income_type' => IncomeType::Net,
-            'income_currency' => 'EUR',
+            'default_currency' => 'EUR',
         ]);
 
         $context = app(IncomeService::class)->context($user, 1000.0, 2500.0, 'month');
@@ -91,7 +91,7 @@ class IncomeServiceTest extends TestCase
         $user = User::factory()->create([
             'monthly_income' => 3000,
             'income_type' => IncomeType::Net,
-            'income_currency' => 'EUR',
+            'default_currency' => 'EUR',
         ]);
 
         Income::factory()->for($user)->create([

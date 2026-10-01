@@ -26,7 +26,7 @@ class IncomeUpdateRequest extends FormRequest
                 'nullable',
                 Rule::enum(IncomeType::class),
             ],
-            'income_currency' => 'nullable|string|'.SupportedCurrencies::rule(),
+            'default_currency' => 'nullable|string|'.SupportedCurrencies::rule(),
         ];
     }
 

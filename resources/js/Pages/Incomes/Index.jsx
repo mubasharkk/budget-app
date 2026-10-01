@@ -19,14 +19,11 @@ const formatDate = (value) =>
           })
         : '—';
 
-function MonthlyIncomeCard({ monthlyIncome, incomeTypes, currencies }) {
+function MonthlyIncomeCard({ monthlyIncome, incomeTypes }) {
     const { data, setData, patch, processing, errors, recentlySuccessful } =
         useForm({
             monthly_income: monthlyIncome.amount ?? '',
             income_type: monthlyIncome.income_type ?? 'net',
-            income_currency: monthlyIncome.amount
-                ? monthlyIncome.income_currency
-                : getDefaultCurrency(),
         });
 
     const submit = (e) => {
@@ -62,7 +59,7 @@ function MonthlyIncomeCard({ monthlyIncome, incomeTypes, currencies }) {
 
             <form
                 onSubmit={submit}
-                className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3"
+                className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"
             >
                 <div>
                     <InputLabel htmlFor="monthly_income" value="Amount" />
@@ -101,29 +98,7 @@ function MonthlyIncomeCard({ monthlyIncome, incomeTypes, currencies }) {
                     <InputError message={errors.income_type} className="mt-1" />
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="income_currency" value="Currency" />
-                    <select
-                        id="income_currency"
-                        className={selectClasses}
-                        value={data.income_currency}
-                        onChange={(e) =>
-                            setData('income_currency', e.target.value)
-                        }
-                    >
-                        {currencies.map((c) => (
-                            <option key={c} value={c}>
-                                {c}
-                            </option>
-                        ))}
-                    </select>
-                    <InputError
-                        message={errors.income_currency}
-                        className="mt-1"
-                    />
-                </div>
-
-                <div className="flex items-center gap-3 sm:col-span-3">
+                <div className="flex items-center gap-3 sm:col-span-2">
                     <PrimaryButton disabled={processing}>
                         Save monthly income
                     </PrimaryButton>
@@ -246,7 +221,6 @@ export default function Index({
                     <MonthlyIncomeCard
                         monthlyIncome={monthlyIncome}
                         incomeTypes={incomeTypes}
-                        currencies={currencies}
                     />
 
                     <div className="space-y-4">

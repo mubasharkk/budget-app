@@ -40,21 +40,22 @@ class IncomeService
     /**
      * The user's recurring monthly income settings.
      *
-     * @return array{amount: ?float, income_type: ?string, income_currency: string}
+     * @return array{amount: ?float, income_type: ?string, default_currency: string}
      */
     public function monthlyIncome(User $user): array
     {
         return [
             'amount' => $user->monthly_income !== null ? (float) $user->monthly_income : null,
             'income_type' => $user->income_type?->value,
-            'income_currency' => $user->income_currency ?? $user->default_currency,
+            'default_currency' => $user->default_currency,
         ];
     }
 
     /**
      * Set or clear the user's recurring monthly income; a null amount clears it.
+     * A currency, when given, updates the user's single default currency.
      *
-     * @param  array{monthly_income?: ?numeric, income_type?: ?string, income_currency?: ?string}  $data
+     * @param  array{monthly_income?: ?numeric, income_type?: ?string, default_currency?: ?string}  $data
      */
     public function updateMonthlyIncome(User $user, array $data): User
     {
@@ -65,8 +66,11 @@ class IncomeService
             $user->fill([
                 'monthly_income' => $data['monthly_income'],
                 'income_type' => $data['income_type'] ?? IncomeType::Net,
-                'income_currency' => $data['income_currency'] ?? $user->default_currency,
             ]);
+        }
+
+        if (filled($data['default_currency'] ?? null)) {
+            $user->default_currency = $data['default_currency'];
         }
 
         $user->save();
@@ -122,7 +126,7 @@ class IncomeService
 
         $monthlyIncome = (float) ($user->monthly_income ?? 0);
         $incomeType = $user->income_type ?? IncomeType::Net;
-        $currency = $user->income_currency ?? $this->defaultCurrency($user);
+        $currency = $user->default_currency;
 
         return [
             'monthly_income' => $monthlyIncome > 0 ? $monthlyIncome : null,
@@ -180,13 +184,5 @@ class IncomeService
             ->where('user_id', $user->id)
             ->whereBetween('received_on', [$start->toDateString(), $end->toDateString()])
             ->sum('amount'), 2);
-    }
-
-    private function defaultCurrency(User $user): string
-    {
-        return Income::query()
-            ->where('user_id', $user->id)
-            ->orderByDesc('received_on')
-            ->value('currency') ?? $user->default_currency;
     }
 }

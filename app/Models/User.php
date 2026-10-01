@@ -35,7 +35,6 @@ class User extends Authenticatable
         'avatar',
         'monthly_income',
         'income_type',
-        'income_currency',
         'default_currency',
     ];
 
@@ -68,7 +67,6 @@ class User extends Authenticatable
             'password' => 'hashed',
             'monthly_income' => 'decimal:2',
             'income_type' => IncomeType::class,
-            'income_currency' => 'string',
         ];
     }
 

@@ -19,7 +19,7 @@ class IncomeUpdateTest extends TestCase
             ->patch('/profile/income', [
                 'monthly_income' => 3500.50,
                 'income_type' => 'brutto',
-                'income_currency' => 'EUR',
+                'default_currency' => 'USD',
             ])
             ->assertRedirect('/profile');
 
@@ -27,7 +27,7 @@ class IncomeUpdateTest extends TestCase
 
         $this->assertSame('3500.50', $user->monthly_income);
         $this->assertSame(IncomeType::Brutto, $user->income_type);
-        $this->assertSame('EUR', $user->income_currency);
+        $this->assertSame('USD', $user->default_currency);
     }
 
     public function test_user_can_clear_monthly_income(): void
@@ -35,14 +35,14 @@ class IncomeUpdateTest extends TestCase
         $user = User::factory()->create([
             'monthly_income' => 2000,
             'income_type' => IncomeType::Net,
-            'income_currency' => 'EUR',
+            'default_currency' => 'EUR',
         ]);
 
         $this->actingAs($user)
             ->patch('/profile/income', [
                 'monthly_income' => '',
                 'income_type' => 'net',
-                'income_currency' => 'EUR',
+                'default_currency' => 'EUR',
             ])
             ->assertRedirect('/profile');
 

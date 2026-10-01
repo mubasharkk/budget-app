@@ -19,7 +19,7 @@ class IncomeMonthlyTest extends TestCase
             ->patch(route('incomes.monthly.update'), [
                 'monthly_income' => 4200,
                 'income_type' => 'net',
-                'income_currency' => 'USD',
+                'default_currency' => 'USD',
             ])
             ->assertRedirect(route('incomes.index'));
 
@@ -27,7 +27,7 @@ class IncomeMonthlyTest extends TestCase
 
         $this->assertSame('4200.00', $user->monthly_income);
         $this->assertSame(IncomeType::Net, $user->income_type);
-        $this->assertSame('USD', $user->income_currency);
+        $this->assertSame('USD', $user->default_currency);
     }
 
     public function test_blank_amount_clears_monthly_income(): void
@@ -35,7 +35,7 @@ class IncomeMonthlyTest extends TestCase
         $user = User::factory()->create([
             'monthly_income' => 3000,
             'income_type' => IncomeType::Brutto,
-            'income_currency' => 'EUR',
+            'default_currency' => 'EUR',
         ]);
 
         $this->actingAs($user)
@@ -53,7 +53,7 @@ class IncomeMonthlyTest extends TestCase
         $user = User::factory()->create([
             'monthly_income' => 2500,
             'income_type' => IncomeType::Net,
-            'income_currency' => 'EUR',
+            'default_currency' => 'EUR',
         ]);
 
         $this->actingAs($user)
@@ -62,7 +62,7 @@ class IncomeMonthlyTest extends TestCase
                 ->component('Incomes/Index')
                 ->where('monthlyIncome.amount', 2500)
                 ->where('monthlyIncome.income_type', 'net')
-                ->where('monthlyIncome.income_currency', 'EUR')
+                ->where('monthlyIncome.default_currency', 'EUR')
             );
     }
 }

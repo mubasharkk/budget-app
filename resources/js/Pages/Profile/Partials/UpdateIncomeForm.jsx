@@ -13,7 +13,7 @@ export default function UpdateIncomeForm({ incomeTypeOptions = [], className = '
         useForm({
             monthly_income: user.monthly_income ?? '',
             income_type: user.income_type ?? 'net',
-            income_currency: user.income_currency ?? user.default_currency,
+            default_currency: user.default_currency,
         });
 
     const submit = (e) => {
@@ -27,7 +27,7 @@ export default function UpdateIncomeForm({ incomeTypeOptions = [], className = '
             {
                 monthly_income: '',
                 income_type: 'net',
-                income_currency: user.default_currency,
+                default_currency: user.default_currency,
             },
             { preserveScroll: true },
         );
@@ -102,13 +102,13 @@ export default function UpdateIncomeForm({ incomeTypeOptions = [], className = '
                 </div>
 
                 <div className="max-w-xs">
-                    <InputLabel htmlFor="income_currency" value="Currency" />
+                    <InputLabel htmlFor="default_currency" value="Currency" />
                     <select
-                        id="income_currency"
+                        id="default_currency"
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        value={data.income_currency}
+                        value={data.default_currency}
                         onChange={(e) =>
-                            setData('income_currency', e.target.value)
+                            setData('default_currency', e.target.value)
                         }
                     >
                         {['EUR', 'USD', 'GBP', 'INR', 'PKR', 'TRY'].map(
@@ -121,7 +121,7 @@ export default function UpdateIncomeForm({ incomeTypeOptions = [], className = '
                     </select>
                     <InputError
                         className="mt-2"
-                        message={errors.income_currency}
+                        message={errors.default_currency}
                     />
                 </div>
 
