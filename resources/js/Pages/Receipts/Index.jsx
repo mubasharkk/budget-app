@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
-import IncomeBadge from '@/Components/IncomeBadge';
+import ReceiptKindIcon from '@/Components/ReceiptKindIcon';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
 import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon, CameraIcon, MagnifyingGlassIcon, EyeIcon, PencilSquareIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
@@ -334,7 +334,7 @@ export default function Index({ receipts, filters = {} }) {
                                                                 {receipt.vendor || receipt.original_filename}
                                                             </h3>
                                                             <span className="inline-flex items-center gap-2">
-    {receipt.kind === 'income' && <IncomeBadge />}
+    <ReceiptKindIcon kind={receipt.kind} />
     {getStatusBadge(receipt.status)}
 </span>
                                                         </div>
@@ -427,7 +427,7 @@ export default function Index({ receipts, filters = {} }) {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className="inline-flex items-center gap-2">
-    {receipt.kind === 'income' && <IncomeBadge />}
+    <ReceiptKindIcon kind={receipt.kind} />
     {getStatusBadge(receipt.status)}
 </span>
                                                     </td>
@@ -544,7 +544,7 @@ export default function Index({ receipts, filters = {} }) {
                                                                 {receipt.vendor || receipt.original_filename}
                                                             </h3>
                                                             <span className="inline-flex items-center gap-2">
-    {receipt.kind === 'income' && <IncomeBadge />}
+    <ReceiptKindIcon kind={receipt.kind} />
     {getStatusBadge(receipt.status)}
 </span>
                                                         </div>
