@@ -369,6 +369,9 @@ export default function Index({ receipts, filters = {} }) {
                                             <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
+                                                <th className="w-px py-3 pl-6 pr-0">
+                                                    <span className="sr-only">Type</span>
+                                                </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Receipt
                                                 </th>
@@ -392,6 +395,9 @@ export default function Index({ receipts, filters = {} }) {
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {receipts.data.map((receipt) => (
                                                 <tr key={receipt.id} className="hover:bg-gray-50">
+                                                    <td className="w-px py-4 pl-6 pr-0">
+                                                        <ReceiptKindIcon kind={receipt.kind} />
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="flex items-center">
                                                             <div className="flex-shrink-0 h-10 w-10">
@@ -426,10 +432,7 @@ export default function Index({ receipts, filters = {} }) {
                                                         {formatCurrency(receipt.total_amount)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="inline-flex items-center gap-2">
-    <ReceiptKindIcon kind={receipt.kind} />
-    {getStatusBadge(receipt.status)}
-</span>
+                                                        {getStatusBadge(receipt.status)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <div>
