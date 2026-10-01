@@ -62,6 +62,8 @@ Route::middleware('auth')->group(function () {
     // Recurring monthly income (stored on the user) + one-time income entries
     Route::patch('/incomes/monthly', [IncomeController::class, 'updateMonthly'])
         ->name('incomes.monthly.update');
+    Route::patch('/incomes/default-currency', [IncomeController::class, 'updateDefaultCurrency'])
+        ->name('incomes.default-currency.update');
     Route::resource('incomes', IncomeController::class)->except('show');
 
     // Manual savings entries

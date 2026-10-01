@@ -47,7 +47,7 @@ class IncomeService
         return [
             'amount' => $user->monthly_income !== null ? (float) $user->monthly_income : null,
             'income_type' => $user->income_type?->value,
-            'income_currency' => $user->income_currency ?? 'EUR',
+            'income_currency' => $user->income_currency ?? $user->default_currency,
         ];
     }
 
@@ -65,7 +65,7 @@ class IncomeService
             $user->fill([
                 'monthly_income' => $data['monthly_income'],
                 'income_type' => $data['income_type'] ?? IncomeType::Net,
-                'income_currency' => $data['income_currency'] ?? 'EUR',
+                'income_currency' => $data['income_currency'] ?? $user->default_currency,
             ]);
         }
 
@@ -187,6 +187,6 @@ class IncomeService
         return Income::query()
             ->where('user_id', $user->id)
             ->orderByDesc('received_on')
-            ->value('currency') ?? 'EUR';
+            ->value('currency') ?? $user->default_currency;
     }
 }

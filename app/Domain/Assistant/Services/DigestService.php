@@ -6,6 +6,7 @@ use App\Domain\Analytics\Services\ExpenseService;
 use App\Domain\Budgets\Services\BudgetService;
 use App\Domain\Contracts\Services\RenewalReminderService;
 use App\Domain\Shared\Services\LlmService;
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\BudgetPeriod;
 use App\Mail\MonthlyDigestMail;
 use App\Models\Digest;
@@ -56,6 +57,7 @@ class DigestService
 
         $llmResult = $this->llmService->summarizeMonthlyDigest([
             'period' => $start->format('F Y'),
+            'currencySymbol' => SupportedCurrencies::symbol($user->default_currency),
             'overview' => $overview,
             'budget' => $budgetSummary,
             'recommendations' => array_slice($recommendations, 0, 5),

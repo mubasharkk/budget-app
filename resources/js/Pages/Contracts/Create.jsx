@@ -1,5 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { getDefaultCurrency } from '@/utils/money';
 import PrimaryButton from '@/Components/PrimaryButton';
 import CancelButton from '@/Components/CancelButton';
 import ContractForm from './ContractForm';
@@ -17,7 +18,7 @@ export default function Create({
         provider_id: null,
         category_id: null,
         amount: '',
-        currency: 'EUR',
+        currency: getDefaultCurrency(),
         expense_type: 'personal',
         billing_cycle: 'monthly',
         billing_day: '',

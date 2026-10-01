@@ -36,6 +36,14 @@ class User extends Authenticatable
         'monthly_income',
         'income_type',
         'income_currency',
+        'default_currency',
+    ];
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'default_currency' => 'EUR',
     ];
 
     /**

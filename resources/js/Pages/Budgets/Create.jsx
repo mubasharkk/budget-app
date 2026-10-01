@@ -1,5 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { getDefaultCurrency } from '@/utils/money';
 import PrimaryButton from '@/Components/PrimaryButton';
 import CancelButton from '@/Components/CancelButton';
 import BudgetForm from './BudgetForm';
@@ -9,7 +10,7 @@ export default function Create({ categories, periods, currencies }) {
         category_id: null,
         period: 'monthly',
         amount: '',
-        currency: 'EUR',
+        currency: getDefaultCurrency(),
         starts_on: new Date().toISOString().slice(0, 10),
     });
 

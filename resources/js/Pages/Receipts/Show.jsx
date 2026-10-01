@@ -8,7 +8,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { ArrowLeftIcon, TrashIcon, XMarkIcon, CheckIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
-import { formatCurrency } from '@/utils/money';
+import { formatCurrency, getDefaultCurrency } from '@/utils/money';
 
 export default function Show({ receipt }) {
     const [categories, setCategories] = useState([]);
@@ -20,7 +20,7 @@ export default function Show({ receipt }) {
     const { data, setData, patch, processing, errors, reset } = useForm({
         vendor: receipt.vendor || '',
         receipt_number: receipt.receipt_number || '',
-        currency: receipt.currency || 'EUR',
+        currency: receipt.currency || getDefaultCurrency(),
         total_amount: receipt.total_amount || '',
         receipt_date: receipt.receipt_date ? new Date(receipt.receipt_date).toISOString().slice(0, 16) : '',
         items: receipt.items || [],

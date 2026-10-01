@@ -13,7 +13,7 @@ export default function UpdateIncomeForm({ incomeTypeOptions = [], className = '
         useForm({
             monthly_income: user.monthly_income ?? '',
             income_type: user.income_type ?? 'net',
-            income_currency: user.income_currency ?? 'EUR',
+            income_currency: user.income_currency ?? user.default_currency,
         });
 
     const submit = (e) => {
@@ -27,7 +27,7 @@ export default function UpdateIncomeForm({ incomeTypeOptions = [], className = '
             {
                 monthly_income: '',
                 income_type: 'net',
-                income_currency: 'EUR',
+                income_currency: user.default_currency,
             },
             { preserveScroll: true },
         );

@@ -24,6 +24,16 @@ class ProfileService
         return $user;
     }
 
+    /**
+     * Set the currency used for the user's totals and as the default on new records.
+     */
+    public function updateDefaultCurrency(User $user, string $currency): User
+    {
+        $user->update(['default_currency' => $currency]);
+
+        return $user;
+    }
+
     public function deleteAccount(User $user): void
     {
         $user->delete();

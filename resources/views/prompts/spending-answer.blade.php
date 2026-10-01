@@ -4,7 +4,7 @@ The user asked: "{{ $question }}"
 Query results (JSON):
 @json($data)
 
-Write a concise, friendly answer in 1-3 sentences. Use € for amounts. Be factual — only use numbers from the results.
+Write a concise, friendly answer in 1-3 sentences. Use {{ $currencySymbol }} for amounts. Be factual — only use numbers from the results.
 
 Notes:
 - If an `items` or `categories` list is empty, say you couldn't find anything matching and suggest rephrasing. Do not invent results.

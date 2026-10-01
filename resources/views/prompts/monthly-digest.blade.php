@@ -4,14 +4,14 @@ You are a personal budgeting assistant. Summarize the user's month in clear, enc
 Period: {{ $period }}
 
 Spending overview:
-- Total: €{{ number_format($overview['total'], 2) }} (fixed €{{ number_format($overview['fixed'], 2) }}, variable €{{ number_format($overview['variable'], 2) }})
+- Total: {{ $currencySymbol }}{{ number_format($overview['total'], 2) }} (fixed {{ $currencySymbol }}{{ number_format($overview['fixed'], 2) }}, variable {{ $currencySymbol }}{{ number_format($overview['variable'], 2) }})
 @foreach($overview['by_category'] ?? [] as $row)
-- {{ $row['category'] }}: €{{ number_format($row['total'], 2) }}
+- {{ $row['category'] }}: {{ $currencySymbol }}{{ number_format($row['total'], 2) }}
 @endforeach
 
 Budget status:
-- Budgeted: €{{ number_format($budget['budgeted'], 2) }}
-- Actual: €{{ number_format($budget['actual'], 2) }}
+- Budgeted: {{ $currencySymbol }}{{ number_format($budget['budgeted'], 2) }}
+- Actual: {{ $currencySymbol }}{{ number_format($budget['actual'], 2) }}
 - Over budget categories: {{ $budget['over_count'] }}
 - Near limit: {{ $budget['warning_count'] }}
 
@@ -31,7 +31,7 @@ Anomalies:
 
 Upcoming renewals / billing:
 @forelse($renewals as $renewal)
-- {{ is_array($renewal) ? $renewal['name'] : $renewal->name }} (€{{ number_format(is_array($renewal) ? $renewal['amount'] : $renewal->amount, 2) }}/{{ is_array($renewal) ? $renewal['billing_cycle'] : $renewal->billing_cycle }}) — due {{ is_array($renewal) ? $renewal['next_billing_date'] : $renewal->next_billing_date }}
+- {{ is_array($renewal) ? $renewal['name'] : $renewal->name }} ({{ $currencySymbol }}{{ number_format(is_array($renewal) ? $renewal['amount'] : $renewal->amount, 2) }}/{{ is_array($renewal) ? $renewal['billing_cycle'] : $renewal->billing_cycle }}) — due {{ is_array($renewal) ? $renewal['next_billing_date'] : $renewal->next_billing_date }}
 @empty
 - None in the next 30 days
 @endforelse

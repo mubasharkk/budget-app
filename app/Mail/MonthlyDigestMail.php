@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Models\Digest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -30,6 +31,7 @@ class MonthlyDigestMail extends Mailable
             markdown: 'mail.monthly-digest',
             with: [
                 'digest' => $this->digest,
+                'currencySymbol' => SupportedCurrencies::symbol($this->digest->user?->default_currency),
                 'recommendations' => $this->digest->payload['recommendations'] ?? [],
                 'renewals' => $this->digest->payload['renewals'] ?? [],
             ],

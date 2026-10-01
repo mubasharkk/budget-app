@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Identity\Services\ProfileService;
 use App\Domain\Incomes\Services\IncomeService;
 use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\IncomeType;
+use App\Http\Requests\DefaultCurrencyRequest;
 use App\Http\Requests\IncomeRequest;
 use App\Http\Requests\IncomeUpdateRequest;
 use App\Models\Income;
@@ -15,7 +17,10 @@ use Inertia\Response;
 
 class IncomeController extends Controller
 {
-    public function __construct(private IncomeService $incomeService) {}
+    public function __construct(
+        private IncomeService $incomeService,
+        private ProfileService $profileService,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -35,6 +40,14 @@ class IncomeController extends Controller
 
         return redirect()->route('incomes.index')
             ->with('success', 'Monthly income updated successfully.');
+    }
+
+    public function updateDefaultCurrency(DefaultCurrencyRequest $request): RedirectResponse
+    {
+        $this->profileService->updateDefaultCurrency($request->user(), $request->validated('default_currency'));
+
+        return redirect()->route('incomes.index')
+            ->with('success', 'Default currency updated successfully.');
     }
 
     public function create(): Response

@@ -1,5 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { getDefaultCurrency } from '@/utils/money';
 import PrimaryButton from '@/Components/PrimaryButton';
 import CancelButton from '@/Components/CancelButton';
 import SavingForm from './SavingForm';
@@ -7,7 +8,7 @@ import SavingForm from './SavingForm';
 export default function Create({ currencies }) {
     const { data, setData, post, processing, errors } = useForm({
         amount: '',
-        currency: 'EUR',
+        currency: getDefaultCurrency(),
         saved_on: new Date().toISOString().slice(0, 10),
         source: '',
         notes: '',

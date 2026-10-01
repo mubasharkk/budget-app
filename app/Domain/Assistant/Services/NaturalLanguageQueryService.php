@@ -3,6 +3,7 @@
 namespace App\Domain\Assistant\Services;
 
 use App\Domain\Shared\Services\LlmService;
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Models\AgentMessage;
 use App\Models\Category;
 use App\Models\Contract;
@@ -59,7 +60,11 @@ class NaturalLanguageQueryService
 
         $data = $this->executor->execute($userId, $validated);
 
-        $answerResult = $this->llmService->formatSpendingAnswer($question, $data);
+        $answerResult = $this->llmService->formatSpendingAnswer(
+            $question,
+            $data,
+            SupportedCurrencies::symbolForUser($userId),
+        );
 
         if (! $answerResult['success']) {
             throw new \RuntimeException($answerResult['error'] ?? 'Could not format the answer.');

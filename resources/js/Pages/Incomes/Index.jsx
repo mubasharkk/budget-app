@@ -5,7 +5,7 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
 import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { formatCurrency } from '@/utils/money';
+import { formatCurrency, getDefaultCurrency } from '@/utils/money';
 
 const selectClasses =
     'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500';
@@ -24,7 +24,9 @@ function MonthlyIncomeCard({ monthlyIncome, incomeTypes, currencies }) {
         useForm({
             monthly_income: monthlyIncome.amount ?? '',
             income_type: monthlyIncome.income_type ?? 'net',
-            income_currency: monthlyIncome.income_currency ?? 'EUR',
+            income_currency: monthlyIncome.amount
+                ? monthlyIncome.income_currency
+                : getDefaultCurrency(),
         });
 
     const submit = (e) => {
@@ -140,6 +142,65 @@ function MonthlyIncomeCard({ monthlyIncome, incomeTypes, currencies }) {
     );
 }
 
+function DefaultCurrencyCard({ currencies }) {
+    const user = usePage().props.auth.user;
+    const { data, setData, patch, processing, errors, recentlySuccessful } =
+        useForm({
+            default_currency: user.default_currency ?? getDefaultCurrency(),
+        });
+
+    const submit = (e) => {
+        e.preventDefault();
+        patch(route('incomes.default-currency.update'), {
+            preserveScroll: true,
+        });
+    };
+
+    return (
+        <div className="rounded-lg bg-white p-5 shadow-sm">
+            <h3 className="text-sm font-medium text-gray-500">
+                Default currency
+            </h3>
+            <p className="mt-1 text-xs text-gray-400">
+                Used for totals across the app and pre-selected on new
+                entries. Existing entries keep the currency they were saved
+                with; amounts are not converted.
+            </p>
+
+            <form
+                onSubmit={submit}
+                className="mt-4 flex flex-wrap items-end gap-3"
+            >
+                <div className="w-40">
+                    <InputLabel htmlFor="default_currency" value="Currency" />
+                    <select
+                        id="default_currency"
+                        className={selectClasses}
+                        value={data.default_currency}
+                        onChange={(e) =>
+                            setData('default_currency', e.target.value)
+                        }
+                    >
+                        {currencies.map((c) => (
+                            <option key={c} value={c}>
+                                {c}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <PrimaryButton disabled={processing}>
+                    Save default currency
+                </PrimaryButton>
+                {recentlySuccessful && (
+                    <span className="pb-2 text-sm text-green-600">Saved.</span>
+                )}
+            </form>
+            <InputError message={errors.default_currency} className="mt-1" />
+        </div>
+    );
+}
+
 export default function Index({
     incomes,
     summary,
@@ -182,6 +243,8 @@ export default function Index({
                             {flash.success}
                         </div>
                     )}
+
+                    <DefaultCurrencyCard currencies={currencies} />
 
                     <MonthlyIncomeCard
                         monthlyIncome={monthlyIncome}

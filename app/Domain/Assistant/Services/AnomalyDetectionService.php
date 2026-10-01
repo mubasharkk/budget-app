@@ -3,6 +3,7 @@
 namespace App\Domain\Assistant\Services;
 
 use App\Domain\Analytics\Services\ExpenseService;
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Models\Receipt;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class AnomalyDetectionService
 {
+    private string $currencySymbol = '€';
+
     /**
      * Detect spending anomalies for a user within a date range.
      *
@@ -22,6 +25,7 @@ class AnomalyDetectionService
     ): array {
         $end = CarbonImmutable::instance($end ?? CarbonImmutable::today());
         $start = CarbonImmutable::instance($start ?? $end->copy()->startOfMonth());
+        $this->currencySymbol = SupportedCurrencies::symbolForUser($userId);
 
         return [
             ...$this->detectDuplicateCharges($userId, $start, $end),
@@ -55,7 +59,7 @@ class AnomalyDetectionService
             'severity' => 'high',
             'title' => 'Possible duplicate charge',
             'description' => sprintf(
-                '%s charged €%s on %s (%d times)',
+                "%s charged {$this->currencySymbol}%s on %s (%d times)",
                 $row->vendor,
                 number_format((float) $row->total_amount, 2),
                 $row->charge_date,
@@ -111,7 +115,7 @@ class AnomalyDetectionService
                 'severity' => 'medium',
                 'title' => 'Unusually large receipt',
                 'description' => sprintf(
-                    '%s — €%s on %s (median receipt: €%s)',
+                    "%s — {$this->currencySymbol}%s on %s (median receipt: {$this->currencySymbol}%s)",
                     $receipt->vendor ?? 'Unknown vendor',
                     number_format((float) $receipt->total_amount, 2),
                     $receipt->receipt_date?->toDateString() ?? 'unknown date',
@@ -162,7 +166,7 @@ class AnomalyDetectionService
                 'severity' => $changePercent >= 100 ? 'high' : 'medium',
                 'title' => 'Category spend spike',
                 'description' => sprintf(
-                    '%s spend is up %.0f%% (€%s vs €%s last month)',
+                    "%s spend is up %.0f%% ({$this->currencySymbol}%s vs {$this->currencySymbol}%s last month)",
                     $category,
                     $changePercent,
                     number_format($currTotal, 2),

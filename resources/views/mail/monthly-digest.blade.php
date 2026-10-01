@@ -13,7 +13,7 @@
 @if (count($renewals) > 0)
 ## Upcoming billing
 @foreach (array_slice($renewals, 0, 3) as $renewal)
-- {{ $renewal['name'] }} — €{{ number_format($renewal['amount'], 2) }} due {{ $renewal['next_billing_date'] }}
+- {{ $renewal['name'] }} — {{ $currencySymbol }}{{ number_format($renewal['amount'], 2) }} due {{ $renewal['next_billing_date'] }}
 @endforeach
 @endif
 

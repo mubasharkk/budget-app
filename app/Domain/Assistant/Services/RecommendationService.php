@@ -4,10 +4,13 @@ namespace App\Domain\Assistant\Services;
 
 use App\Domain\Budgets\Services\BudgetService;
 use App\Domain\Products\Services\PriceIntelligenceService;
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\BudgetPeriod;
 
 class RecommendationService
 {
+    private string $currencySymbol = '€';
+
     public function __construct(
         private PriceIntelligenceService $priceIntelligenceService,
         private BudgetService $budgetService,
@@ -24,6 +27,7 @@ class RecommendationService
         ?string $endDate = null,
         int $limit = 15,
     ): array {
+        $this->currencySymbol = SupportedCurrencies::symbolForUser($userId);
         $items = [];
 
         foreach ($this->priceIntelligenceService->savingsOpportunities($userId, $startDate, $endDate, 10) as $row) {
@@ -32,7 +36,7 @@ class RecommendationService
                 'type' => 'savings',
                 'title' => 'Switch vendor for '.$row->product_name,
                 'description' => sprintf(
-                    'You paid €%s at %s; cheapest seen was €%s%s.',
+                    "You paid {$this->currencySymbol}%s at %s; cheapest seen was {$this->currencySymbol}%s%s.",
                     number_format((float) $row->paid_price, 2),
                     $row->vendor,
                     number_format((float) $row->cheapest_price, 2),
@@ -55,7 +59,7 @@ class RecommendationService
                     'type' => 'budget',
                     'title' => 'Over budget: '.$row['label'],
                     'description' => sprintf(
-                        'Spent €%s of €%s budget (%.0f%%). Projected €%s by month end.',
+                        "Spent {$this->currencySymbol}%s of {$this->currencySymbol}%s budget (%.0f%%). Projected {$this->currencySymbol}%s by month end.",
                         number_format($row['actual'], 2),
                         number_format($row['budget_amount'], 2),
                         $row['percent_used'],
@@ -73,7 +77,7 @@ class RecommendationService
                     'type' => 'budget',
                     'title' => 'Near budget limit: '.$row['label'],
                     'description' => sprintf(
-                        'At %.0f%% of your €%s budget with €%s remaining.',
+                        "At %.0f%% of your {$this->currencySymbol}%s budget with {$this->currencySymbol}%s remaining.",
                         $row['percent_used'],
                         number_format($row['budget_amount'], 2),
                         number_format($row['remaining'], 2),
@@ -90,7 +94,7 @@ class RecommendationService
                     'type' => 'budget',
                     'title' => 'Projected overspend: '.$row['label'],
                     'description' => sprintf(
-                        'On pace to hit €%s vs €%s budget (%.0f%% projected).',
+                        "On pace to hit {$this->currencySymbol}%s vs {$this->currencySymbol}%s budget (%.0f%% projected).",
                         number_format($row['projected'], 2),
                         number_format($row['budget_amount'], 2),
                         $row['projected_percent'],
