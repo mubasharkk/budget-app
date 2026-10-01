@@ -9,6 +9,7 @@ namespace App\Enums;
 enum DashboardSection: string
 {
     case Transactions = 'transactions';
+    case UpcomingBills = 'upcoming_bills';
     case ExpenseOverview = 'expense_overview';
     case ItemsConsumed = 'items_consumed';
     case BudgetVsActual = 'budget_vs_actual';
@@ -18,6 +19,7 @@ enum DashboardSection: string
     {
         return match ($this) {
             self::Transactions => 'Income & expense list',
+            self::UpcomingBills => 'Upcoming bills',
             self::ExpenseOverview => 'Expense overview',
             self::ItemsConsumed => 'Items consumed',
             self::BudgetVsActual => 'Budget vs actual',

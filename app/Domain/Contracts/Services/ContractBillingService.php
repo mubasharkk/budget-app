@@ -47,6 +47,52 @@ class ContractBillingService
     }
 
     /**
+     * Active contracts billing within the next N days (today included), soonest first,
+     * with the total for the window and for the coming week.
+     *
+     * @return array{days: int, total: float, count: int, due_this_week: array{total: float, count: int}, bills: array<int, array{contract_id: int, name: string, provider: ?string, amount: float, billing_cycle: string, due_date: string, days_until_due: int}>}
+     */
+    public function upcomingBills(int $userId, int $days = 30, ?CarbonInterface $anchor = null): array
+    {
+        $today = CarbonImmutable::instance($anchor ?? CarbonImmutable::today())->startOfDay();
+        $until = $today->addDays($days);
+
+        $bills = Contract::query()
+            ->with('provider:id,name')
+            ->where('user_id', $userId)
+            ->where('status', ContractStatus::Active)
+            ->whereDate('next_billing_date', '>=', $today)
+            ->whereDate('next_billing_date', '<=', $until)
+            ->orderBy('next_billing_date')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Contract $contract): array => [
+                'contract_id' => $contract->id,
+                'name' => $contract->name,
+                'provider' => $contract->provider?->name,
+                'amount' => (float) $contract->amount,
+                'billing_cycle' => $contract->billing_cycle->value,
+                'due_date' => $contract->next_billing_date->toDateString(),
+                'days_until_due' => (int) $today->diffInDays(
+                    CarbonImmutable::instance($contract->next_billing_date)->startOfDay(),
+                ),
+            ]);
+
+        $thisWeek = $bills->where('days_until_due', '<=', 7);
+
+        return [
+            'days' => $days,
+            'total' => round((float) $bills->sum('amount'), 2),
+            'count' => $bills->count(),
+            'due_this_week' => [
+                'total' => round((float) $thisWeek->sum('amount'), 2),
+                'count' => $thisWeek->count(),
+            ],
+            'bills' => $bills->values()->all(),
+        ];
+    }
+
+    /**
      * Active contracts with next_billing_date in the calendar month that are not yet paid.
      *
      * @return array{month: string, total: float, count: int, paid_count: int}

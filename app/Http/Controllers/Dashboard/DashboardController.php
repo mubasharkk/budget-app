@@ -9,6 +9,7 @@ use App\Domain\Analytics\Services\DashboardSnapshotService;
 use App\Domain\Analytics\Services\ExpenseOverviewService;
 use App\Domain\Analytics\Services\TransactionLedgerService;
 use App\Domain\Budgets\Services\BudgetService;
+use App\Domain\Contracts\Services\ContractBillingService;
 use App\Domain\Identity\Services\UserSettingsService;
 use App\Domain\Products\Services\PriceIntelligenceService;
 use App\Enums\BudgetPeriod;
@@ -34,6 +35,7 @@ class DashboardController extends Controller
         private DashboardSnapshotService $dashboardSnapshotService,
         private UserSettingsService $userSettingsService,
         private TransactionLedgerService $transactionLedgerService,
+        private ContractBillingService $contractBillingService,
     ) {}
 
     public function index(Request $request): Response
@@ -76,6 +78,19 @@ class DashboardController extends Controller
             $request->user()->id,
             $request->validated('start_date'),
             $request->validated('end_date'),
+        ));
+    }
+
+    /**
+     * Contract payments due in the next 7, 14 or 30 days.
+     */
+    public function upcomingBills(Request $request): JsonResponse
+    {
+        $days = $request->integer('days', 30);
+
+        return response()->json($this->contractBillingService->upcomingBills(
+            $request->user()->id,
+            in_array($days, [7, 14, 30], true) ? $days : 30,
         ));
     }
 
