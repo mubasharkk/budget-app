@@ -78,6 +78,18 @@ class ReceiptController extends Controller
         ]);
     }
 
+    /**
+     * The receipt detail page doubles as the edit form.
+     */
+    public function edit(Receipt $receipt): Response
+    {
+        $this->authorize('update', $receipt);
+
+        return Inertia::render('Receipts/Show', [
+            'receipt' => $this->receiptService->loadForDisplay($receipt),
+        ]);
+    }
+
     public function update(UpdateReceiptRequest $request, Receipt $receipt): RedirectResponse
     {
         $this->receiptService->update($receipt, $request->validated());

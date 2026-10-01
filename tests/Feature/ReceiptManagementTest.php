@@ -14,6 +14,23 @@ class ReceiptManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_edit_page_renders_for_the_owner_only(): void
+    {
+        $user = User::factory()->create();
+        $receipt = Receipt::factory()->for($user)->create();
+
+        $this->actingAs($user)
+            ->get(route('receipts.edit', $receipt))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Receipts/Show')
+                ->where('receipt.id', $receipt->id));
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('receipts.edit', $receipt))
+            ->assertForbidden();
+    }
+
     public function test_owner_update_replaces_line_items(): void
     {
         $user = User::factory()->create();
