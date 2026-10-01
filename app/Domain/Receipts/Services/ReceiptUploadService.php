@@ -2,6 +2,7 @@
 
 namespace App\Domain\Receipts\Services;
 
+use App\Enums\ReceiptKind;
 use App\Jobs\ProcessReceipt;
 use App\Models\Receipt;
 use Illuminate\Http\UploadedFile;
@@ -19,14 +20,14 @@ class ReceiptUploadService
      * @param  array<int, UploadedFile>  $files
      * @return Collection<int, Receipt>
      */
-    public function storeMany(int $userId, array $files, string $expenseType = 'personal'): Collection
+    public function storeMany(int $userId, array $files, string $expenseType = 'personal', ReceiptKind $kind = ReceiptKind::Expense): Collection
     {
         $files = array_slice($files, 0, self::MAX_FILES);
 
-        return collect($files)->map(fn (UploadedFile $file): Receipt => $this->storeOne($userId, $file, $expenseType));
+        return collect($files)->map(fn (UploadedFile $file): Receipt => $this->storeOne($userId, $file, $expenseType, $kind));
     }
 
-    public function storeOne(int $userId, UploadedFile $file, string $expenseType = 'personal'): Receipt
+    public function storeOne(int $userId, UploadedFile $file, string $expenseType = 'personal', ReceiptKind $kind = ReceiptKind::Expense): Receipt
     {
         $originalFilename = $file->getClientOriginalName() ?: $this->defaultFilename($file);
         $uuid = Str::uuid();
@@ -35,6 +36,7 @@ class ReceiptUploadService
             'user_id' => $userId,
             'original_filename' => $originalFilename,
             'expense_type' => $expenseType,
+            'kind' => $kind,
             'status' => 'pending',
         ]);
 

@@ -39,6 +39,7 @@ class ExpenseService
     public function variableTotal(int $userId, CarbonInterface $start, CarbonInterface $end, ?ExpenseType $type = null): float
     {
         return (float) Receipt::query()
+            ->expenses()
             ->where('user_id', $userId)
             ->when($type, fn ($query) => $query->where('expense_type', $type))
             ->whereBetween('receipt_date', [$start, $end])

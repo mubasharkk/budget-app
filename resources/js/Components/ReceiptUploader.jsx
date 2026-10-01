@@ -130,6 +130,7 @@ export default function ReceiptUploader({
     redirectTo = route('receipts.index'),
     onUploaded,
     expenseType = 'personal',
+    kind = 'expense',
     className = '',
 }) {
     const cameraRef = useRef(null);
@@ -156,6 +157,7 @@ export default function ReceiptUploader({
         const formData = new FormData();
         fileList.forEach((file) => formData.append('files[]', file));
         formData.append('expense_type', expenseType);
+        formData.append('kind', kind);
 
         router.post(route('receipts.store'), formData, {
             forceFormData: true,
@@ -183,7 +185,7 @@ export default function ReceiptUploader({
             },
             onFinish: () => setUploading(false),
         });
-    }, [mode, onUploaded, expenseType]);
+    }, [mode, onUploaded, expenseType, kind]);
 
     const addFiles = useCallback(
         async (incoming) => {

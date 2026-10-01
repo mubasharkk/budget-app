@@ -33,6 +33,8 @@ class ReceiptController extends Controller
         $receipts = $this->uploadService->storeMany(
             $request->user()->id,
             $request->uploadedFiles(),
+            $request->input('expense_type', 'personal'),
+            $request->kind(),
         );
 
         return response()->json([

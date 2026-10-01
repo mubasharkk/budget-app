@@ -40,6 +40,7 @@ class AnomalyDetectionService
     private function detectDuplicateCharges(int $userId, CarbonImmutable $start, CarbonImmutable $end): array
     {
         $duplicates = Receipt::query()
+            ->expenses()
             ->where('user_id', $userId)
             ->whereBetween('receipt_date', [$start, $end.' 23:59:59'])
             ->whereNotNull('vendor')
@@ -80,6 +81,7 @@ class AnomalyDetectionService
     private function detectLargeReceipts(int $userId, CarbonImmutable $start, CarbonImmutable $end): array
     {
         $amounts = Receipt::query()
+            ->expenses()
             ->where('user_id', $userId)
             ->where('total_amount', '>', 0)
             ->whereBetween('receipt_date', [$start->copy()->subMonths(3), $end])
@@ -104,6 +106,7 @@ class AnomalyDetectionService
         $threshold = $median * 2;
 
         return Receipt::query()
+            ->expenses()
             ->where('user_id', $userId)
             ->whereBetween('receipt_date', [$start, $end.' 23:59:59'])
             ->where('total_amount', '>', $threshold)

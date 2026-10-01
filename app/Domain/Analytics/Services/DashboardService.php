@@ -2,6 +2,7 @@
 
 namespace App\Domain\Analytics\Services;
 
+use App\Enums\ReceiptKind;
 use App\Models\Category;
 use App\Models\ReceiptItem;
 use Illuminate\Database\Eloquent\Collection;
@@ -139,7 +140,7 @@ class DashboardService
      */
     public function getDashboardStats(int $userId, ?string $startDate = null, ?string $endDate = null): array
     {
-        $receiptQuery = DB::table('receipts')->where('user_id', $userId);
+        $receiptQuery = DB::table('receipts')->where('user_id', $userId)->where('kind', ReceiptKind::Expense->value);
         $itemQuery = DB::table('receipt_items')
             ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
             ->where('receipts.user_id', $userId);

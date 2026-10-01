@@ -332,7 +332,7 @@ export default function Index({ receipts, filters = {} }) {
                                                             <h3 className="text-sm font-medium text-gray-900 truncate">
                                                                 {receipt.vendor || receipt.original_filename}
                                                             </h3>
-                                                            {getStatusBadge(receipt.status)}
+                                                            <span className="inline-flex items-center">{receipt.kind === 'income' && (    <span className="mr-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">        Income    </span>)}{getStatusBadge(receipt.status)}</span>
                                                         </div>
                                                         
                                                         {receipt.total_amount && (
@@ -422,7 +422,7 @@ export default function Index({ receipts, filters = {} }) {
                                                         {formatCurrency(receipt.total_amount)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        {getStatusBadge(receipt.status)}
+                                                        <span className="inline-flex items-center">{receipt.kind === 'income' && (    <span className="mr-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">        Income    </span>)}{getStatusBadge(receipt.status)}</span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <div>
@@ -536,7 +536,7 @@ export default function Index({ receipts, filters = {} }) {
                                                             <h3 className="text-sm font-medium text-gray-900 truncate">
                                                                 {receipt.vendor || receipt.original_filename}
                                                             </h3>
-                                                            {getStatusBadge(receipt.status)}
+                                                            <span className="inline-flex items-center">{receipt.kind === 'income' && (    <span className="mr-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">        Income    </span>)}{getStatusBadge(receipt.status)}</span>
                                                         </div>
                                                         
                                                         {receipt.total_amount && (

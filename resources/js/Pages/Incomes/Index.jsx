@@ -305,6 +305,17 @@ export default function Index({
                                                 {income.income_type &&
                                                     ` · ${income.income_type}`}
                                             </div>
+                                            {income.receipt_id && (
+                                                <Link
+                                                    href={route(
+                                                        'receipts.show',
+                                                        income.receipt_id,
+                                                    )}
+                                                    className="mt-1 inline-block text-sm text-indigo-600 hover:text-indigo-800"
+                                                >
+                                                    View receipt
+                                                </Link>
+                                            )}
                                             {income.notes && (
                                                 <div className="mt-1 text-sm text-gray-400">
                                                     {income.notes}

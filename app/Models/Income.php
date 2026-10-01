@@ -13,6 +13,7 @@ class Income extends Model
 
     protected $fillable = [
         'user_id',
+        'receipt_id',
         'amount',
         'currency',
         'received_on',
@@ -35,6 +36,14 @@ class Income extends Model
             'received_on' => 'date',
             'income_type' => IncomeType::class,
         ];
+    }
+
+    /**
+     * The uploaded receipt this income was created from, if any.
+     */
+    public function receipt(): BelongsTo
+    {
+        return $this->belongsTo(Receipt::class);
     }
 
     public function user(): BelongsTo

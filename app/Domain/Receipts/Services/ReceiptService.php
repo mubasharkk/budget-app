@@ -2,6 +2,7 @@
 
 namespace App\Domain\Receipts\Services;
 
+use App\Domain\Incomes\Services\ReceiptIncomeService;
 use App\Domain\Receipts\Data\ReceiptListFilters;
 use App\Domain\Receipts\Exceptions\ReceiptCannotBeRetried;
 use App\Jobs\ProcessReceipt;
@@ -14,6 +15,8 @@ use Throwable;
 
 class ReceiptService
 {
+    public function __construct(private ReceiptIncomeService $receiptIncomeService) {}
+
     private const FILE_URL_ATTRIBUTES = ['file_url', 'public_file_url', 'direct_file_url'];
 
     public function paginate(int $userId, ReceiptListFilters $filters): LengthAwarePaginator
@@ -93,6 +96,8 @@ class ReceiptService
                 ]);
             }
         });
+
+        $this->receiptIncomeService->syncFromReceipt($receipt);
 
         return $receipt;
     }

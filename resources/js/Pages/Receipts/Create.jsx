@@ -5,8 +5,14 @@ import ReceiptUploader from '@/Components/ReceiptUploader';
 import ExpenseTypeToggle from '@/Components/ExpenseTypeToggle';
 import { CameraIcon } from '@heroicons/react/24/outline';
 
+const KIND_OPTIONS = [
+    { value: 'expense', label: 'Expense' },
+    { value: 'income', label: 'Income' },
+];
+
 export default function Create() {
     const [expenseType, setExpenseType] = useState('personal');
+    const [kind, setKind] = useState('expense');
 
     return (
         <AuthenticatedLayout>
@@ -35,18 +41,41 @@ export default function Create() {
                             </p>
                         </div>
                         <div className="space-y-5 p-6">
-                            <div>
-                                <div className="mb-2 text-sm font-medium text-gray-700">
-                                    Charge these receipts to
+                            <div className="flex flex-wrap gap-6">
+                                <div>
+                                    <div className="mb-2 text-sm font-medium text-gray-700">
+                                        These receipts are
+                                    </div>
+                                    <ExpenseTypeToggle
+                                        value={kind}
+                                        onChange={setKind}
+                                        options={KIND_OPTIONS}
+                                    />
                                 </div>
-                                <ExpenseTypeToggle
-                                    value={expenseType}
-                                    onChange={setExpenseType}
-                                />
+                                {kind === 'expense' && (
+                                    <div>
+                                        <div className="mb-2 text-sm font-medium text-gray-700">
+                                            Charge these receipts to
+                                        </div>
+                                        <ExpenseTypeToggle
+                                            value={expenseType}
+                                            onChange={setExpenseType}
+                                        />
+                                    </div>
+                                )}
                             </div>
+                            {kind === 'income' && (
+                                <p className="rounded-md bg-green-50 px-4 py-3 text-sm text-green-800">
+                                    Upload payslips, payout confirmations or
+                                    refunds. The amount received is added to
+                                    your one-time income and is not counted
+                                    as spending.
+                                </p>
+                            )}
                             <ReceiptUploader
                                 mode="batch"
                                 expenseType={expenseType}
+                                kind={kind}
                             />
                         </div>
                     </div>

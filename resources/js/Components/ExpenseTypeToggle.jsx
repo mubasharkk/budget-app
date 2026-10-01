@@ -3,12 +3,17 @@ const OPTIONS = [
     { value: 'business', label: 'Business' },
 ];
 
-export default function ExpenseTypeToggle({ value, onChange, className = '' }) {
+export default function ExpenseTypeToggle({
+    value,
+    onChange,
+    options = OPTIONS,
+    className = '',
+}) {
     return (
         <div
             className={`inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 ${className}`}
         >
-            {OPTIONS.map((option) => (
+            {options.map((option) => (
                 <button
                     key={option.value}
                     type="button"

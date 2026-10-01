@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\ExpenseType;
+use App\Enums\ReceiptKind;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -29,6 +32,7 @@ class Receipt extends Model implements HasMedia
         'receipt_number',
         'currency',
         'expense_type',
+        'kind',
         'total_amount',
         'receipt_date',
         'receipt_timezone',
@@ -42,11 +46,13 @@ class Receipt extends Model implements HasMedia
         'ocr_data' => 'array',
         'receipt_date' => 'datetime',
         'expense_type' => ExpenseType::class,
+        'kind' => ReceiptKind::class,
     ];
 
     protected $attributes = [
         'currency' => 'EUR',
         'expense_type' => 'personal',
+        'kind' => 'expense',
     ];
 
     /**
@@ -79,6 +85,27 @@ class Receipt extends Model implements HasMedia
     public function isProcessed(): bool
     {
         return $this->status === 'processed';
+    }
+
+    public function isIncome(): bool
+    {
+        return $this->kind === ReceiptKind::Income;
+    }
+
+    /**
+     * The one-time income entry created from an income receipt.
+     */
+    public function income(): HasOne
+    {
+        return $this->hasOne(Income::class);
+    }
+
+    /**
+     * Only receipts that count as spending (excludes income receipts).
+     */
+    public function scopeExpenses(Builder $query): void
+    {
+        $query->where('kind', ReceiptKind::Expense);
     }
 
     /**

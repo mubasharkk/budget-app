@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\ExpenseType;
+use App\Enums\ReceiptKind;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
@@ -23,6 +24,7 @@ class StoreReceiptRequest extends FormRequest
             'files' => 'required|array|min:1|max:5',
             'files.*' => 'required|file|mimes:jpg,jpeg,png,heic,heif,webp,pdf|max:15360',
             'expense_type' => ['nullable', Rule::enum(ExpenseType::class)],
+            'kind' => ['nullable', Rule::enum(ReceiptKind::class)],
         ];
     }
 
@@ -37,6 +39,11 @@ class StoreReceiptRequest extends FormRequest
             'files.*.mimes' => 'Receipts must be a photo (JPG, PNG, HEIC, WebP) or PDF.',
             'files.*.max' => 'Each file must be smaller than 15 MB.',
         ];
+    }
+
+    public function kind(): ReceiptKind
+    {
+        return ReceiptKind::tryFrom((string) $this->input('kind')) ?? ReceiptKind::Expense;
     }
 
     /**

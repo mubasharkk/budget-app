@@ -189,6 +189,7 @@ class ConsumptionService
         int $limit = 10,
     ): Collection {
         $query = Receipt::query()
+            ->expenses()
             ->where('user_id', $userId)
             ->whereNotNull('vendor')
             ->where('vendor', '!=', '')

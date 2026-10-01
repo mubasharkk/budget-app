@@ -154,7 +154,7 @@ export default function Show({ receipt }) {
                             <div className="mb-4">
                                 <h2 className="text-2xl font-bold">{receipt.original_filename}</h2>
                                 <div className="flex items-center space-x-4 mt-2">
-                                    {getStatusBadge(receipt.status)}
+                                    <span className="inline-flex items-center">{receipt.kind === 'income' && (    <span className="mr-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">        Income    </span>)}{getStatusBadge(receipt.status)}</span>
                                     <span className="text-sm text-gray-500">
                                         Uploaded {new Date(receipt.created_at).toLocaleDateString('de-DE')}
                                         {receipt.receipt_date && (

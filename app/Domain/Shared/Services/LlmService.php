@@ -31,10 +31,10 @@ class LlmService
      *
      * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
      */
-    public function parseReceiptFromFile(string $filePath, string $mime): array
+    public function parseReceiptFromFile(string $filePath, string $mime, bool $isIncome = false): array
     {
         try {
-            $prompt = $this->buildPrompt($this->getExistingCategories());
+            $prompt = $this->buildPrompt($this->getExistingCategories(), $isIncome);
 
             $response = $this->client->chat()->create([
                 'model' => $this->model,
@@ -268,10 +268,11 @@ class LlmService
      *
      * @param  array<int, array{name: string, slug: string, subcategories: array<int, string>}>  $categories
      */
-    private function buildPrompt(array $categories): string
+    private function buildPrompt(array $categories, bool $isIncome = false): string
     {
         return View::make('prompts.receipt-parsing', [
             'categories' => $categories,
+            'isIncome' => $isIncome,
         ])->render();
     }
 

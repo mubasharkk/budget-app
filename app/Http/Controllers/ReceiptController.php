@@ -55,6 +55,7 @@ class ReceiptController extends Controller
             $request->user()->id,
             $request->uploadedFiles(),
             $request->input('expense_type', 'personal'),
+            $request->kind(),
         )->count();
 
         $message = $fileCount === 1

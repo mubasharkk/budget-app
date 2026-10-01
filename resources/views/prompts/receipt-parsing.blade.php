@@ -3,6 +3,10 @@ You are given a receipt/invoice as an attached image or PDF. Read it directly an
 
 Locale hint: "Country: DE (EUR default), language may vary."
 
+@if ($isIncome ?? false)
+**INCOME DOCUMENT**: The user uploaded this as proof of money they RECEIVED (e.g. a payslip, payout or transfer confirmation, refund, or an invoice they issued). Always set `is_receipt: true` if it shows an amount received. Set `total_amount` to the net amount actually paid to the user, `vendor` to the payer (employer, client or platform), and `receipt_date` to the date the money was paid. Return an empty `items` list.
+
+@endif
 Rules:
 - **RECEIPT DETECTION**: First determine if the attached document is a receipt, invoice, or bill — i.e. any document that records a purchase or payment. This is intentionally broad and is **not** limited to German or grocery-store receipts. It **includes** service invoices, digital/online purchases, subscriptions and SaaS, online courses, software, utility/telecom bills, tickets, and hotel/restaurant bills — in **any language and any currency** (USD, EUR, GBP, etc.). Only set `is_receipt: false` for documents that genuinely record no purchase (e.g. a random photo, a letter, a blank page, or unreadable content). When in doubt and the document shows a vendor and an amount owed or paid, treat it as a receipt (`is_receipt: true`).
 - **SERVICE / SINGLE-LINE INVOICES**: Many invoices bill a single service rather than a list of goods. If there is no itemized list, create one line item representing what was purchased (e.g. name = the product/service or course title, `quantity` 1, `unit_price` and `total` = the amount).

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Domain\Incomes\Services\ReceiptIncomeService;
 use App\Domain\Shared\Services\LlmService;
 use App\Models\Category;
 use App\Models\Receipt;
@@ -33,7 +34,11 @@ class ProcessReceipt implements ShouldQueue
                 throw new \Exception('Receipt file not found for receipt '.$this->receipt->id);
             }
 
-            $result = $llmService->parseReceiptFromFile($this->receipt->file_path, $this->receipt->mime);
+            $result = $llmService->parseReceiptFromFile(
+                $this->receipt->file_path,
+                $this->receipt->mime,
+                $this->receipt->isIncome(),
+            );
 
             if (! $result['success']) {
                 throw new \Exception('Receipt parsing failed: '.($result['error'] ?? 'Unknown error'));
@@ -55,6 +60,7 @@ class ProcessReceipt implements ShouldQueue
                 ]);
 
                 $this->receipt->items()->delete();
+                app(ReceiptIncomeService::class)->syncFromReceipt($this->receipt);
 
                 Log::info('Document identified as non-receipt, marked as processed with zero values', [
                     'receipt_id' => $this->receipt->id,
@@ -73,6 +79,18 @@ class ProcessReceipt implements ShouldQueue
                 'receipt_date' => $this->parseReceiptDateTime($data['receipt_date'] ?? null, $data['receipt_time'] ?? null),
                 'receipt_timezone' => 'Europe/Berlin',
             ]);
+
+            if ($this->receipt->isIncome()) {
+                $this->receipt->items()->delete();
+                $this->receipt->update(['status' => 'processed']);
+                app(ReceiptIncomeService::class)->syncFromReceipt($this->receipt);
+
+                Log::info('Income receipt processed and recorded as one-time income', [
+                    'receipt_id' => $this->receipt->id,
+                ]);
+
+                return;
+            }
 
             $this->processItems($data['items'] ?? []);
 
