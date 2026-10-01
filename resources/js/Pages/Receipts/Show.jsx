@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
 import InputError from '@/Components/InputError';
+import IncomeBadge from '@/Components/IncomeBadge';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { ArrowLeftIcon, TrashIcon, XMarkIcon, CheckIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
@@ -155,11 +156,7 @@ export default function Show({ receipt }) {
                                 <h2 className="text-2xl font-bold">{receipt.original_filename}</h2>
                                 <div className="flex items-center space-x-4 mt-2">
                                     <span className="inline-flex items-center gap-2">
-                                        {receipt.kind === 'income' && (
-                                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-                                                Income
-                                            </span>
-                                        )}
+                                        {receipt.kind === 'income' && <IncomeBadge />}
                                         {getStatusBadge(receipt.status)}
                                     </span>
                                     {receipt.total_amount && (

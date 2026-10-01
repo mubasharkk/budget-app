@@ -2,6 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
+import IncomeBadge from '@/Components/IncomeBadge';
 import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
 import { PlusIcon, TrashIcon, XMarkIcon, DocumentArrowDownIcon, Squares2X2Icon, ListBulletIcon, CameraIcon, MagnifyingGlassIcon, EyeIcon, PencilSquareIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
@@ -332,7 +333,10 @@ export default function Index({ receipts, filters = {} }) {
                                                             <h3 className="text-sm font-medium text-gray-900 truncate">
                                                                 {receipt.vendor || receipt.original_filename}
                                                             </h3>
-                                                            <span className="inline-flex items-center">{receipt.kind === 'income' && (    <span className="mr-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">        Income    </span>)}{getStatusBadge(receipt.status)}</span>
+                                                            <span className="inline-flex items-center gap-2">
+    {receipt.kind === 'income' && <IncomeBadge />}
+    {getStatusBadge(receipt.status)}
+</span>
                                                         </div>
                                                         
                                                         {receipt.total_amount && (
@@ -422,7 +426,10 @@ export default function Index({ receipts, filters = {} }) {
                                                         {formatCurrency(receipt.total_amount)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="inline-flex items-center">{receipt.kind === 'income' && (    <span className="mr-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">        Income    </span>)}{getStatusBadge(receipt.status)}</span>
+                                                        <span className="inline-flex items-center gap-2">
+    {receipt.kind === 'income' && <IncomeBadge />}
+    {getStatusBadge(receipt.status)}
+</span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <div>
@@ -536,7 +543,10 @@ export default function Index({ receipts, filters = {} }) {
                                                             <h3 className="text-sm font-medium text-gray-900 truncate">
                                                                 {receipt.vendor || receipt.original_filename}
                                                             </h3>
-                                                            <span className="inline-flex items-center">{receipt.kind === 'income' && (    <span className="mr-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">        Income    </span>)}{getStatusBadge(receipt.status)}</span>
+                                                            <span className="inline-flex items-center gap-2">
+    {receipt.kind === 'income' && <IncomeBadge />}
+    {getStatusBadge(receipt.status)}
+</span>
                                                         </div>
                                                         
                                                         {receipt.total_amount && (
