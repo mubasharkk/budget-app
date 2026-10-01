@@ -270,16 +270,10 @@ export default function Index({ contracts, summary }) {
                                                 <div className="flex items-center gap-6">
                                                     <div className="text-right">
                                                         <div className="font-semibold text-gray-900">
-                                                            {formatCurrency(
-                                                                contract.amount,
-                                                                contract.currency,
-                                                            )}
+                                                            {formatCurrency(contract.amount)}
                                                         </div>
                                                         <div className="text-xs text-gray-500">
-                                                            {formatCurrency(
-                                                                contract.projected_monthly_amount,
-                                                                contract.currency,
-                                                            )}{' '}
+                                                            {formatCurrency(contract.projected_monthly_amount)}{' '}
                                                             / mo
                                                         </div>
                                                     </div>

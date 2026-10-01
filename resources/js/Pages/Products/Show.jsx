@@ -238,16 +238,10 @@ export default function Show({ product }) {
                                                         {row.quantity}
                                                     </td>
                                                     <td className="py-2 text-right text-gray-600">
-                                                        {formatCurrency(
-                                                            row.unit_price,
-                                                            row.currency,
-                                                        )}
+                                                        {formatCurrency(row.unit_price)}
                                                     </td>
                                                     <td className="py-2 text-right font-medium text-gray-900">
-                                                        {formatCurrency(
-                                                            row.total,
-                                                            row.currency,
-                                                        )}
+                                                        {formatCurrency(row.total)}
                                                     </td>
                                                 </tr>
                                             ))}

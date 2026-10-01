@@ -21,23 +21,23 @@ export function getDefaultCurrency() {
 }
 
 /**
- * Format a monetary amount as a localized currency string.
+ * Format a monetary amount as a localized currency string, always in the
+ * signed-in user's default currency. Records' own stored currency codes are
+ * deliberately not used for display, so the whole UI shows one currency.
  *
  * Returns 'N/A' for null/undefined/empty amounts to match existing UI behavior.
- * Falls back to the user's default currency when none is given.
  *
  * @param {number|string|null|undefined} amount
- * @param {string} [currency] ISO 4217 code
  * @param {string} locale BCP 47 locale
  * @returns {string}
  */
-export function formatCurrency(amount, currency, locale = DEFAULT_LOCALE) {
+export function formatCurrency(amount, locale = DEFAULT_LOCALE) {
     if (amount === null || amount === undefined || amount === '') {
         return 'N/A';
     }
 
     return new Intl.NumberFormat(locale, {
         style: 'currency',
-        currency: currency || defaultCurrency,
+        currency: defaultCurrency,
     }).format(Number(amount));
 }

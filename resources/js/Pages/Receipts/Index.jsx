@@ -337,7 +337,7 @@ export default function Index({ receipts, filters = {} }) {
                                                         
                                                         {receipt.total_amount && (
                                                             <p className="text-lg font-semibold text-gray-900 mb-1">
-                                                                {formatCurrency(receipt.total_amount, receipt.currency)}
+                                                                {formatCurrency(receipt.total_amount)}
                                                             </p>
                                                         )}
                                                         
@@ -419,7 +419,7 @@ export default function Index({ receipts, filters = {} }) {
                                                         {receipt.vendor || 'N/A'}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {formatCurrency(receipt.total_amount, receipt.currency)}
+                                                        {formatCurrency(receipt.total_amount)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         {getStatusBadge(receipt.status)}
@@ -541,7 +541,7 @@ export default function Index({ receipts, filters = {} }) {
                                                         
                                                         {receipt.total_amount && (
                                                             <p className="text-lg font-semibold text-gray-900 mb-2">
-                                                                {formatCurrency(receipt.total_amount, receipt.currency)}
+                                                                {formatCurrency(receipt.total_amount)}
                                                             </p>
                                                         )}
                                                         

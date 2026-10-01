@@ -203,16 +203,10 @@ export default function Deals() {
                                                         </Link>
                                                         <p className="mt-0.5 text-xs text-gray-500">
                                                             Paid{' '}
-                                                            {formatCurrency(
-                                                                row.paid_price,
-                                                                row.currency,
-                                                            )}{' '}
+                                                            {formatCurrency(row.paid_price)}{' '}
                                                             at {row.vendor} ·
                                                             cheapest{' '}
-                                                            {formatCurrency(
-                                                                row.cheapest_price,
-                                                                row.currency,
-                                                            )}
+                                                            {formatCurrency(row.cheapest_price)}
                                                             {row.cheapest_vendor
                                                                 ? ` at ${row.cheapest_vendor}`
                                                                 : ''}
@@ -221,10 +215,7 @@ export default function Deals() {
                                                     <div className="shrink-0 text-right">
                                                         <div className="text-sm font-semibold text-green-700">
                                                             +
-                                                            {formatCurrency(
-                                                                row.potential_savings,
-                                                                row.currency,
-                                                            )}
+                                                            {formatCurrency(row.potential_savings)}
                                                         </div>
                                                         <div className="text-xs text-gray-400">
                                                             ×{row.quantity}

@@ -107,10 +107,7 @@ export default function Index({ savings, summary }) {
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <div className="text-right font-semibold text-gray-900">
-                                                {formatCurrency(
-                                                    saving.amount,
-                                                    saving.currency,
-                                                )}
+                                                {formatCurrency(saving.amount)}
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Link

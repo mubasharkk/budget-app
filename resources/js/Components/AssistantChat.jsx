@@ -132,7 +132,7 @@ function ReceiptResult({ data }) {
             <div className="text-gray-500">
                 #{r.id} · {r.vendor ?? '—'}
                 {r.date ? ` · ${r.date}` : ''} ·{' '}
-                {formatCurrency(r.total, r.currency)}
+                {formatCurrency(r.total)}
             </div>
             {data.items?.length > 0 && (
                 <ul className="mt-1 space-y-0.5">
@@ -163,13 +163,13 @@ function ContractResult({ data }) {
             <li className="flex justify-between gap-4">
                 <span className="text-gray-500">Amount</span>
                 <span className="font-medium text-gray-900">
-                    {formatCurrency(c.amount, c.currency)} / {c.billing_cycle}
+                    {formatCurrency(c.amount)} / {c.billing_cycle}
                 </span>
             </li>
             <li className="flex justify-between gap-4">
                 <span className="text-gray-500">Monthly equivalent</span>
                 <span className="font-medium text-gray-900">
-                    {formatCurrency(c.monthly_amount, c.currency)}
+                    {formatCurrency(c.monthly_amount)}
                 </span>
             </li>
             {c.next_billing_date && (

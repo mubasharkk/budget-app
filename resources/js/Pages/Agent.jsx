@@ -262,10 +262,7 @@ export default function Agent() {
                                                     </div>
                                                 </div>
                                                 <div className="text-sm font-medium text-gray-900">
-                                                    {formatCurrency(
-                                                        row.amount,
-                                                        row.currency,
-                                                    )}
+                                                    {formatCurrency(row.amount)}
                                                 </div>
                                             </li>
                                         ))}

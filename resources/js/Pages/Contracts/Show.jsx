@@ -57,14 +57,11 @@ export default function Show({ contract }) {
                         <dl>
                             <Row
                                 label="Amount"
-                                value={`${formatCurrency(contract.amount, contract.currency)} · ${contract.billing_cycle}`}
+                                value={`${formatCurrency(contract.amount)} · ${contract.billing_cycle}`}
                             />
                             <Row
                                 label="Projected monthly"
-                                value={formatCurrency(
-                                    contract.projected_monthly_amount,
-                                    contract.currency,
-                                )}
+                                value={formatCurrency(contract.projected_monthly_amount)}
                             />
                             <Row
                                 label="Provider"

@@ -7,7 +7,7 @@ function Skeleton() {
     return <div className="h-28 animate-pulse rounded-lg bg-gray-200" />;
 }
 
-function ProgressBar({ label, percent, amount, currency, accent }) {
+function ProgressBar({ label, percent, amount, accent }) {
     const width = Math.min(percent ?? 0, 100);
 
     return (
@@ -15,7 +15,7 @@ function ProgressBar({ label, percent, amount, currency, accent }) {
             <div className="flex justify-between text-sm">
                 <span className="font-medium text-gray-700">{label}</span>
                 <span className="text-gray-600">
-                    {formatCurrency(amount, currency)}
+                    {formatCurrency(amount)}
                     {percent !== null && (
                         <span className="ml-1 text-gray-400">
                             ({percent}%)
@@ -129,19 +129,16 @@ export default function IncomeOverview() {
                                 {periodLabel} income after contracts
                             </div>
                             <div className="mt-1 text-xl font-semibold text-gray-900">
-                                {formatCurrency(netIncome, income.currency)}
+                                {formatCurrency(netIncome)}
                             </div>
                             <div className="mt-1 space-y-0.5 text-xs text-gray-500">
                                 <div>
-                                    {formatCurrency(
-                                        income.period_income,
-                                        income.currency,
-                                    )}{' '}
+                                    {formatCurrency(income.period_income)}{' '}
                                     income
                                 </div>
                                 <div>
                                     −{' '}
-                                    {formatCurrency(contracts, income.currency)}{' '}
+                                    {formatCurrency(contracts)}{' '}
                                     contracts
                                 </div>
                             </div>
@@ -157,7 +154,7 @@ export default function IncomeOverview() {
                                         : 'text-gray-900'
                                 }`}
                             >
-                                {formatCurrency(data.actual, income.currency)}
+                                {formatCurrency(data.actual)}
                             </div>
                             <div className="mt-1 text-xs text-gray-500">
                                 {income.spend_percent}% of income
@@ -168,7 +165,7 @@ export default function IncomeOverview() {
                                 Budgeted
                             </div>
                             <div className="mt-1 text-xl font-semibold text-gray-900">
-                                {formatCurrency(data.budgeted, income.currency)}
+                                {formatCurrency(data.budgeted)}
                             </div>
                             <div className="mt-1 text-xs text-gray-500">
                                 {income.budgeted_percent}% of income
@@ -185,10 +182,7 @@ export default function IncomeOverview() {
                                         : 'text-emerald-600'
                                 }`}
                             >
-                                {formatCurrency(
-                                    potentialSaving,
-                                    income.currency,
-                                )}
+                                {formatCurrency(potentialSaving)}
                             </div>
                             <div className="mt-1 text-xs text-gray-500">
                                 income − contracts − spend
@@ -201,7 +195,6 @@ export default function IncomeOverview() {
                             label="Spending"
                             percent={income.spend_percent}
                             amount={data.actual}
-                            currency={income.currency}
                             accent={
                                 income.is_over_income
                                     ? 'bg-red-500'
@@ -212,7 +205,6 @@ export default function IncomeOverview() {
                             label="Budget allocation"
                             percent={income.budgeted_percent}
                             amount={data.budgeted}
-                            currency={income.currency}
                             accent={
                                 income.budgets_exceed_income
                                     ? 'bg-amber-500'

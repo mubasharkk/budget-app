@@ -53,10 +53,7 @@ function MonthlyIncomeCard({ monthlyIncome, incomeTypes, currencies }) {
 
             <div className="mt-1 text-2xl font-semibold text-gray-900">
                 {monthlyIncome.amount
-                    ? formatCurrency(
-                          monthlyIncome.amount,
-                          monthlyIncome.income_currency,
-                      )
+                    ? formatCurrency(monthlyIncome.amount)
                     : 'Not set'}
             </div>
             <p className="mt-1 text-xs text-gray-400">
@@ -316,10 +313,7 @@ export default function Index({
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <div className="text-right font-semibold text-gray-900">
-                                                {formatCurrency(
-                                                    income.amount,
-                                                    income.currency,
-                                                )}
+                                                {formatCurrency(income.amount)}
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Link

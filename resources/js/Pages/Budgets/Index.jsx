@@ -31,8 +31,8 @@ function ProgressRow({ item }) {
                 <div>
                     <div className="font-medium text-gray-900">{item.label}</div>
                     <div className="mt-0.5 text-sm text-gray-500">
-                        {formatCurrency(item.actual, item.currency)} of{' '}
-                        {formatCurrency(item.budget_amount, item.currency)}
+                        {formatCurrency(item.actual)} of{' '}
+                        {formatCurrency(item.budget_amount)}
                         {item.fixed > 0 && (
                             <span className="ml-1 text-gray-400">
                                 (fixed {formatCurrency(item.fixed)} + variable{' '}
@@ -58,7 +58,7 @@ function ProgressRow({ item }) {
             <div className="mt-2 flex justify-between text-xs text-gray-500">
                 <span>{item.percent_used}% used</span>
                 <span>
-                    Projected {formatCurrency(item.projected, item.currency)} (
+                    Projected {formatCurrency(item.projected)} (
                     {item.projected_percent}%)
                 </span>
             </div>
@@ -201,10 +201,7 @@ export default function Index({ period, summary, budgets }) {
                                         <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50 px-4 py-2">
                                             <div className="text-sm text-gray-600">
                                                 Limit:{' '}
-                                                {formatCurrency(
-                                                    budget.amount,
-                                                    budget.currency,
-                                                )}{' '}
+                                                {formatCurrency(budget.amount)}{' '}
                                                 / {budget.period}
                                             </div>
                                             <div className="flex gap-2">

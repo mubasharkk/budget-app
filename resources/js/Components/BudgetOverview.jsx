@@ -108,10 +108,7 @@ export default function BudgetOverview() {
                                     Income ({data.income.income_type_label})
                                 </div>
                                 <div className="mt-1 text-xl font-semibold text-gray-900">
-                                    {formatCurrency(
-                                        data.income.period_income,
-                                        data.income.currency,
-                                    )}
+                                    {formatCurrency(data.income.period_income)}
                                 </div>
                                 <div className="mt-1 text-xs text-gray-500">
                                     {data.income.budgeted_percent}% budgeted
@@ -169,15 +166,9 @@ export default function BudgetOverview() {
                                             {item.label}
                                         </span>
                                         <span className="text-gray-600">
-                                            {formatCurrency(
-                                                item.actual,
-                                                item.currency,
-                                            )}{' '}
+                                            {formatCurrency(item.actual)}{' '}
                                             /{' '}
-                                            {formatCurrency(
-                                                item.budget_amount,
-                                                item.currency,
-                                            )}
+                                            {formatCurrency(item.budget_amount)}
                                         </span>
                                     </div>
                                     <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-100">
