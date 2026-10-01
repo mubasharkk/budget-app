@@ -8,7 +8,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { ArrowLeftIcon, TrashIcon, XMarkIcon, CheckIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
-import { formatCurrency, getDefaultCurrency } from '@/utils/money';
+import { formatCurrencyIn, getDefaultCurrency } from '@/utils/money';
 
 export default function Show({ receipt }) {
     const [categories, setCategories] = useState([]);
@@ -154,7 +154,22 @@ export default function Show({ receipt }) {
                             <div className="mb-4">
                                 <h2 className="text-2xl font-bold">{receipt.original_filename}</h2>
                                 <div className="flex items-center space-x-4 mt-2">
-                                    <span className="inline-flex items-center">{receipt.kind === 'income' && (    <span className="mr-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">        Income    </span>)}{getStatusBadge(receipt.status)}</span>
+                                    <span className="inline-flex items-center gap-2">
+                                        {receipt.kind === 'income' && (
+                                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+                                                Income
+                                            </span>
+                                        )}
+                                        {getStatusBadge(receipt.status)}
+                                    </span>
+                                    {receipt.total_amount && (
+                                        <span
+                                            className="text-lg font-semibold text-gray-900"
+                                            title={`Receipt currency: ${receipt.currency}`}
+                                        >
+                                            {formatCurrencyIn(receipt.total_amount, receipt.currency)}
+                                        </span>
+                                    )}
                                     <span className="text-sm text-gray-500">
                                         Uploaded {new Date(receipt.created_at).toLocaleDateString('de-DE')}
                                         {receipt.receipt_date && (
@@ -333,7 +348,7 @@ export default function Show({ receipt }) {
                                                 <InputError message={errors.currency} className="mt-2" />
                                             </div>
                                             <div>
-                                                <InputLabel htmlFor="total_amount" value="Total Amount *" />
+                                                <InputLabel htmlFor="total_amount" value={`Total Amount (${data.currency}) *`} />
                                                 <TextInput
                                                     id="total_amount"
                                                     type="number"
@@ -350,7 +365,7 @@ export default function Show({ receipt }) {
                                         {/* Items */}
                                         <div>
                                             <div className="flex justify-between items-center mb-4">
-                                                <InputLabel value="Items" />
+                                                <InputLabel value={`Items (prices in ${data.currency})`} />
                                                 <button
                                                     type="button"
                                                     onClick={addItem}

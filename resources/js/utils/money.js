@@ -32,12 +32,28 @@ export function getDefaultCurrency() {
  * @returns {string}
  */
 export function formatCurrency(amount, locale = DEFAULT_LOCALE) {
+    return formatCurrencyIn(amount, defaultCurrency, locale);
+}
+
+/**
+ * Format an amount in a specific currency instead of the user's default.
+ *
+ * Only for views that must show a record's own stored currency (the receipt
+ * detail page, where the currency can be corrected). Everywhere else use
+ * formatCurrency so the UI stays in the user's default currency.
+ *
+ * @param {number|string|null|undefined} amount
+ * @param {string|null|undefined} currency ISO 4217 code; falls back to the default
+ * @param {string} locale BCP 47 locale
+ * @returns {string}
+ */
+export function formatCurrencyIn(amount, currency, locale = DEFAULT_LOCALE) {
     if (amount === null || amount === undefined || amount === '') {
         return 'N/A';
     }
 
     return new Intl.NumberFormat(locale, {
         style: 'currency',
-        currency: defaultCurrency,
+        currency: currency || defaultCurrency,
     }).format(Number(amount));
 }
