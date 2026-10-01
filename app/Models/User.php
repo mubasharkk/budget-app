@@ -67,6 +67,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'monthly_income' => 'decimal:2',
             'income_type' => IncomeType::class,
+            'settings' => 'array',
         ];
     }
 

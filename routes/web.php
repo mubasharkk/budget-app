@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Dashboard routes
+    Route::put('/dashboard/settings', [DashboardController::class, 'updateSettings'])->name('dashboard.settings.update');
     Route::get('/dashboard/chart/data', [DashboardController::class, 'chartData'])->name('dashboard.chart.data');
     Route::get('/dashboard/categories', [DashboardController::class, 'categories'])->name('dashboard.categories');
     Route::get('/dashboard/stats', [DashboardController::class, 'stats'])->name('dashboard.stats');

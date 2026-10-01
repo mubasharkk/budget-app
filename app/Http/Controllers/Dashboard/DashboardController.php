@@ -8,11 +8,15 @@ use App\Domain\Analytics\Services\DashboardService;
 use App\Domain\Analytics\Services\DashboardSnapshotService;
 use App\Domain\Analytics\Services\ExpenseOverviewService;
 use App\Domain\Budgets\Services\BudgetService;
+use App\Domain\Identity\Services\UserSettingsService;
 use App\Domain\Products\Services\PriceIntelligenceService;
 use App\Enums\BudgetPeriod;
+use App\Enums\DashboardSection;
 use App\Enums\ExpenseType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DashboardSettingsRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,11 +30,28 @@ class DashboardController extends Controller
         private PriceIntelligenceService $priceIntelligenceService,
         private BudgetService $budgetService,
         private DashboardSnapshotService $dashboardSnapshotService,
+        private UserSettingsService $userSettingsService,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        return Inertia::render('Dashboard');
+        return Inertia::render('Dashboard', [
+            'sections' => $this->userSettingsService->dashboardSections($request->user()),
+            'availableSections' => DashboardSection::options(),
+        ]);
+    }
+
+    /**
+     * Save which optional sections the user wants on their dashboard.
+     */
+    public function updateSettings(DashboardSettingsRequest $request): RedirectResponse
+    {
+        $this->userSettingsService->updateDashboardSections(
+            $request->user(),
+            $request->validated('sections'),
+        );
+
+        return redirect()->route('dashboard');
     }
 
     public function insights(): Response
