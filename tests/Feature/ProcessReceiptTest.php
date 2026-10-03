@@ -126,4 +126,48 @@ class ProcessReceiptTest extends TestCase
 
         Queue::assertNotPushed(MatchReceiptItems::class);
     }
+
+    public function test_missing_file_marks_the_receipt_failed(): void
+    {
+        $receipt = Receipt::factory()->pending()->create();
+        $this->mock(LlmService::class)->shouldNotReceive('parseReceiptFromFile');
+
+        try {
+            (new ProcessReceipt($receipt))->handle(app(LlmService::class));
+            $this->fail('Expected the job to rethrow so the queue can retry it.');
+        } catch (\Exception $e) {
+            $this->assertStringContainsString('Receipt file not found', $e->getMessage());
+        }
+
+        $receipt->refresh();
+        $this->assertSame('failed', $receipt->status);
+        $this->assertStringContainsString('Receipt file not found', $receipt->error_message);
+    }
+
+    public function test_llm_failure_marks_the_receipt_failed(): void
+    {
+        $receipt = $this->fakeReceipt();
+        $this->mock(LlmService::class)->shouldReceive('parseReceiptFromFile')->once()
+            ->andReturn(['success' => false, 'data' => null, 'error' => 'rate limited']);
+
+        $this->expectExceptionMessage('Receipt parsing failed: rate limited');
+
+        try {
+            (new ProcessReceipt($receipt))->handle(app(LlmService::class));
+        } finally {
+            $this->assertSame('Receipt processing failed: Receipt parsing failed: rate limited', $receipt->fresh()->error_message);
+        }
+    }
+
+    public function test_unparseable_date_is_stored_as_null(): void
+    {
+        $receipt = $this->fakeReceipt();
+        $this->mockLlm(['is_receipt' => true, 'vendor' => 'REWE', 'total_amount' => 5, 'receipt_date' => '03.05.2026', 'receipt_time' => '10:00', 'items' => []]);
+
+        (new ProcessReceipt($receipt))->handle(app(LlmService::class));
+
+        $receipt->refresh();
+        $this->assertSame('processed', $receipt->status);
+        $this->assertNull($receipt->receipt_date);
+    }
 }

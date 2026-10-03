@@ -95,4 +95,20 @@ class ContractMarkPaidTest extends TestCase
             ->post(route('contracts.mark-paid', $contract))
             ->assertForbidden();
     }
+
+    public function test_contract_without_next_billing_date_advances_from_its_start(): void
+    {
+        $contract = Contract::factory()->create([
+            'billing_cycle' => 'monthly',
+            'start_date' => '2026-03-15',
+            'next_billing_date' => null,
+            'status' => ContractStatus::Active,
+        ]);
+
+        $this->actingAs($contract->user)
+            ->post(route('contracts.mark-paid', $contract))
+            ->assertRedirect();
+
+        $this->assertSame('2026-04-15', $contract->fresh()->next_billing_date->toDateString());
+    }
 }

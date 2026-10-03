@@ -6,6 +6,7 @@ use App\Domain\Shared\Services\LlmService;
 use App\Jobs\GenerateMonthlyDigest;
 use App\Models\AgentMessage;
 use App\Models\Category;
+use App\Models\Contract;
 use App\Models\Digest;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
@@ -256,5 +257,73 @@ class AgentTest extends TestCase
             ->assertOk();
 
         Queue::assertPushed(GenerateMonthlyDigest::class);
+    }
+
+    public function test_mentionables_search_receipts_by_vendor_or_id_and_list_contracts(): void
+    {
+        $user = User::factory()->create();
+        $rewe = Receipt::factory()->for($user)->create(['vendor' => 'REWE City', 'receipt_date' => '2026-06-10']);
+        $aldi = Receipt::factory()->for($user)->create(['vendor' => 'ALDI']);
+        Receipt::factory()->create(['vendor' => 'REWE elsewhere']);
+        $contract = Contract::factory()->for($user)->create(['name' => 'Netflix']);
+        $this->actingAs($user);
+
+        $this->getJson(route('agent.mentionables'))
+            ->assertJsonPath('receipts', [])
+            ->assertJsonPath('contracts.0', ['id' => 'contract:'.$contract->id, 'display' => 'Netflix', 'type' => 'contract']);
+
+        $this->getJson(route('agent.mentionables', ['q' => 'rewe']))
+            ->assertJsonCount(1, 'receipts')
+            ->assertJsonPath('receipts.0.id', 'receipt:'.$rewe->id)
+            ->assertJsonPath('receipts.0.display', '#'.$rewe->id.' REWE City 2026-06-10');
+
+        $this->getJson(route('agent.mentionables', ['q' => (string) $aldi->id]))
+            ->assertJsonPath('receipts.0.id', 'receipt:'.$aldi->id);
+    }
+
+    public function test_ask_contract_mention_routes_to_lookup_and_skips_invalid_ids(): void
+    {
+        $user = User::factory()->create();
+        $contract = Contract::factory()->for($user)->create(['name' => 'Netflix']);
+
+        $this->mock(LlmService::class, function ($mock): void {
+            $mock->shouldReceive('parseSpendingQuestion')->never();
+            $mock->shouldReceive('formatSpendingAnswer')->once()->andReturn([
+                'success' => true,
+                'data' => ['answer' => 'Netflix costs 12.'],
+            ]);
+        });
+
+        $this->actingAs($user)
+            ->postJson(route('agent.ask'), [
+                'question' => 'how much is this contract',
+                'mentions' => [['type' => 'category', 'id' => 0], ['type' => 'contract', 'id' => $contract->id]],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.intent', 'contract_lookup')
+            ->assertJsonPath('data.contract.name', 'Netflix');
+    }
+
+    public function test_ask_reports_parse_and_answer_failures(): void
+    {
+        $user = User::factory()->create();
+
+        $this->mock(LlmService::class, function ($mock): void {
+            $mock->shouldReceive('parseSpendingQuestion')->twice()->andReturn(
+                ['success' => false, 'data' => null, 'error' => 'model unavailable'],
+                ['success' => true, 'data' => ['intent' => 'budget_status']],
+            );
+            $mock->shouldReceive('formatSpendingAnswer')->once()->andReturn(['success' => false, 'data' => null]);
+        });
+
+        $this->actingAs($user)
+            ->postJson(route('agent.ask'), ['question' => 'How much did I spend?'])
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'model unavailable');
+
+        $this->actingAs($user)
+            ->postJson(route('agent.ask'), ['question' => 'How are my budgets?'])
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'Could not format the answer.');
     }
 }

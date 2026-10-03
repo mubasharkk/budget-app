@@ -51,4 +51,19 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
     }
+
+    public function test_login_is_locked_after_five_failed_attempts(): void
+    {
+        $this->freezeTime();
+        $user = User::factory()->create();
+
+        foreach (range(1, 5) as $attempt) {
+            $this->post('/login', ['email' => $user->email, 'password' => 'wrong-password']);
+        }
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+            ->assertSessionHasErrors(['email' => trans('auth.throttle', ['seconds' => 60, 'minutes' => 1])]);
+
+        $this->assertGuest();
+    }
 }

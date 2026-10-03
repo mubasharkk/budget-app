@@ -73,4 +73,21 @@ class ReceiptUploadServiceTest extends TestCase
         $this->assertCount(5, $receipts);
         Queue::assertPushed(ProcessReceipt::class, 5);
     }
+
+    public function test_unreadable_image_without_a_name_is_stored_as_uploaded(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+        $this->travelTo('2026-06-01 09:30:00');
+
+        $path = tempnam(sys_get_temp_dir(), 'scan');
+        file_put_contents($path, 'not really an image');
+        $file = new UploadedFile($path, '', 'image/jpeg', null, true);
+
+        $receipt = app(ReceiptUploadService::class)->storeOne(User::factory()->create()->id, $file);
+
+        $this->assertSame('receipt-2026-06-01-093000.jpg', $receipt->original_filename);
+        $this->assertSame('bin', $receipt->file_type);
+        $this->assertTrue($receipt->fileExists());
+    }
 }
