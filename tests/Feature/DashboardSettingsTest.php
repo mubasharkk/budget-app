@@ -17,7 +17,7 @@ class DashboardSettingsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Dashboard')
                 ->where('sections', [])
-                ->has('availableSections', 6));
+                ->has('availableSections', 7));
     }
 
     public function test_user_can_choose_sections_and_they_are_stored_under_settings_dashboard(): void

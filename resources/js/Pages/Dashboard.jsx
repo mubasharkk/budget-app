@@ -8,6 +8,7 @@ import DashboardAtAGlance from '@/Components/DashboardAtAGlance';
 import ExpenseOverview from '@/Components/ExpenseOverview';
 import IncomeOverview from '@/Components/IncomeOverview';
 import ConsumedItemsWidget from '@/Components/ConsumedItemsWidget';
+import DuplicateReceiptsWidget from '@/Components/DuplicateReceiptsWidget';
 import MostBoughtItemsChart from '@/Components/MostBoughtItemsChart';
 import TransactionsWidget from '@/Components/TransactionsWidget';
 import UpcomingBillsWidget from '@/Components/UpcomingBillsWidget';
@@ -19,6 +20,7 @@ const OPTIONAL_SECTIONS = {
     items_consumed: { Component: ConsumedItemsWidget, half: false },
     budget_vs_actual: { Component: BudgetOverview, half: true },
     most_bought_items: { Component: MostBoughtItemsChart, half: true },
+    duplicate_receipts: { Component: DuplicateReceiptsWidget, half: true },
 };
 
 function Card({ children }) {

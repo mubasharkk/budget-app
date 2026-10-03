@@ -22,7 +22,7 @@ class DashboardService
             'receipt_items.name as item_name',
             DB::raw('SUM(receipt_items.quantity) as total_quantity')
         )
-            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->join('categories', 'receipt_items.category_id', '=', 'categories.id')
             ->where('receipts.user_id', $userId)
             ->whereNotNull('receipt_items.name')
@@ -140,9 +140,9 @@ class DashboardService
      */
     public function getDashboardStats(int $userId, ?string $startDate = null, ?string $endDate = null): array
     {
-        $receiptQuery = DB::table('receipts')->where('user_id', $userId)->where('kind', ReceiptKind::Expense->value);
+        $receiptQuery = DB::table('receipts')->where('user_id', $userId)->where('kind', ReceiptKind::Expense->value)->whereNull('duplicate_of_id');
         $itemQuery = DB::table('receipt_items')
-            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->where('receipts.user_id', $userId);
 
         if ($startDate) {
@@ -171,7 +171,7 @@ class DashboardService
     public function getSpendingByCategory(int $userId, ?string $startDate = null, ?string $endDate = null)
     {
         $query = DB::table('receipt_items')
-            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->join('categories', 'receipt_items.category_id', '=', 'categories.id')
             ->select('categories.name as category_name', DB::raw('SUM(receipt_items.total) as total_spent'))
             ->where('receipts.user_id', $userId)

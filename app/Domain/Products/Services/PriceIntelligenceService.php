@@ -25,7 +25,7 @@ class PriceIntelligenceService
         $minPrices = $this->minPriceSubquery($userId);
 
         $query = ReceiptItem::query()
-            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->join('products', 'receipt_items.product_id', '=', 'products.id')
             ->joinSub($minPrices, 'min_prices', function ($join): void {
                 $join->on('products.id', '=', 'min_prices.product_id');
@@ -174,7 +174,7 @@ class PriceIntelligenceService
             ->get();
 
         $purchases = ReceiptItem::query()
-            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->where('receipt_items.product_id', $product->id)
             ->where('receipts.user_id', $userId)
             ->select([

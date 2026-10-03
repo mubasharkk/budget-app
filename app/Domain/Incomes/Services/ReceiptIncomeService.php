@@ -10,7 +10,8 @@ class ReceiptIncomeService
     /**
      * Keep the one-time income entry for an income receipt in step with the receipt:
      * created on first processing, updated on retries and manual corrections, and
-     * removed when the receipt no longer carries a positive amount.
+     * removed when the receipt no longer carries a positive amount or duplicates
+     * an earlier upload.
      */
     public function syncFromReceipt(Receipt $receipt): ?Income
     {
@@ -18,7 +19,7 @@ class ReceiptIncomeService
             return null;
         }
 
-        if ((float) $receipt->total_amount <= 0) {
+        if ((float) $receipt->total_amount <= 0 || $receipt->isDuplicate()) {
             $receipt->income()->delete();
 
             return null;

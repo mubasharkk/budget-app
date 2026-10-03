@@ -336,6 +336,11 @@ export default function Index({ receipts, filters = {} }) {
                                                             <span className="inline-flex items-center gap-2">
     <ReceiptKindIcon kind={receipt.kind} />
     {getStatusBadge(receipt.status)}
+{receipt.duplicate_of_id && (
+    <span className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+        Duplicate
+    </span>
+)}
 </span>
                                                         </div>
                                                         
@@ -433,6 +438,11 @@ export default function Index({ receipts, filters = {} }) {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         {getStatusBadge(receipt.status)}
+{receipt.duplicate_of_id && (
+    <span className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+        Duplicate
+    </span>
+)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <div>
@@ -549,6 +559,11 @@ export default function Index({ receipts, filters = {} }) {
                                                             <span className="inline-flex items-center gap-2">
     <ReceiptKindIcon kind={receipt.kind} />
     {getStatusBadge(receipt.status)}
+{receipt.duplicate_of_id && (
+    <span className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+        Duplicate
+    </span>
+)}
 </span>
                                                         </div>
                                                         

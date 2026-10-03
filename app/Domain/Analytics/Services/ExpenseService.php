@@ -54,7 +54,7 @@ class ExpenseService
     public function variableByCategory(int $userId, CarbonInterface $start, CarbonInterface $end, ?ExpenseType $type = null): array
     {
         $rows = ReceiptItem::query()
-            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->leftJoin('categories', 'receipt_items.category_id', '=', 'categories.id')
             ->where('receipts.user_id', $userId)
             ->when($type, fn ($query) => $query->where('receipts.expense_type', $type))

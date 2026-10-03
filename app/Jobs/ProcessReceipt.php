@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Domain\Incomes\Services\ReceiptIncomeService;
+use App\Domain\Receipts\Services\ReceiptDuplicateDetector;
 use App\Domain\Shared\Services\LlmService;
 use App\Models\Category;
 use App\Models\Receipt;
@@ -25,8 +26,10 @@ class ProcessReceipt implements ShouldQueue
     /**
      * Read the uploaded receipt with the vision LLM and persist the structured result.
      */
-    public function handle(LlmService $llmService): void
+    public function handle(LlmService $llmService, ?ReceiptDuplicateDetector $duplicateDetector = null): void
     {
+        $duplicateDetector ??= app(ReceiptDuplicateDetector::class);
+
         try {
             Log::info('Starting receipt processing', ['receipt_id' => $this->receipt->id]);
 
@@ -57,6 +60,7 @@ class ProcessReceipt implements ShouldQueue
                     'total_amount' => 0,
                     'receipt_date' => null,
                     'receipt_timezone' => null,
+                    'duplicate_of_id' => null,
                     'status' => 'processed',
                 ]);
 
@@ -80,6 +84,15 @@ class ProcessReceipt implements ShouldQueue
                 'receipt_date' => $this->parseReceiptDateTime($data['receipt_date'] ?? null, $data['receipt_time'] ?? null),
                 'receipt_timezone' => 'Europe/Berlin',
             ]);
+
+            $original = $duplicateDetector->flag($this->receipt);
+
+            if ($original !== null) {
+                Log::info('Receipt matches an earlier upload, flagged as duplicate', [
+                    'receipt_id' => $this->receipt->id,
+                    'duplicate_of_id' => $original->id,
+                ]);
+            }
 
             if ($this->receipt->isIncome()) {
                 $this->receipt->items()->delete();

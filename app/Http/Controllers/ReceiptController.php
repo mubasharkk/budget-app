@@ -133,6 +133,18 @@ class ReceiptController extends Controller
         ]);
     }
 
+    /**
+     * Keep a receipt that was flagged as a duplicate of an earlier upload.
+     */
+    public function keepDuplicate(Receipt $receipt): RedirectResponse
+    {
+        $this->authorize('update', $receipt);
+
+        $this->receiptService->keepDuplicate($receipt);
+
+        return back()->with('success', 'Receipt kept.');
+    }
+
     public function destroy(Receipt $receipt): RedirectResponse
     {
         $this->authorize('delete', $receipt);
@@ -144,7 +156,10 @@ class ReceiptController extends Controller
                 ->with('error', 'Failed to delete receipt: '.$e->getMessage());
         }
 
-        return redirect()->route('receipts.index')
+        $previous = url()->previous();
+        $cameFromReceipt = in_array($previous, [route('receipts.show', $receipt), route('receipts.edit', $receipt)], true);
+
+        return ($cameFromReceipt ? redirect()->route('receipts.index') : back())
             ->with('success', 'Receipt deleted successfully.');
     }
 }

@@ -73,7 +73,7 @@ class ConsumptionService
         $orderColumn = $metric === 'spend' ? 'total_spend' : 'total_quantity';
 
         $query = ReceiptItem::query()
-            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->leftJoin('categories', 'receipt_items.category_id', '=', 'categories.id')
             ->where('receipts.user_id', $userId)
             ->whereNotNull('receipt_items.name')
@@ -118,7 +118,7 @@ class ConsumptionService
         $orderColumn = $metric === 'spend' ? 'total_spend' : 'total_quantity';
 
         $query = ReceiptItem::query()
-            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->leftJoin('categories', 'receipt_items.category_id', '=', 'categories.id')
             ->where('receipts.user_id', $userId)
             ->where('receipt_items.name', 'like', '%'.$term.'%')
@@ -161,7 +161,7 @@ class ConsumptionService
                     : [$category->id];
 
                 $agg = ReceiptItem::query()
-                    ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+                    ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
                     ->where('receipts.user_id', $userId)
                     ->whereIn('receipt_items.category_id', $ids)
                     ->selectRaw('COALESCE(SUM(receipt_items.total), 0) as total_spend')
@@ -218,7 +218,7 @@ class ConsumptionService
         $end = sprintf('%04d-12-31 23:59:59', $year);
 
         $query = ReceiptItem::query()
-            ->join('receipts', 'receipt_items.receipt_id', '=', 'receipts.id')
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->where('receipts.user_id', $userId)
             ->whereBetween('receipts.receipt_date', [$start, $end])
             ->select(['receipt_items.total', 'receipts.receipt_date']);

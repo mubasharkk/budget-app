@@ -1,5 +1,6 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
+import DuplicateReceiptsNotice from '@/Components/DuplicateReceiptsNotice';
 import FloatingUploadButton from '@/Components/FloatingUploadButton';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
@@ -307,6 +308,8 @@ export default function AuthenticatedLayout({ header, children }) {
                     </div>
                 </header>
             )}
+
+            <DuplicateReceiptsNotice />
 
             <main>{children}</main>
 

@@ -33,6 +33,8 @@ class Receipt extends Model implements HasMedia
         'currency',
         'expense_type',
         'kind',
+        'duplicate_of_id',
+        'duplicate_ignored_at',
         'total_amount',
         'receipt_date',
         'receipt_timezone',
@@ -45,6 +47,7 @@ class Receipt extends Model implements HasMedia
         'file_size' => 'integer',
         'ocr_data' => 'array',
         'receipt_date' => 'datetime',
+        'duplicate_ignored_at' => 'datetime',
         'expense_type' => ExpenseType::class,
         'kind' => ReceiptKind::class,
     ];
@@ -101,11 +104,25 @@ class Receipt extends Model implements HasMedia
     }
 
     /**
-     * Only receipts that count as spending (excludes income receipts).
+     * The earlier upload this receipt duplicates, if any. A flagged receipt is held
+     * back from spending until the user discards it or chooses to keep it.
+     */
+    public function duplicateOf(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'duplicate_of_id');
+    }
+
+    public function isDuplicate(): bool
+    {
+        return $this->duplicate_of_id !== null;
+    }
+
+    /**
+     * Only receipts that count as spending (excludes income receipts and duplicates).
      */
     public function scopeExpenses(Builder $query): void
     {
-        $query->where('kind', ReceiptKind::Expense);
+        $query->where('kind', ReceiptKind::Expense)->whereNull('duplicate_of_id');
     }
 
     /**

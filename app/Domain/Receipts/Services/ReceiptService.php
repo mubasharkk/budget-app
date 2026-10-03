@@ -15,7 +15,10 @@ use Throwable;
 
 class ReceiptService
 {
-    public function __construct(private ReceiptIncomeService $receiptIncomeService) {}
+    public function __construct(
+        private ReceiptIncomeService $receiptIncomeService,
+        private ReceiptDuplicateDetector $duplicateDetector,
+    ) {}
 
     private const FILE_URL_ATTRIBUTES = ['file_url', 'public_file_url', 'direct_file_url'];
 
@@ -59,7 +62,7 @@ class ReceiptService
     public function loadForDisplay(Receipt $receipt): Receipt
     {
         return $receipt
-            ->load(['items.category', 'items.subcategory'])
+            ->load(['items.category', 'items.subcategory', 'duplicateOf:id,original_filename,vendor,created_at'])
             ->append(self::FILE_URL_ATTRIBUTES);
     }
 
@@ -96,6 +99,26 @@ class ReceiptService
                 ]);
             }
         });
+
+        if ($receipt->isProcessed()) {
+            $this->duplicateDetector->flag($receipt);
+        }
+
+        $this->receiptIncomeService->syncFromReceipt($receipt);
+
+        return $receipt;
+    }
+
+    /**
+     * The user chose to keep a receipt flagged as a duplicate: it counts again and is
+     * not flagged on later edits.
+     */
+    public function keepDuplicate(Receipt $receipt): Receipt
+    {
+        $receipt->update([
+            'duplicate_of_id' => null,
+            'duplicate_ignored_at' => now(),
+        ]);
 
         $this->receiptIncomeService->syncFromReceipt($receipt);
 

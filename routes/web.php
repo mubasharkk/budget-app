@@ -53,6 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/receipts/scan', [ReceiptController::class, 'scan'])->name('receipts.scan');
     Route::resource('receipts', ReceiptController::class);
     Route::get('/categories', [ReceiptController::class, 'categories'])->name('categories');
+    Route::patch('/receipts/{receipt}/keep-duplicate', [ReceiptController::class, 'keepDuplicate'])->name('receipts.keep-duplicate');
     Route::post('/receipts/{receipt}/retry', [ReceiptController::class, 'retry'])->name('receipts.retry');
     Route::get('/receipts/{receipt}/file', [ReceiptController::class, 'file'])->name('receipts.file');
 

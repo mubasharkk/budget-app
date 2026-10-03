@@ -40,6 +40,8 @@ This is the heart of the app and spans multiple files:
 
 4. **Income receipts** — a receipt has a `kind` (`App\Enums\ReceiptKind`: `expense` default, `income`), chosen at upload. For `income`, the prompt gets an income hint, no `ReceiptItem`s are created and `MatchReceiptItems` is not dispatched; `App\Domain\Incomes\Services\ReceiptIncomeService::syncFromReceipt()` upserts a one-time `Income` linked by `incomes.receipt_id` (also on manual receipt edits; cascade-deleted with the receipt). Spending queries on receipt totals must use `Receipt::expenses()` so income receipts are never counted as spend.
 
+5. **Duplicate detection** — after parsing, `App\Domain\Receipts\Services\ReceiptDuplicateDetector::flag()` compares the receipt with the user's earlier processed receipts of the same kind (vendor case-insensitive, `receipt_date` datetime, `total_amount`, and `receipt_number` when both have one) and sets `duplicate_of_id` to the oldest match. Flagged receipts are held back: `Receipt::expenses()` and the raw item joins exclude them, and no income is synced. The shared Inertia prop `duplicateReceipts` drives a banner in `AuthenticatedLayout` (and the optional `duplicate_receipts` dashboard widget) offering **Discard** (delete) or **Upload anyway** (`receipts.keep-duplicate`, sets `duplicate_ignored_at` so it is never re-flagged). `php artisan receipts:find-duplicates [--user=] [--mark]` scans existing receipts. Raw `DB::` queries on receipts must also filter `duplicate_of_id IS NULL`.
+
 The job has `tries = 3` and `timeout = 300`. Receipt status lifecycle: `pending → processed | failed`.
 
 ## Architecture Notes
