@@ -34,8 +34,8 @@ class ContractCrudController extends CrudController
         CRUD::column('provider')->label('Provider')->type('relationship')->attribute('name');
         CRUD::column('amount')->label('Amount')->type('number')->decimals(2);
         CRUD::column('currency')->label('Currency');
-        CRUD::column('billing_cycle')->label('Cycle');
-        CRUD::column('status')->label('Status');
+        CRUD::column('billing_cycle')->label('Cycle')->type('enum');
+        CRUD::column('status')->label('Status')->type('enum');
         CRUD::column('next_billing_date')->label('Next Billing')->type('date');
     }
 
@@ -43,9 +43,9 @@ class ContractCrudController extends CrudController
     {
         CRUD::setValidation(ContractRequest::class);
 
-        CRUD::field('user_id')->label('User')->type('relationship')->entity('user')->attribute('name');
-        CRUD::field('provider_id')->label('Provider')->type('relationship')->entity('provider')->attribute('name');
-        CRUD::field('category_id')->label('Category')->type('relationship')->entity('category')->attribute('name');
+        CRUD::field('user_id')->label('User')->type('select')->entity('user')->attribute('name');
+        CRUD::field('provider_id')->label('Provider')->type('select')->entity('provider')->attribute('name');
+        CRUD::field('category_id')->label('Category')->type('select')->entity('category')->attribute('name');
         CRUD::field('name')->label('Name')->type('text');
         CRUD::field('description')->label('Description')->type('textarea');
         CRUD::field('amount')->label('Amount')->type('number')->attributes(['step' => '0.01']);
@@ -80,5 +80,17 @@ class ContractCrudController extends CrudController
         }
 
         return $options;
+    }
+
+    /**
+     * Backpack's automatic show columns, with enum-cast attributes rendered as enums.
+     */
+    protected function setupShowOperation()
+    {
+        $this->autoSetupShowOperation();
+
+        CRUD::column('billing_cycle')->type('enum');
+        CRUD::column('status')->type('enum');
+        CRUD::column('expense_type')->type('enum');
     }
 }

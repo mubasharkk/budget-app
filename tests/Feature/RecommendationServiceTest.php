@@ -71,4 +71,40 @@ class RecommendationServiceTest extends TestCase
 
         CarbonImmutable::setTestNow();
     }
+
+    public function test_budget_rows_become_ranked_alerts_in_the_users_currency(): void
+    {
+        $user = User::factory()->create(['default_currency' => 'USD']);
+        $row = fn (string $label, string $status, string $projectedStatus): array => [
+            'budget_id' => crc32($label),
+            'label' => $label,
+            'status' => $status,
+            'projected_status' => $projectedStatus,
+            'actual' => 90.0,
+            'budget_amount' => 100.0,
+            'remaining' => 10.0,
+            'percent_used' => 90.0,
+            'projected' => 150.0,
+            'projected_percent' => 150.0,
+        ];
+
+        $budgets = $this->mock(BudgetService::class);
+        $budgets->shouldReceive('summary')->andReturn(['items' => [
+            $row('Dining', 'warning', 'over'),
+            $row('Fuel', 'ok', 'over'),
+            $row('Rent', 'ok', 'ok'),
+            $row('Groceries', 'over', 'over'),
+        ]]);
+        $prices = $this->mock(PriceIntelligenceService::class);
+        $prices->shouldReceive('savingsOpportunities')->andReturn(collect());
+
+        $recommendations = (new RecommendationService($prices, $budgets))->recommendations($user->id);
+
+        $this->assertSame(
+            ['Over budget: Groceries', 'Projected overspend: Fuel', 'Near budget limit: Dining'],
+            array_column($recommendations, 'title'),
+        );
+        $this->assertSame('At 90% of your $100.00 budget with $10.00 remaining.', $recommendations[2]['description']);
+        $this->assertCount(1, (new RecommendationService($prices, $budgets))->recommendations($user->id, limit: 1));
+    }
 }

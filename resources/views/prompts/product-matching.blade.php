@@ -14,14 +14,14 @@ Rules:
 
 Existing products to bias matching:
 @forelse($products as $product)
-- id={{ $product['id'] }}: "{{ $product['name'] }}" (normalized: {{ $product['normalized_name'] }}@if($product['brand']), brand: {{ $product['brand'] }}@endif@if($product['unit']), unit: {{ $product['unit'] }}@endif@if($product['size']), size: {{ $product['size'] }}@endif)
+- id={{ $product['id'] }}: "{{ $product['name'] }}" (normalized: {{ $product['normalized_name'] }}{{ $product['brand'] ? ', brand: '.$product['brand'] : '' }}{{ $product['unit'] ? ', unit: '.$product['unit'] : '' }}{{ $product['size'] ? ', size: '.$product['size'] : '' }})
 @empty
 - No existing products yet — create new canonical products for each line item.
 @endforelse
 
 Line items to match:
 @foreach($lineItems as $item)
-- receipt_item_id={{ $item['receipt_item_id'] }}: "{{ $item['name'] }}" (unit_price: {{ $item['unit_price'] }}, quantity: {{ $item['quantity'] }}@if($item['category']), category: {{ $item['category'] }}@endif)
+- receipt_item_id={{ $item['receipt_item_id'] }}: "{{ $item['name'] }}" (unit_price: {{ $item['unit_price'] }}, quantity: {{ $item['quantity'] }}{{ $item['category'] ? ', category: '.$item['category'] : '' }})
 @endforeach
 
 Return strict JSON:

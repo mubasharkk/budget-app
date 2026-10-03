@@ -6,24 +6,25 @@ use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Models\Category;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
-use OpenAI\Client;
+use OpenAI\Contracts\ClientContract;
 use OpenAI\Factory;
 
 class LlmService
 {
-    private Client $client;
+    private ClientContract $client;
 
     private string $model;
 
-    public function __construct()
+    /**
+     * The OpenAI client is built from config unless one is passed in (tests pass a fake).
+     */
+    public function __construct(?ClientContract $client = null)
     {
-        $apiKey = config('services.openai.api_key');
-        $baseUrl = config('services.openai.base_url');
         $this->model = config('services.openai.model');
 
-        $this->client = (new Factory)
-            ->withApiKey($apiKey)
-            ->withBaseUri($baseUrl)
+        $this->client = $client ?? (new Factory)
+            ->withApiKey(config('services.openai.api_key'))
+            ->withBaseUri(config('services.openai.base_url'))
             ->make();
     }
 

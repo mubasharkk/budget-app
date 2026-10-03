@@ -39,7 +39,7 @@ class ProviderCrudController extends CrudController
     {
         CRUD::setValidation(ProviderRequest::class);
 
-        CRUD::field('user_id')->label('User')->type('relationship')->entity('user')->attribute('name');
+        CRUD::field('user_id')->label('User')->type('select')->entity('user')->attribute('name');
         CRUD::field('name')->label('Name')->type('text');
         CRUD::field('website')->label('Website')->type('url');
         CRUD::field('contact_email')->label('Contact Email')->type('email');

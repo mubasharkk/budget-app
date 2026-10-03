@@ -12,6 +12,7 @@ use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SpendingQueryExecutorTest extends TestCase
@@ -197,5 +198,84 @@ class SpendingQueryExecutorTest extends TestCase
             'start_date' => '2026-06-01',
             'end_date' => '2026-06-30',
         ]);
+    }
+
+    /**
+     * @return array<string, array{0: array<string, mixed>, 1: string}>
+     */
+    public static function invalidQueries(): array
+    {
+        return [
+            'lookup intents cannot come from the LLM' => [['intent' => 'receipt_lookup'], 'not allowed'],
+            'missing date range' => [['intent' => 'total_spend', 'start_date' => '2026-06-01'], 'date range'],
+            'unknown category' => [['intent' => 'category_spend', 'category' => 'Yachts', 'start_date' => '2026-06-01', 'end_date' => '2026-06-30'], 'Category not recognized'],
+            'missing vendor' => [['intent' => 'vendor_spend', 'start_date' => '2026-06-01', 'end_date' => '2026-06-30'], 'Vendor name'],
+            'missing category term' => [['intent' => 'category_search'], 'category to search'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $parsed
+     */
+    #[DataProvider('invalidQueries')]
+    public function test_validation_rejects_unsafe_or_incomplete_queries(array $parsed, string $message): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        $this->executor()->validateParsedQuery(1, $parsed);
+    }
+
+    public function test_validation_normalises_categories_metrics_and_default_ranges(): void
+    {
+        $this->travelTo('2026-06-15');
+        Category::factory()->create(['name' => 'Home & Garden', 'slug' => 'home-garden']);
+        $executor = $this->executor();
+        $range = ['start_date' => '2026-06-01', 'end_date' => '2026-06-30'];
+
+        $this->assertSame('Home & Garden', $executor->validateParsedQuery(1, ['intent' => 'category_spend', 'category' => 'Home Garden', ...$range])['category']);
+        $this->assertSame('spend', $executor->validateParsedQuery(1, ['intent' => 'top_items', 'metric' => 'calories', ...$range])['metric']);
+        $this->assertSame('quantity', $executor->validateParsedQuery(1, ['intent' => 'item_search', 'item' => 'milk', 'metric' => 'bogus', ...$range])['metric']);
+
+        $budget = $executor->validateParsedQuery(1, ['intent' => 'budget_status']);
+        $this->assertSame(['2026-06-01', '2026-06-30'], [$budget['start_date'], $budget['end_date']]);
+
+        $search = $executor->validateParsedQuery(1, ['intent' => 'category_search', 'category' => 'garden']);
+        $this->assertSame(['2026-01-01', '2026-12-31'], [$search['start_date'], $search['end_date']]);
+    }
+
+    public function test_total_vendor_top_items_and_budget_intents(): void
+    {
+        $user = User::factory()->create();
+        $groceries = Category::factory()->create(['name' => 'Groceries']);
+        $receipt = Receipt::factory()->for($user)->create(['vendor' => 'REWE', 'receipt_date' => '2026-06-10', 'total_amount' => 12]);
+        ReceiptItem::factory()->for($receipt)->create(['name' => 'Milk', 'quantity' => 4, 'unit_price' => 1, 'category_id' => $groceries->id]);
+        ReceiptItem::factory()->for($receipt)->create(['name' => 'Cheese', 'quantity' => 1, 'unit_price' => 8, 'category_id' => $groceries->id]);
+        $range = ['start_date' => '2026-06-01', 'end_date' => '2026-06-30'];
+        $executor = $this->executor();
+
+        $this->assertSame(12.0, (float) $executor->execute($user->id, ['intent' => 'total_spend', ...$range])['variable']);
+
+        $vendor = $executor->execute($user->id, ['intent' => 'vendor_spend', 'vendor' => 'rewe', ...$range]);
+        $this->assertSame([1, 12.0], [$vendor['receipt_count'], $vendor['total']]);
+        $this->assertSame(0.0, $executor->execute($user->id, ['intent' => 'vendor_spend', 'vendor' => 'ALDI', ...$range])['total']);
+
+        $byQuantity = $executor->execute($user->id, ['intent' => 'top_items', 'metric' => 'quantity', ...$range]);
+        $this->assertSame('Milk', $byQuantity['items'][0]['name']);
+        $bySpend = $executor->execute($user->id, ['intent' => 'top_items', 'metric' => 'spend', ...$range]);
+        $this->assertSame('Cheese', $bySpend['items'][0]['name']);
+
+        $budget = $executor->execute($user->id, ['intent' => 'budget_status']);
+        $this->assertSame('budget_status', $budget['intent']);
+        $this->assertSame([], $budget['items']);
+    }
+
+    public function test_lookups_of_missing_records_return_empty_results(): void
+    {
+        $user = User::factory()->create();
+        $executor = $this->executor();
+
+        $this->assertNull($executor->execute($user->id, ['intent' => 'receipt_lookup', 'receipt_id' => 999])['receipt']);
+        $this->assertNull($executor->execute($user->id, ['intent' => 'contract_lookup', 'contract_id' => 999])['contract']);
     }
 }

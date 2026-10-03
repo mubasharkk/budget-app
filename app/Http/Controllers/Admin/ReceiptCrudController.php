@@ -68,7 +68,7 @@ class ReceiptCrudController extends CrudController
     {
         CRUD::setValidation(ReceiptRequest::class);
 
-        CRUD::field('user_id')->label('User')->type('select2_from_ajax');
+        CRUD::field('user_id')->label('User')->type('select')->entity('user')->attribute('name');
         CRUD::field('original_filename')->label('Original Filename')->type('text');
         CRUD::field('file_type')->label('File Type')->type('text');
         CRUD::field('mime')->label('MIME Type')->type('text');
@@ -92,7 +92,7 @@ class ReceiptCrudController extends CrudController
     {
         CRUD::setValidation(ReceiptRequest::class);
 
-        CRUD::field('user_id')->label('User')->type('select2_from_ajax');
+        CRUD::field('user_id')->label('User')->type('select')->entity('user')->attribute('name');
         CRUD::field('original_filename')->label('Original Filename')->type('text');
         CRUD::field('file_type')->label('File Type')->type('text');
         CRUD::field('mime')->label('MIME Type')->type('text');
@@ -104,5 +104,16 @@ class ReceiptCrudController extends CrudController
         CRUD::field('receipt_date')->label('Receipt Date')->type('datetime');
         CRUD::field('receipt_timezone')->label('Receipt Timezone')->type('text');
         CRUD::field('error_message')->label('Error Message')->type('textarea');
+    }
+
+    /**
+     * Backpack's automatic show columns, with enum-cast attributes rendered as enums.
+     */
+    protected function setupShowOperation()
+    {
+        $this->autoSetupShowOperation();
+
+        CRUD::column('expense_type')->type('enum');
+        CRUD::column('kind')->type('enum');
     }
 }
