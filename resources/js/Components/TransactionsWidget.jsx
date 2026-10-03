@@ -41,6 +41,7 @@ const SOURCE_LABELS = {
     receipt: 'Receipt',
     contract: 'Contract',
     income: 'Income',
+    monthly_income: 'Recurring income',
 };
 
 const formatDate = (value) =>
@@ -57,6 +58,10 @@ const entryHref = (entry) => {
 
     if (entry.source === 'contract') {
         return route('contracts.show', entry.id);
+    }
+
+    if (entry.source === 'monthly_income') {
+        return route('incomes.index');
     }
 
     return route('incomes.edit', entry.id);

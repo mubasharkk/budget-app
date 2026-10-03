@@ -6,6 +6,7 @@ use App\Domain\Shared\Support\PeriodRange;
 use App\Models\Contract;
 use App\Models\Income;
 use App\Models\Receipt;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -16,7 +17,9 @@ class TransactionLedgerService
      *
      * Expenses are expense receipts plus each contract's last recorded payment (contracts
      * keep no payment history). Income is one-time income entries, which already include
-     * income receipts. A missing bound defaults to the current month.
+     * income receipts, plus the recurring monthly income booked on the 1st of each month
+     * in the range (never for months that haven't started yet). A missing bound
+     * defaults to the current month.
      *
      * @return array{start: string, end: string, totals: array{income: float, expenses: float, net: float}, transactions: array<int, array{key: string, type: string, source: string, id: int, date: string, description: string, amount: float}>}
      */
@@ -29,6 +32,7 @@ class TransactionLedgerService
         $transactions = $this->receiptExpenses($userId, $start, $end)
             ->concat($this->contractPayments($userId, $start, $end))
             ->concat($this->incomes($userId, $start, $end))
+            ->concat($this->monthlyIncome($userId, $start, $end))
             ->sortBy([['date', 'desc'], ['key', 'desc']])
             ->values();
 
@@ -106,6 +110,38 @@ class TransactionLedgerService
                 $income->source ?: 'One-time income',
                 (float) $income->amount,
             ));
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function monthlyIncome(int $userId, CarbonImmutable $start, CarbonImmutable $end): Collection
+    {
+        $user = User::query()->find($userId, ['id', 'monthly_income', 'income_type']);
+        $amount = (float) ($user?->monthly_income ?? 0);
+
+        if ($amount <= 0) {
+            return collect();
+        }
+
+        $description = 'Monthly income'.($user->income_type ? ' ('.$user->income_type->shortLabel().')' : '');
+        $lastPayday = $end->min(CarbonImmutable::today()->endOfDay());
+        $payday = $start->day === 1 ? $start->startOfDay() : $start->addMonthNoOverflow()->startOfMonth();
+        $entries = collect();
+
+        while ($payday->lte($lastPayday)) {
+            $entries->push($this->entry(
+                'income',
+                'monthly_income',
+                (int) $payday->format('Ym'),
+                $payday->toDateString(),
+                $description,
+                $amount,
+            ));
+            $payday = $payday->addMonthNoOverflow();
+        }
+
+        return $entries;
     }
 
     /**

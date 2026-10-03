@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\IncomeType;
 use App\Enums\ReceiptKind;
 use App\Models\Contract;
 use App\Models\Income;
@@ -67,5 +68,22 @@ class TransactionLedgerTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->getJson('/dashboard/transactions?start_date=2026-06-30&end_date=2026-06-01')
             ->assertJsonValidationErrors('end_date');
+    }
+
+    public function test_monthly_income_is_booked_on_the_first_of_each_started_month(): void
+    {
+        $this->travelTo('2026-08-15');
+        $user = User::factory()->create(['monthly_income' => 3000, 'income_type' => IncomeType::Net]);
+        Receipt::factory()->for($user)->create(['receipt_date' => '2026-07-03', 'total_amount' => 100]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/dashboard/transactions?start_date=2026-06-10&end_date=2026-12-31')
+            ->assertOk()
+            ->assertJsonPath('totals.income', 6000)
+            ->assertJsonPath('totals.net', 5900);
+
+        $monthly = collect($response->json('transactions'))->where('source', 'monthly_income')->values();
+        $this->assertSame(['2026-08-01', '2026-07-01'], $monthly->pluck('date')->all());
+        $this->assertSame('Monthly income (Net)', $monthly->first()['description']);
     }
 }
