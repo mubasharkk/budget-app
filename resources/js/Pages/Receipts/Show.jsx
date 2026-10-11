@@ -6,12 +6,13 @@ import DangerButton from '@/Components/DangerButton';
 import CancelButton from '@/Components/CancelButton';
 import InputError from '@/Components/InputError';
 import ReceiptKindIcon from '@/Components/ReceiptKindIcon';
+import ReceiptAttachments from '@/Components/ReceiptAttachments';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { ArrowLeftIcon, TrashIcon, XMarkIcon, CheckIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { formatCurrencyIn, getDefaultCurrency } from '@/utils/money';
 
-export default function Show({ receipt }) {
+export default function Show({ receipt, attachments = [], maxAttachments = 10 }) {
     const [categories, setCategories] = useState([]);
     const [subcategories, setSubcategories] = useState([]);
     const [showOcrText, setShowOcrText] = useState(false);
@@ -249,6 +250,8 @@ export default function Show({ receipt }) {
                                             </a>
                                         </div>
                                     )}
+
+                                    <ReceiptAttachments receiptId={receipt.id} attachments={attachments} max={maxAttachments} />
 
                                     {/* OCR Text */}
                                     {receipt.ocr_text && (

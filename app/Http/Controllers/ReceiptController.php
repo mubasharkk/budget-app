@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Categories\Services\CategoryService;
 use App\Domain\Receipts\Data\ReceiptListFilters;
 use App\Domain\Receipts\Exceptions\ReceiptCannotBeRetried;
+use App\Domain\Receipts\Services\ReceiptAttachmentService;
 use App\Domain\Receipts\Services\ReceiptService;
 use App\Domain\Receipts\Services\ReceiptUploadService;
 use App\Http\Requests\StoreReceiptRequest;
@@ -24,6 +25,7 @@ class ReceiptController extends Controller
         private ReceiptService $receiptService,
         private ReceiptUploadService $uploadService,
         private CategoryService $categoryService,
+        private ReceiptAttachmentService $attachmentService,
     ) {}
 
     public function index(Request $request): Response
@@ -75,6 +77,8 @@ class ReceiptController extends Controller
 
         return Inertia::render('Receipts/Show', [
             'receipt' => $this->receiptService->loadForDisplay($receipt),
+            'attachments' => $this->attachmentService->forDisplay($receipt),
+            'maxAttachments' => ReceiptAttachmentService::MAX_ATTACHMENTS,
         ]);
     }
 
@@ -87,6 +91,8 @@ class ReceiptController extends Controller
 
         return Inertia::render('Receipts/Show', [
             'receipt' => $this->receiptService->loadForDisplay($receipt),
+            'attachments' => $this->attachmentService->forDisplay($receipt),
+            'maxAttachments' => ReceiptAttachmentService::MAX_ATTACHMENTS,
         ]);
     }
 

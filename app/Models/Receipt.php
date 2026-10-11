@@ -11,14 +11,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Receipt extends Model implements HasMedia
 {
     use CrudTrait, HasFactory, InteractsWithMedia;
 
     public const RECEIPT_COLLECTION = 'receipt';
+
+    /**
+     * Supporting documents (bank transfer confirmations, delivery notes, …). They are
+     * stored with the receipt but never parsed or counted as spending.
+     */
+    public const ATTACHMENTS_COLLECTION = 'attachments';
 
     protected $fillable = [
         'user_id',
@@ -142,6 +150,20 @@ class Receipt extends Model implements HasMedia
         $this->addMediaCollection(self::RECEIPT_COLLECTION)
             ->useDisk('local')
             ->singleFile();
+
+        $this->addMediaCollection(self::ATTACHMENTS_COLLECTION)
+            ->useDisk('local');
+    }
+
+    /**
+     * Additional documents attached to the receipt; also scopes the
+     * `{attachment}` route binding to this receipt.
+     */
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(Media::class, 'model')
+            ->where('collection_name', self::ATTACHMENTS_COLLECTION)
+            ->orderBy('order_column');
     }
 
     /**

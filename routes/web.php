@@ -8,6 +8,7 @@ use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderController;
+use App\Http\Controllers\ReceiptAttachmentController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SavingController;
 use Illuminate\Support\Facades\Route;
@@ -56,6 +57,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/receipts/{receipt}/keep-duplicate', [ReceiptController::class, 'keepDuplicate'])->name('receipts.keep-duplicate');
     Route::post('/receipts/{receipt}/retry', [ReceiptController::class, 'retry'])->name('receipts.retry');
     Route::get('/receipts/{receipt}/file', [ReceiptController::class, 'file'])->name('receipts.file');
+    Route::scopeBindings()->group(function () {
+        Route::post('/receipts/{receipt}/attachments', [ReceiptAttachmentController::class, 'store'])->name('receipts.attachments.store');
+        Route::get('/receipts/{receipt}/attachments/{attachment}', [ReceiptAttachmentController::class, 'show'])->name('receipts.attachments.show');
+        Route::delete('/receipts/{receipt}/attachments/{attachment}', [ReceiptAttachmentController::class, 'destroy'])->name('receipts.attachments.destroy');
+    });
 
     // Recurring expenses: providers & monthly contracts
     Route::resource('providers', ProviderController::class)->except('show');
