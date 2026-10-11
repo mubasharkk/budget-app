@@ -6,6 +6,7 @@ import {
     DocumentIcon,
     ClipboardDocumentIcon,
     ArrowUpTrayIcon,
+    PaperClipIcon,
 } from '@heroicons/react/24/outline';
 import InputError from '@/Components/InputError';
 
@@ -19,6 +20,9 @@ const ACCEPTED_TYPES = [
 ];
 
 const MAX_FILES = 5;
+const MAX_ATTACHMENTS = 10;
+const ATTACHMENT_ACCEPT =
+    '.jpg,.jpeg,.png,.heic,.heif,.webp,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.eml';
 const MAX_BYTES = 15 * 1024 * 1024;
 const MAX_DIMENSION = 2200;
 const COMPRESSED_TYPE = 'image/jpeg';
@@ -137,9 +141,11 @@ export default function ReceiptUploader({
     const galleryRef = useRef(null);
     const pdfRef = useRef(null);
     const dropRef = useRef(null);
+    const attachmentRef = useRef(null);
 
     const [files, setFiles] = useState([]);
     const [previews, setPreviews] = useState([]);
+    const [attachments, setAttachments] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
@@ -158,6 +164,9 @@ export default function ReceiptUploader({
         fileList.forEach((file) => formData.append('files[]', file));
         formData.append('expense_type', expenseType);
         formData.append('kind', kind);
+        if (fileList.length === 1) {
+            attachments.forEach((file) => formData.append('attachments[]', file));
+        }
 
         router.post(route('receipts.store'), formData, {
             forceFormData: true,
@@ -165,6 +174,7 @@ export default function ReceiptUploader({
             onSuccess: () => {
                 setFiles([]);
                 setPreviews([]);
+                setAttachments([]);
                 setSuccessMessage(
                     fileList.length === 1
                         ? 'Receipt uploaded — processing started.'
@@ -176,6 +186,10 @@ export default function ReceiptUploader({
                 const first =
                     errors.files ||
                     errors['files.0'] ||
+                    errors.attachments ||
+                    Object.entries(errors).find(([key]) =>
+                        key.startsWith('attachments.'),
+                    )?.[1] ||
                     Object.values(errors)[0];
                 setError(
                     typeof first === 'string'
@@ -185,7 +199,7 @@ export default function ReceiptUploader({
             },
             onFinish: () => setUploading(false),
         });
-    }, [mode, onUploaded, expenseType, kind]);
+    }, [mode, onUploaded, expenseType, kind, attachments]);
 
     const addFiles = useCallback(
         async (incoming) => {
@@ -291,6 +305,21 @@ export default function ReceiptUploader({
             el.removeEventListener('drop', onDrop);
         };
     }, [addFiles]);
+
+    const addAttachments = (incoming) => {
+        const oversized = Array.from(incoming).find((f) => f.size > MAX_BYTES);
+        if (oversized) {
+            setError('Each document must be smaller than 15 MB.');
+            return;
+        }
+
+        setAttachments((prev) => {
+            if (prev.length + incoming.length > MAX_ATTACHMENTS) {
+                setError(`A receipt can have at most ${MAX_ATTACHMENTS} attached documents.`);
+            }
+            return [...prev, ...Array.from(incoming)].slice(0, MAX_ATTACHMENTS);
+        });
+    };
 
     const removeFile = (index) => {
         setFiles((prev) => prev.filter((_, i) => i !== index));
@@ -429,6 +458,67 @@ export default function ReceiptUploader({
                                 </div>
                             </div>
                         ))}
+                    </div>
+
+                    <div className="rounded-lg border border-gray-200 p-3">
+                        <input
+                            ref={attachmentRef}
+                            type="file"
+                            multiple
+                            accept={ATTACHMENT_ACCEPT}
+                            className="hidden"
+                            onChange={(e) => {
+                                if (e.target.files?.length) {
+                                    addAttachments(e.target.files);
+                                }
+                                e.target.value = '';
+                            }}
+                        />
+                        <div className="flex items-center justify-between gap-2">
+                            <div>
+                                <div className="text-sm font-medium text-gray-700">
+                                    Additional documents
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    {files.length === 1
+                                        ? 'Bank payment confirmations, delivery notes … Stored with the receipt, not counted as expenses.'
+                                        : 'Available when uploading a single receipt.'}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => attachmentRef.current?.click()}
+                                disabled={uploading || files.length !== 1 || attachments.length >= MAX_ATTACHMENTS}
+                                className="inline-flex flex-shrink-0 items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                <PaperClipIcon className="h-4 w-4" />
+                                Attach
+                            </button>
+                        </div>
+                        {files.length === 1 && attachments.length > 0 && (
+                            <ul className="mt-2 divide-y divide-gray-100 text-sm">
+                                {attachments.map((file, index) => (
+                                    <li
+                                        key={`${file.name}-${index}`}
+                                        className="flex items-center justify-between gap-2 py-1.5"
+                                    >
+                                        <span className="flex min-w-0 items-center gap-2 text-gray-700">
+                                            <DocumentIcon className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                            <span className="truncate">{file.name}</span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setAttachments((prev) => prev.filter((_, i) => i !== index))
+                                            }
+                                            className="flex-shrink-0 px-1.5 text-xs text-red-600"
+                                        >
+                                            ✕
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
 
                     <button

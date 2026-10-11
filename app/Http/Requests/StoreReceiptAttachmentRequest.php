@@ -22,7 +22,7 @@ class StoreReceiptAttachmentRequest extends FormRequest
 
         return [
             'files' => ['required', 'array', 'min:1', 'max:'.$remaining],
-            'files.*' => ['required', 'file', 'mimes:jpg,jpeg,png,heic,heif,webp,pdf,txt,csv,doc,docx,xls,xlsx,eml', 'max:15360'],
+            'files.*' => ['required', 'file', 'mimes:'.ReceiptAttachmentService::ALLOWED_MIMES, 'max:15360'],
         ];
     }
 
@@ -34,7 +34,7 @@ class StoreReceiptAttachmentRequest extends FormRequest
         return [
             'files.required' => 'Please select at least one document.',
             'files.max' => 'A receipt can have at most '.ReceiptAttachmentService::MAX_ATTACHMENTS.' attached documents.',
-            'files.*.mimes' => 'Documents must be a photo, PDF, text, CSV, Word, Excel or email file.',
+            'files.*.mimes' => ReceiptAttachmentService::MIMES_MESSAGE,
             'files.*.max' => 'Each document must be smaller than 15 MB.',
         ];
     }

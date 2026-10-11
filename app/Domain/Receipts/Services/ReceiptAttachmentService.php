@@ -16,6 +16,10 @@ class ReceiptAttachmentService
 {
     public const MAX_ATTACHMENTS = 10;
 
+    public const ALLOWED_MIMES = 'jpg,jpeg,png,heic,heif,webp,pdf,txt,csv,doc,docx,xls,xlsx,eml';
+
+    public const MIMES_MESSAGE = 'Documents must be a photo, PDF, text, CSV, Word, Excel or email file.';
+
     /**
      * @param  array<int, UploadedFile>  $files
      * @return Collection<int, Media>

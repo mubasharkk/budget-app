@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Receipts\Services\ReceiptAttachmentService;
 use App\Enums\ExpenseType;
 use App\Enums\ReceiptKind;
 use Illuminate\Foundation\Http\FormRequest;
@@ -25,6 +26,13 @@ class StoreReceiptRequest extends FormRequest
             'files.*' => 'required|file|mimes:jpg,jpeg,png,heic,heif,webp,pdf|max:15360',
             'expense_type' => ['nullable', Rule::enum(ExpenseType::class)],
             'kind' => ['nullable', Rule::enum(ReceiptKind::class)],
+            'attachments' => [
+                'nullable',
+                'array',
+                'max:'.ReceiptAttachmentService::MAX_ATTACHMENTS,
+                Rule::prohibitedIf(fn (): bool => count($this->uploadedFiles()) > 1),
+            ],
+            'attachments.*' => ['file', 'mimes:'.ReceiptAttachmentService::ALLOWED_MIMES, 'max:15360'],
         ];
     }
 
@@ -38,6 +46,10 @@ class StoreReceiptRequest extends FormRequest
             'files.max' => 'You can upload a maximum of 5 files at once.',
             'files.*.mimes' => 'Receipts must be a photo (JPG, PNG, HEIC, WebP) or PDF.',
             'files.*.max' => 'Each file must be smaller than 15 MB.',
+            'attachments.prohibited' => 'Additional documents can only be added when uploading a single receipt.',
+            'attachments.max' => 'A receipt can have at most '.ReceiptAttachmentService::MAX_ATTACHMENTS.' attached documents.',
+            'attachments.*.mimes' => ReceiptAttachmentService::MIMES_MESSAGE,
+            'attachments.*.max' => 'Each document must be smaller than 15 MB.',
         ];
     }
 
@@ -52,5 +64,15 @@ class StoreReceiptRequest extends FormRequest
     public function uploadedFiles(): array
     {
         return $this->file('files', []);
+    }
+
+    /**
+     * Supporting documents for the (single) uploaded receipt.
+     *
+     * @return array<int, UploadedFile>
+     */
+    public function uploadedAttachments(): array
+    {
+        return $this->file('attachments', []);
     }
 }

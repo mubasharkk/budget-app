@@ -6,6 +6,7 @@ use App\Models\Receipt;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -98,5 +99,34 @@ class ReceiptAttachmentTest extends TestCase
 
         $this->assertModelMissing($attachment);
         $this->assertFileDoesNotExist($path);
+    }
+
+    public function test_documents_can_be_attached_while_uploading_a_single_receipt(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $this->post(route('receipts.store'), [
+            'files' => [UploadedFile::fake()->image('receipt.jpg')],
+            'attachments' => [UploadedFile::fake()->create('bank-transfer.pdf', 50, 'application/pdf')],
+        ])->assertSessionHasNoErrors()->assertRedirect(route('receipts.index'));
+
+        $receipt = Receipt::query()->where('user_id', $user->id)->sole();
+        $this->assertSame(['bank-transfer.pdf'], $receipt->attachments()->pluck('name')->all());
+        $this->assertNotNull($receipt->getFirstMedia(Receipt::RECEIPT_COLLECTION));
+    }
+
+    public function test_documents_are_rejected_when_uploading_several_receipts(): void
+    {
+        Queue::fake();
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('receipts.store'), [
+            'files' => [UploadedFile::fake()->image('one.jpg'), UploadedFile::fake()->image('two.jpg')],
+            'attachments' => [UploadedFile::fake()->create('bank-transfer.pdf', 50, 'application/pdf')],
+        ])->assertSessionHasErrors(['attachments' => 'Additional documents can only be added when uploading a single receipt.']);
+
+        $this->assertSame(0, Receipt::query()->count());
     }
 }

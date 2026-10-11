@@ -16,15 +16,27 @@ class ReceiptUploadService
 {
     private const MAX_FILES = 5;
 
+    public function __construct(private ReceiptAttachmentService $attachmentService) {}
+
     /**
+     * Supporting documents are attached only when a single receipt is uploaded, since
+     * there is no telling which of several receipts they belong to.
+     *
      * @param  array<int, UploadedFile>  $files
+     * @param  array<int, UploadedFile>  $attachments
      * @return Collection<int, Receipt>
      */
-    public function storeMany(int $userId, array $files, string $expenseType = 'personal', ReceiptKind $kind = ReceiptKind::Expense): Collection
+    public function storeMany(int $userId, array $files, string $expenseType = 'personal', ReceiptKind $kind = ReceiptKind::Expense, array $attachments = []): Collection
     {
         $files = array_slice($files, 0, self::MAX_FILES);
 
-        return collect($files)->map(fn (UploadedFile $file): Receipt => $this->storeOne($userId, $file, $expenseType, $kind));
+        $receipts = collect($files)->map(fn (UploadedFile $file): Receipt => $this->storeOne($userId, $file, $expenseType, $kind));
+
+        if ($attachments !== [] && $receipts->count() === 1) {
+            $this->attachmentService->attach($receipts->first(), array_slice($attachments, 0, ReceiptAttachmentService::MAX_ATTACHMENTS));
+        }
+
+        return $receipts;
     }
 
     public function storeOne(int $userId, UploadedFile $file, string $expenseType = 'personal', ReceiptKind $kind = ReceiptKind::Expense): Receipt
