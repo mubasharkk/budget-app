@@ -33,19 +33,13 @@ class DealCatalogService
             $query->whereIn('category_id', $this->purchaseHistoryService->purchasedCategoryIds($userId));
         }
 
-        if ($filters->isExpandedCategory()) {
-            $filters->categoryId === DealFilters::UNCATEGORIZED
-                ? $query->whereNull('category_id')
-                : $query->where('category_id', $filters->categoryId);
-        }
-
         return $query->get()
             ->groupBy(fn (Deal $deal): int => $deal->category_id ?? DealFilters::UNCATEGORIZED)
             ->map(fn (Collection $deals, int $categoryId): DealGroup => new DealGroup(
                 categoryId: $categoryId,
                 name: $deals->first()->category?->name ?? 'Other offers',
                 total: $deals->count(),
-                deals: $filters->isExpandedCategory() ? $deals->values() : $deals->take($filters->perGroup)->values(),
+                deals: $filters->isExpanded($categoryId) ? $deals->values() : $deals->take($filters->perGroup)->values(),
             ))
             ->sortBy(fn (DealGroup $group): array => [
                 -$group->total,

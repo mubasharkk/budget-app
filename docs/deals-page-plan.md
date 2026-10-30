@@ -1,6 +1,6 @@
 # Deals Page — Implementation Plan
 
-> Status: **planned, not started.** Approved 2026-07-23. Gated on a data spike (see §7).
+> Status: **Phases 0–2 built** (marktguru source, daily sync, Deals page, "For you", per-product comparison). Phase 3 (assistant `deals_search` intent) not started.
 > Retailers in scope: **Lidl, Penny, Edeka, Netto, Aldi, Kaufland.**
 
 A page that surfaces current weekly discounter offers, matched against what the
@@ -112,12 +112,21 @@ Unique index on **`(source, external_id, region)`** for idempotent upserts.
 3. **Phase 3:** `deals_search` assistant intent + `@Retailer` mention; optional
    direct-retailer adapters.
 
-## 8. Frontend
+## 8. Frontend (as built)
 
-`Pages/Deals/Index.jsx` in the existing design system: retailer chips, category
-dropdown (reused), free-text search, valid-until badges, "matches your buys"
-sorted first. Postal-code selector in settings. Deferred / `WhenVisible` grid
-loading (Inertia v2).
+`Pages/Deals/Index.jsx` → `DealController@index`. Page state lives in the URL
+(`tab`, `q`, `retailer`, `sort`, `week`, `mine`, `expand`, `start_date`/`end_date`)
+and every change is a partial Inertia reload (`Components/Deals/visitDeals.js`).
+Only the open tab's props are sent: on "Offers", `offers` loads with the page and
+`forYou` + `comparisons` are deferred (group `personal`); on "My prices", `prices`
+is deferred. The other tab's props are optional. While a postal code's first sync
+runs, `useSyncPolling` reloads the offer props every 15 s (`usePoll`).
+
+Sections: `ForYouSection` (offers on things you buy, with savings),
+`CompareSection` (`DealComparisonService`: one product at ≥2 retailers, cheapest
+first, by unit price when units match), `BrowseSection` (category groups, filters,
+"Show all" expands one group in place). The dashboard widget keeps the JSON
+endpoint `deals.for-you`.
 
 ## 9. Open risks
 

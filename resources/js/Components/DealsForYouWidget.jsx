@@ -22,6 +22,10 @@ function WidgetBody({ postalCode }) {
         return <Notice tone="error">{error}</Notice>;
     }
 
+    if (!data.synced_at) {
+        return <Notice tone="info">This week's deals for your area are being fetched. Check back in a minute.</Notice>;
+    }
+
     if (data.recommendations.length === 0) {
         return <Notice>No current offers on things you buy.</Notice>;
     }

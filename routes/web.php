@@ -40,14 +40,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/overview', [DashboardController::class, 'overview'])->name('dashboard.overview');
     Route::get('/dashboard/trend', [DashboardController::class, 'trend'])->name('dashboard.trend');
     Route::get('/dashboard/consumption', [DashboardController::class, 'consumption'])->name('dashboard.consumption');
-    Route::get('/dashboard/deals', [DashboardController::class, 'dealsData'])->name('dashboard.deals');
     Route::get('/dashboard/budgets', [DashboardController::class, 'budgets'])->name('dashboard.budgets');
     Route::get('/dashboard/snapshot', [DashboardController::class, 'snapshot'])->name('dashboard.snapshot');
 
     // Consumption insights page
     Route::get('/insights', [DashboardController::class, 'insights'])->name('insights');
-    Route::get('/deals', [DashboardController::class, 'deals'])->name('deals');
-    Route::get('/deals/offers', [DealController::class, 'offers'])->name('deals.offers');
+    Route::get('/deals', [DealController::class, 'index'])->name('deals');
     Route::get('/deals/for-you', [DealController::class, 'forYou'])->name('deals.for-you');
 
     // Product price intelligence detail

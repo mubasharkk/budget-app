@@ -18,7 +18,7 @@ class DealGroupResource extends JsonResource
             'category_id' => $this->categoryId,
             'name' => $this->name,
             'total' => $this->total,
-            'offers' => DealResource::collection($this->deals),
+            'offers' => DealResource::collection($this->deals)->resolve($request),
         ];
     }
 }

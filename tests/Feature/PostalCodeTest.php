@@ -58,7 +58,7 @@ class PostalCodeTest extends TestCase
         $this->actingAs($user)
             ->get(route('deals'))
             ->assertInertia(fn ($page) => $page
-                ->component('Deals')
+                ->component('Deals/Index')
                 ->where('auth.user.postal_code', '31139')
                 ->has('retailers', 5));
     }

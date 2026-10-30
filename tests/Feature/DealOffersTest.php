@@ -10,7 +10,6 @@ use App\Models\ReceiptItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class DealOffersTest extends TestCase
@@ -28,11 +27,25 @@ class DealOffersTest extends TestCase
     }
 
     /**
+     * The Deals page props, as the browser receives them.
+     *
      * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
      */
-    private function browse(array $query = []): TestResponse
+    private function page(array $query = [], ?User $user = null): array
     {
-        return $this->actingAs($this->user)->getJson(route('deals.offers', $query))->assertOk();
+        $response = $this->actingAs($user ?? $this->user)->get(route('deals', $query))->assertOk();
+
+        return json_decode(json_encode($response->viewData('page')['props']), true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<int, array<string, mixed>>
+     */
+    private function offerGroups(array $query = []): array
+    {
+        return $this->page($query)['offers'];
     }
 
     /**
@@ -41,15 +54,15 @@ class DealOffersTest extends TestCase
      */
     private function offerIds(array $query = []): array
     {
-        return collect($this->browse($query)->json('groups'))->flatMap(fn (array $group) => array_column($group['offers'], 'id'))->all();
+        return collect($this->offerGroups($query))->flatMap(fn (array $group) => array_column($group['offers'], 'id'))->all();
     }
 
-    public function test_without_a_postal_code_the_user_is_asked_for_one(): void
+    public function test_without_a_postal_code_no_offers_are_loaded(): void
     {
-        $this->actingAs(User::factory()->create())
-            ->getJson(route('deals.offers'))
-            ->assertStatus(409)
-            ->assertJson(['postal_code_required' => true]);
+        $page = $this->page(user: User::factory()->create());
+
+        $this->assertNull($page['offers']);
+        $this->assertNull($page['syncedAt']);
     }
 
     public function test_offers_are_grouped_by_category_with_the_largest_group_first(): void
@@ -60,30 +73,30 @@ class DealOffersTest extends TestCase
         Deal::factory()->availableIn('10115')->inCategory($dairy)->count(2)->create();
         Deal::factory()->availableIn('10115')->create();
 
-        $groups = $this->browse()->json('groups');
+        $groups = $this->offerGroups();
 
         $this->assertSame(['Dairy', 'Bakery', 'Other offers'], array_column($groups, 'name'));
         $this->assertSame([2, 1, 1], array_column($groups, 'total'));
         $this->assertSame([$dairy->id, $bakery->id, 0], array_column($groups, 'category_id'));
     }
 
-    public function test_each_group_is_truncated_and_a_category_can_be_expanded(): void
+    public function test_each_group_is_truncated_and_one_category_can_be_expanded_in_place(): void
     {
         $dairy = Category::factory()->create();
         Deal::factory()->availableIn('10115')->inCategory($dairy)->count(8)->create();
         Deal::factory()->availableIn('10115')->count(2)->create();
 
-        $this->browse(['per_group' => 3])
-            ->assertJsonPath('groups.0.total', 8)
-            ->assertJsonCount(3, 'groups.0.offers');
+        [$dairyGroup, $otherGroup] = $this->offerGroups(['per_group' => 1]);
+        $this->assertSame([8, 1], [$dairyGroup['total'], count($dairyGroup['offers'])]);
+        $this->assertCount(1, $otherGroup['offers']);
 
-        $this->browse(['category' => $dairy->id])
-            ->assertJsonCount(1, 'groups')
-            ->assertJsonCount(8, 'groups.0.offers');
+        [$dairyGroup, $otherGroup] = $this->offerGroups(['per_group' => 1, 'expand' => $dairy->id]);
+        $this->assertCount(8, $dairyGroup['offers']);
+        $this->assertCount(1, $otherGroup['offers']);
 
-        $this->browse(['category' => 0])
-            ->assertJsonPath('groups.0.name', 'Other offers')
-            ->assertJsonCount(2, 'groups.0.offers');
+        [, $otherGroup] = $this->offerGroups(['per_group' => 1, 'expand' => 0]);
+        $this->assertSame('Other offers', $otherGroup['name']);
+        $this->assertCount(2, $otherGroup['offers']);
     }
 
     public function test_an_offer_is_described_with_its_unit_price(): void
@@ -98,7 +111,7 @@ class DealOffersTest extends TestCase
             'valid_to' => now()->addDays(2)->toDateString(),
         ]);
 
-        $this->browse()->assertJsonPath('groups.0.offers.0', [
+        $this->assertSame([
             'id' => $deal->id,
             'retailer' => 'lidl',
             'retailer_label' => 'Lidl',
@@ -113,7 +126,7 @@ class DealOffersTest extends TestCase
             'unit_price_unit' => 'kg',
             'valid_from' => '2026-10-26',
             'valid_to' => now()->addDays(2)->toDateString(),
-        ])->assertJsonPath('postal_code', '10115');
+        ], $this->offerGroups()[0]['offers'][0]);
     }
 
     public function test_offers_can_be_sorted(): void
@@ -181,30 +194,55 @@ class DealOffersTest extends TestCase
 
     public function test_a_postal_code_that_has_not_synced_yet_reports_no_sync_time(): void
     {
-        $this->browse()->assertJsonPath('synced_at', null)->assertJsonCount(0, 'groups');
+        $page = $this->page();
+
+        $this->assertNull($page['syncedAt']);
+        $this->assertSame([], $page['offers']);
     }
 
     public function test_invalid_filters_are_rejected(): void
     {
         $this->actingAs($this->user)
-            ->getJson(route('deals.offers', ['retailer' => 'penny', 'sort' => 'random', 'week' => 'last', 'category' => -1]))
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['retailer', 'sort', 'week', 'category']);
+            ->get(route('deals', ['tab' => 'other', 'retailer' => 'penny', 'sort' => 'random', 'week' => 'last', 'expand' => -1]))
+            ->assertSessionHasErrors(['tab', 'retailer', 'sort', 'week', 'expand']);
     }
 
-    public function test_the_deals_page_lists_the_filter_options(): void
+    public function test_the_deals_page_lists_the_filter_options_and_echoes_the_url_filters(): void
+    {
+        $this->actingAs($this->user)
+            ->get(route('deals', ['q' => 'eier', 'retailer' => 'aldi', 'sort' => 'price', 'mine' => 1]))
+            ->assertInertia(fn ($page) => $page
+                ->component('Deals/Index')
+                ->has('retailers', 5)
+                ->has('sortOptions', 4)
+                ->has('weekOptions', 2)
+                ->where('tab', 'offers')
+                ->where('filters', ['q' => 'eier', 'retailer' => 'aldi', 'sort' => 'price', 'week' => 'current', 'mine' => true, 'expand' => null]));
+    }
+
+    public function test_only_the_open_tabs_data_is_sent(): void
     {
         $this->actingAs($this->user)
             ->get(route('deals'))
             ->assertInertia(fn ($page) => $page
-                ->component('Deals')
-                ->has('retailers', 5)
-                ->has('sortOptions', 4)
-                ->has('weekOptions', 2));
+                ->has('offers')
+                ->missing('forYou')
+                ->missing('comparisons')
+                ->missing('prices')
+                ->loadDeferredProps('personal', fn ($reload) => $reload->has('forYou.summary')->has('comparisons'))
+                ->reloadOnly('prices', fn ($reload) => $reload->has('prices.savings_opportunities')));
+
+        $this->actingAs($this->user)
+            ->get(route('deals', ['tab' => 'prices', 'start_date' => '2026-01-01', 'end_date' => '2026-06-30']))
+            ->assertInertia(fn ($page) => $page
+                ->where('tab', 'prices')
+                ->where('priceRange', ['start_date' => '2026-01-01', 'end_date' => '2026-06-30'])
+                ->missing('offers')
+                ->loadDeferredProps('personal', fn ($reload) => $reload->has('prices.price_trends')));
     }
 
-    public function test_guests_cannot_fetch_offers(): void
+    public function test_guests_cannot_see_deals(): void
     {
-        $this->getJson(route('deals.offers'))->assertUnauthorized();
+        $this->get(route('deals'))->assertRedirect(route('login'));
     }
 }

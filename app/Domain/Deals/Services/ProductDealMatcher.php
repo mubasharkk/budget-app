@@ -5,6 +5,7 @@ namespace App\Domain\Deals\Services;
 use App\Domain\Products\Data\PurchasedProduct;
 use App\Models\Category;
 use App\Models\Deal;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
@@ -32,6 +33,17 @@ class ProductDealMatcher
      * @var array<int, int>|null category id => top-level category id
      */
     private ?array $topLevelCategoryIds = null;
+
+    /**
+     * The offers among $deals that are for the product.
+     *
+     * @param  Collection<int, Deal>  $deals
+     * @return Collection<int, Deal>
+     */
+    public function matching(PurchasedProduct $product, Collection $deals): Collection
+    {
+        return $deals->filter(fn (Deal $deal): bool => $this->matches($product, $deal))->values();
+    }
 
     public function matches(PurchasedProduct $product, Deal $deal): bool
     {

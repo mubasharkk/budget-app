@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Chip from '@/Components/Deals/Chip';
 import RetailerChips from '@/Components/Deals/RetailerChips';
 import TextInput from '@/Components/TextInput';
 
 export default function OfferFilters({ filters, options, onChange }) {
     const [search, setSearch] = useState(filters.q);
+
+    useEffect(() => setSearch(filters.q), [filters.q]);
 
     const submitSearch = (event) => {
         event.preventDefault();

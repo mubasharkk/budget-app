@@ -15,7 +15,7 @@ class DealRecommendationResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'offer' => new DealResource($this->deal),
+            'offer' => (new DealResource($this->deal))->resolve($request),
             'product' => [
                 'id' => $this->product->productId,
                 'name' => $this->product->name,

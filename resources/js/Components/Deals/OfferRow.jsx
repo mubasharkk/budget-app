@@ -3,7 +3,7 @@ import EndsBadge from '@/Components/Deals/EndsBadge';
 import PriceTag from '@/Components/Deals/PriceTag';
 import RetailerBadge from '@/Components/Deals/RetailerBadge';
 
-export default function OfferRow({ offer }) {
+export default function OfferRow({ offer, unitFirst = false }) {
     return (
         <li className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
             <RetailerBadge label={offer.retailer_label} />
@@ -18,7 +18,7 @@ export default function OfferRow({ offer }) {
                 </div>
             </div>
             <div className="text-right">
-                <PriceTag offer={offer} />
+                <PriceTag offer={offer} unitFirst={unitFirst} />
             </div>
         </li>
     );

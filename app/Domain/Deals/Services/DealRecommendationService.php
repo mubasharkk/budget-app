@@ -37,9 +37,8 @@ class DealRecommendationService
 
         return $products
             ->map(function (PurchasedProduct $product) use ($deals, &$usedDealIds): ?DealRecommendation {
-                $deal = $deals
-                    ->reject(fn (Deal $deal): bool => isset($usedDealIds[$deal->id]))
-                    ->filter(fn (Deal $deal): bool => $this->productDealMatcher->matches($product, $deal))
+                $deal = $this->productDealMatcher
+                    ->matching($product, $deals->reject(fn (Deal $deal): bool => isset($usedDealIds[$deal->id])))
                     ->sortBy(fn (Deal $deal): float => (float) $deal->price)
                     ->first();
 

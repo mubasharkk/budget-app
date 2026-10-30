@@ -129,7 +129,7 @@ class DashboardEndpointsTest extends TestCase
         $this->seedReceipts();
         $this->actingAs($this->user);
 
-        foreach (['overview', 'trend', 'consumption', 'deals', 'budgets', 'snapshot'] as $endpoint) {
+        foreach (['overview', 'trend', 'consumption', 'budgets', 'snapshot'] as $endpoint) {
             $this->getJson("/dashboard/{$endpoint}")->assertOk();
         }
 

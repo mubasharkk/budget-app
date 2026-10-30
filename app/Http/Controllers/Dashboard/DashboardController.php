@@ -11,13 +11,9 @@ use App\Domain\Analytics\Services\TransactionLedgerService;
 use App\Domain\Budgets\Services\BudgetService;
 use App\Domain\Contracts\Services\ContractBillingService;
 use App\Domain\Identity\Services\UserSettingsService;
-use App\Domain\Products\Services\PriceIntelligenceService;
 use App\Enums\BudgetPeriod;
 use App\Enums\DashboardSection;
-use App\Enums\DealSort;
-use App\Enums\DealWeek;
 use App\Enums\ExpenseType;
-use App\Enums\Retailer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardSettingsRequest;
 use App\Http\Requests\TransactionLedgerRequest;
@@ -33,7 +29,6 @@ class DashboardController extends Controller
         private DashboardService $dashboardService,
         private ExpenseOverviewService $expenseOverviewService,
         private ConsumptionService $consumptionService,
-        private PriceIntelligenceService $priceIntelligenceService,
         private BudgetService $budgetService,
         private DashboardSnapshotService $dashboardSnapshotService,
         private UserSettingsService $userSettingsService,
@@ -65,15 +60,6 @@ class DashboardController extends Controller
     public function insights(): Response
     {
         return Inertia::render('Insights');
-    }
-
-    public function deals(): Response
-    {
-        return Inertia::render('Deals', [
-            'retailers' => Retailer::options(),
-            'sortOptions' => DealSort::options(),
-            'weekOptions' => DealWeek::options(),
-        ]);
     }
 
     /**
@@ -119,22 +105,6 @@ class DashboardController extends Controller
         $period = BudgetPeriod::tryFrom((string) $request->query('period')) ?? BudgetPeriod::Monthly;
 
         return response()->json($this->budgetService->summary($request->user()->id, $period));
-    }
-
-    /**
-     * Price intelligence: savings opportunities, cheapest vendors, and price trends.
-     */
-    public function dealsData(Request $request): JsonResponse
-    {
-        $userId = $request->user()->id;
-
-        return response()->json([
-            'savings_opportunities' => $this->priceIntelligenceService->savingsOpportunities(
-                $userId, $request->query('start_date'), $request->query('end_date')
-            ),
-            'cheapest_vendors' => $this->priceIntelligenceService->cheapestVendors($userId),
-            'price_trends' => $this->priceIntelligenceService->priceTrends($userId),
-        ]);
     }
 
     /**

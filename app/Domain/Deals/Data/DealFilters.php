@@ -24,7 +24,7 @@ readonly class DealFilters
         public DealSort $sort = DealSort::Saving,
         public DealWeek $week = DealWeek::Current,
         public bool $onlyMyCategories = false,
-        public ?int $categoryId = null,
+        public ?int $expandedCategoryId = null,
         public int $perGroup = self::DEFAULT_PER_GROUP,
     ) {}
 
@@ -41,16 +41,33 @@ readonly class DealFilters
             sort: DealSort::tryFrom((string) ($input['sort'] ?? '')) ?? DealSort::Saving,
             week: DealWeek::tryFrom((string) ($input['week'] ?? '')) ?? DealWeek::Current,
             onlyMyCategories: filter_var($input['mine'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            categoryId: isset($input['category']) ? (int) $input['category'] : null,
+            expandedCategoryId: isset($input['expand']) ? (int) $input['expand'] : null,
             perGroup: (int) ($input['per_group'] ?? self::DEFAULT_PER_GROUP),
         );
     }
 
     /**
-     * A single expanded category returns every offer in it.
+     * The expanded category lists every offer instead of the first few.
      */
-    public function isExpandedCategory(): bool
+    public function isExpanded(int $categoryId): bool
     {
-        return $this->categoryId !== null;
+        return $this->expandedCategoryId === $categoryId;
+    }
+
+    /**
+     * The filters as URL query values, for the page's filter controls.
+     *
+     * @return array{q: string, retailer: string, sort: string, week: string, mine: bool, expand: ?int}
+     */
+    public function toArray(): array
+    {
+        return [
+            'q' => $this->searchTerm ?? '',
+            'retailer' => $this->retailer?->value ?? '',
+            'sort' => $this->sort->value,
+            'week' => $this->week->value,
+            'mine' => $this->onlyMyCategories,
+            'expand' => $this->expandedCategoryId,
+        ];
     }
 }

@@ -1,19 +1,16 @@
 import { useState } from 'react';
 import OfferRow from '@/Components/Deals/OfferRow';
-import { fetchDealOffers } from '@/Components/Deals/dealsApi';
+import { showOffers } from '@/Components/Deals/visitDeals';
 
 export default function OfferGroup({ group, filters }) {
-    const [allOffers, setAllOffers] = useState(null);
     const [expanding, setExpanding] = useState(false);
-    const offers = allOffers ?? group.offers;
-    const hidden = group.total - offers.length;
+    const hidden = group.total - group.offers.length;
 
-    const showAll = () => {
-        setExpanding(true);
-        fetchDealOffers({ ...filters, category: group.category_id })
-            .then((data) => setAllOffers(data.groups[0]?.offers ?? group.offers))
-            .finally(() => setExpanding(false));
-    };
+    const showAll = () =>
+        showOffers(
+            { ...filters, expand: group.category_id },
+            { onStart: () => setExpanding(true), onFinish: () => setExpanding(false) },
+        );
 
     return (
         <section className="flex flex-col gap-2">
@@ -21,8 +18,8 @@ export default function OfferGroup({ group, filters }) {
                 {group.name} · {group.total} offers
             </h4>
             <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200">
-                {offers.map((offer) => (
-                    <OfferRow key={offer.id} offer={offer} />
+                {group.offers.map((offer) => (
+                    <OfferRow key={offer.id} offer={offer} unitFirst={filters.sort === 'unit_price'} />
                 ))}
             </ul>
             {hidden > 0 && (
