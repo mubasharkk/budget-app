@@ -1,5 +1,25 @@
-const DEFAULT_LOCALE = 'de-DE';
 const FALLBACK_CURRENCY = 'EUR';
+
+/**
+ * The country whose number pattern each currency is shown in (1.234,56 € vs
+ * $1,234.56). Keep in step with SupportedCurrencies::LOCALES on the backend.
+ */
+const CURRENCY_LOCALES = {
+    EUR: 'de-DE',
+    USD: 'en-US',
+    INR: 'en-IN',
+    PKR: 'en-PK',
+    TRY: 'tr-TR',
+    GBP: 'en-GB',
+};
+
+/**
+ * @param {string} currency ISO 4217 code
+ * @returns {string} BCP 47 locale for the currency's number pattern
+ */
+export function localeForCurrency(currency) {
+    return CURRENCY_LOCALES[currency] ?? CURRENCY_LOCALES[FALLBACK_CURRENCY];
+}
 
 let defaultCurrency = FALLBACK_CURRENCY;
 
@@ -28,10 +48,10 @@ export function getDefaultCurrency() {
  * Returns 'N/A' for null/undefined/empty amounts to match existing UI behavior.
  *
  * @param {number|string|null|undefined} amount
- * @param {string} locale BCP 47 locale
+ * @param {string} [locale] BCP 47 locale; defaults to the currency's own pattern
  * @returns {string}
  */
-export function formatCurrency(amount, locale = DEFAULT_LOCALE) {
+export function formatCurrency(amount, locale) {
     return formatCurrencyIn(amount, defaultCurrency, locale);
 }
 
@@ -44,16 +64,18 @@ export function formatCurrency(amount, locale = DEFAULT_LOCALE) {
  *
  * @param {number|string|null|undefined} amount
  * @param {string|null|undefined} currency ISO 4217 code; falls back to the default
- * @param {string} locale BCP 47 locale
+ * @param {string} [locale] BCP 47 locale; defaults to the currency's own pattern
  * @returns {string}
  */
-export function formatCurrencyIn(amount, currency, locale = DEFAULT_LOCALE) {
+export function formatCurrencyIn(amount, currency, locale) {
     if (amount === null || amount === undefined || amount === '') {
         return 'N/A';
     }
 
-    return new Intl.NumberFormat(locale, {
+    const code = currency || defaultCurrency;
+
+    return new Intl.NumberFormat(locale ?? localeForCurrency(code), {
         style: 'currency',
-        currency: currency || defaultCurrency,
+        currency: code,
     }).format(Number(amount));
 }

@@ -128,7 +128,7 @@ class LlmServiceTest extends TestCase
             'today' => '2026-06-01',
             'history' => [['role' => 'user', 'content' => 'Hi']],
         ])['data']);
-        $this->assertSame(['answer' => '12 $'], $service->formatSpendingAnswer('Food?', ['total' => 12], '$')['data']);
+        $this->assertSame(['answer' => '12 $'], $service->formatSpendingAnswer('Food?', ['total' => 12], 'USD')['data']);
 
         $this->client->assertSent(Chat::class, 4);
         $this->client->assertSent(Chat::class, fn (string $method, array $parameters): bool => str_contains(
@@ -136,6 +136,8 @@ class LlmServiceTest extends TestCase
             '"MILCH" (unit_price: 1, quantity: 1, category: Dairy)',
         ));
         $this->client->assertSent(Chat::class, fn (string $method, array $parameters): bool => str_contains($parameters['messages'][1]['content'], 'Food?'));
+        $this->client->assertSent(Chat::class, fn (string $method, array $parameters): bool => str_contains($parameters['messages'][1]['content'], "Total: 120,00\u{a0}€"));
+        $this->client->assertSent(Chat::class, fn (string $method, array $parameters): bool => str_contains($parameters['messages'][1]['content'], 'e.g. $1,234.50'));
     }
 
     /**
@@ -145,7 +147,7 @@ class LlmServiceTest extends TestCase
     {
         return [
             'period' => 'June 2026',
-            'currencySymbol' => '€',
+            'currency' => 'EUR',
             'overview' => ['total' => 120, 'fixed' => 20, 'variable' => 100, 'by_category' => [['category' => 'Groceries', 'total' => 100]]],
             'budget' => ['budgeted' => 200, 'actual' => 120, 'over_count' => 0, 'warning_count' => 1],
             'recommendations' => [['type' => 'saving', 'title' => 'Cook more', 'description' => 'Fewer takeaways']],

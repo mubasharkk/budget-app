@@ -31,7 +31,7 @@ class MonthlyDigestMail extends Mailable
             markdown: 'mail.monthly-digest',
             with: [
                 'digest' => $this->digest,
-                'currencySymbol' => SupportedCurrencies::symbol($this->digest->user?->default_currency),
+                'currency' => $this->digest->user?->default_currency ?? SupportedCurrencies::FALLBACK,
                 'recommendations' => $this->digest->payload['recommendations'] ?? [],
                 'renewals' => $this->digest->payload['renewals'] ?? [],
             ],

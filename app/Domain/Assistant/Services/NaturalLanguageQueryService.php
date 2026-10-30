@@ -63,7 +63,7 @@ class NaturalLanguageQueryService
         $answerResult = $this->llmService->formatSpendingAnswer(
             $question,
             $data,
-            SupportedCurrencies::symbolForUser($userId),
+            SupportedCurrencies::codeForUser($userId),
         );
 
         if (! $answerResult['success']) {

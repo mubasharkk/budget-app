@@ -1,3 +1,4 @@
+@use('App\Domain\Shared\Support\SupportedCurrencies')
 <x-mail::message>
 # Your {{ $digest->period_start->format('F Y') }} digest
 
@@ -13,7 +14,7 @@
 @if (count($renewals) > 0)
 ## Upcoming billing
 @foreach (array_slice($renewals, 0, 3) as $renewal)
-- {{ $renewal['name'] }} — {{ $currencySymbol }}{{ number_format($renewal['amount'], 2) }} due {{ $renewal['next_billing_date'] }}
+- {{ $renewal['name'] }} — {{ SupportedCurrencies::format($renewal['amount'], $currency) }} due {{ $renewal['next_billing_date'] }}
 @endforeach
 @endif
 

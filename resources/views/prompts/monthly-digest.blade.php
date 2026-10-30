@@ -1,17 +1,18 @@
 {{-- LLM Prompt for monthly spending digest --}}
+@use('App\Domain\Shared\Support\SupportedCurrencies')
 You are a personal budgeting assistant. Summarize the user's month in clear, encouraging prose.
 
 Period: {{ $period }}
 
 Spending overview:
-- Total: {{ $currencySymbol }}{{ number_format($overview['total'], 2) }} (fixed {{ $currencySymbol }}{{ number_format($overview['fixed'], 2) }}, variable {{ $currencySymbol }}{{ number_format($overview['variable'], 2) }})
+- Total: {{ SupportedCurrencies::format($overview['total'], $currency) }} (fixed {{ SupportedCurrencies::format($overview['fixed'], $currency) }}, variable {{ SupportedCurrencies::format($overview['variable'], $currency) }})
 @foreach($overview['by_category'] ?? [] as $row)
-- {{ $row['category'] }}: {{ $currencySymbol }}{{ number_format($row['total'], 2) }}
+- {{ $row['category'] }}: {{ SupportedCurrencies::format($row['total'], $currency) }}
 @endforeach
 
 Budget status:
-- Budgeted: {{ $currencySymbol }}{{ number_format($budget['budgeted'], 2) }}
-- Actual: {{ $currencySymbol }}{{ number_format($budget['actual'], 2) }}
+- Budgeted: {{ SupportedCurrencies::format($budget['budgeted'], $currency) }}
+- Actual: {{ SupportedCurrencies::format($budget['actual'], $currency) }}
 - Over budget categories: {{ $budget['over_count'] }}
 - Near limit: {{ $budget['warning_count'] }}
 
@@ -31,7 +32,7 @@ Anomalies:
 
 Upcoming renewals / billing:
 @forelse($renewals as $renewal)
-- {{ is_array($renewal) ? $renewal['name'] : $renewal->name }} ({{ $currencySymbol }}{{ number_format(is_array($renewal) ? $renewal['amount'] : $renewal->amount, 2) }}/{{ is_array($renewal) ? $renewal['billing_cycle'] : $renewal->billing_cycle }}) — due {{ is_array($renewal) ? $renewal['next_billing_date'] : $renewal->next_billing_date }}
+- {{ is_array($renewal) ? $renewal['name'] : $renewal->name }} ({{ SupportedCurrencies::format(is_array($renewal) ? $renewal['amount'] : $renewal->amount, $currency) }}/{{ is_array($renewal) ? $renewal['billing_cycle'] : $renewal->billing_cycle }}) — due {{ is_array($renewal) ? $renewal['next_billing_date'] : $renewal->next_billing_date }}
 @empty
 - None in the next 30 days
 @endforelse

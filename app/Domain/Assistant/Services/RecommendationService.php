@@ -9,7 +9,7 @@ use App\Enums\BudgetPeriod;
 
 class RecommendationService
 {
-    private string $currencySymbol = '€';
+    private string $currency = SupportedCurrencies::FALLBACK;
 
     public function __construct(
         private PriceIntelligenceService $priceIntelligenceService,
@@ -27,7 +27,7 @@ class RecommendationService
         ?string $endDate = null,
         int $limit = 15,
     ): array {
-        $this->currencySymbol = SupportedCurrencies::symbolForUser($userId);
+        $this->currency = SupportedCurrencies::codeForUser($userId);
         $items = [];
 
         foreach ($this->priceIntelligenceService->savingsOpportunities($userId, $startDate, $endDate, 10) as $row) {
@@ -36,10 +36,10 @@ class RecommendationService
                 'type' => 'savings',
                 'title' => 'Switch vendor for '.$row->product_name,
                 'description' => sprintf(
-                    "You paid {$this->currencySymbol}%s at %s; cheapest seen was {$this->currencySymbol}%s%s.",
-                    number_format((float) $row->paid_price, 2),
+                    'You paid %s at %s; cheapest seen was %s%s.',
+                    SupportedCurrencies::format((float) $row->paid_price, $this->currency),
                     $row->vendor,
-                    number_format((float) $row->cheapest_price, 2),
+                    SupportedCurrencies::format((float) $row->cheapest_price, $this->currency),
                     $row->cheapest_vendor ? ' at '.$row->cheapest_vendor : '',
                 ),
                 'action' => 'Buy '.$row->product_name.' at '.$row->cheapest_vendor,
@@ -59,11 +59,11 @@ class RecommendationService
                     'type' => 'budget',
                     'title' => 'Over budget: '.$row['label'],
                     'description' => sprintf(
-                        "Spent {$this->currencySymbol}%s of {$this->currencySymbol}%s budget (%.0f%%). Projected {$this->currencySymbol}%s by month end.",
-                        number_format($row['actual'], 2),
-                        number_format($row['budget_amount'], 2),
+                        'Spent %s of %s budget (%.0f%%). Projected %s by month end.',
+                        SupportedCurrencies::format($row['actual'], $this->currency),
+                        SupportedCurrencies::format($row['budget_amount'], $this->currency),
                         $row['percent_used'],
-                        number_format($row['projected'], 2),
+                        SupportedCurrencies::format($row['projected'], $this->currency),
                     ),
                     'action' => 'Review '.$row['label'].' spending',
                     'metadata' => [
@@ -77,10 +77,10 @@ class RecommendationService
                     'type' => 'budget',
                     'title' => 'Near budget limit: '.$row['label'],
                     'description' => sprintf(
-                        "At %.0f%% of your {$this->currencySymbol}%s budget with {$this->currencySymbol}%s remaining.",
+                        'At %.0f%% of your %s budget with %s remaining.',
                         $row['percent_used'],
-                        number_format($row['budget_amount'], 2),
-                        number_format($row['remaining'], 2),
+                        SupportedCurrencies::format($row['budget_amount'], $this->currency),
+                        SupportedCurrencies::format($row['remaining'], $this->currency),
                     ),
                     'action' => 'Slow down '.$row['label'].' spend',
                     'metadata' => [
@@ -94,9 +94,9 @@ class RecommendationService
                     'type' => 'budget',
                     'title' => 'Projected overspend: '.$row['label'],
                     'description' => sprintf(
-                        "On pace to hit {$this->currencySymbol}%s vs {$this->currencySymbol}%s budget (%.0f%% projected).",
-                        number_format($row['projected'], 2),
-                        number_format($row['budget_amount'], 2),
+                        'On pace to hit %s vs %s budget (%.0f%% projected).',
+                        SupportedCurrencies::format($row['projected'], $this->currency),
+                        SupportedCurrencies::format($row['budget_amount'], $this->currency),
                         $row['projected_percent'],
                     ),
                     'action' => 'Adjust '.$row['label'].' spending this month',

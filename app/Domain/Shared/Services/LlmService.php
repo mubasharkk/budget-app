@@ -233,13 +233,13 @@ class LlmService
      * @param  array<string, mixed>  $data
      * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
      */
-    public function formatSpendingAnswer(string $question, array $data, string $currencySymbol = '€'): array
+    public function formatSpendingAnswer(string $question, array $data, string $currency = SupportedCurrencies::FALLBACK): array
     {
         try {
             $prompt = View::make('prompts.spending-answer', [
                 'question' => $question,
                 'data' => $data,
-                'currencySymbol' => $currencySymbol,
+                'currency' => $currency,
             ])->render();
 
             $response = $this->client->chat()->create([

@@ -57,7 +57,7 @@ class DigestService
 
         $llmResult = $this->llmService->summarizeMonthlyDigest([
             'period' => $start->format('F Y'),
-            'currencySymbol' => SupportedCurrencies::symbol($user->default_currency),
+            'currency' => $user->default_currency ?? SupportedCurrencies::FALLBACK,
             'overview' => $overview,
             'budget' => $budgetSummary,
             'recommendations' => array_slice($recommendations, 0, 5),

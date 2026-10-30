@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class AnomalyDetectionService
 {
-    private string $currencySymbol = '€';
+    private string $currency = SupportedCurrencies::FALLBACK;
 
     /**
      * Detect spending anomalies for a user within a date range.
@@ -25,7 +25,7 @@ class AnomalyDetectionService
     ): array {
         $end = CarbonImmutable::instance($end ?? CarbonImmutable::today());
         $start = CarbonImmutable::instance($start ?? $end->copy()->startOfMonth());
-        $this->currencySymbol = SupportedCurrencies::symbolForUser($userId);
+        $this->currency = SupportedCurrencies::codeForUser($userId);
 
         return [
             ...$this->detectDuplicateCharges($userId, $start, $end),
@@ -60,9 +60,9 @@ class AnomalyDetectionService
             'severity' => 'high',
             'title' => 'Possible duplicate charge',
             'description' => sprintf(
-                "%s charged {$this->currencySymbol}%s on %s (%d times)",
+                '%s charged %s on %s (%d times)',
                 $row->vendor,
-                number_format((float) $row->total_amount, 2),
+                SupportedCurrencies::format((float) $row->total_amount, $this->currency),
                 $row->charge_date,
                 $row->occurrence_count,
             ),
@@ -118,11 +118,11 @@ class AnomalyDetectionService
                 'severity' => 'medium',
                 'title' => 'Unusually large receipt',
                 'description' => sprintf(
-                    "%s — {$this->currencySymbol}%s on %s (median receipt: {$this->currencySymbol}%s)",
+                    '%s — %s on %s (median receipt: %s)',
                     $receipt->vendor ?? 'Unknown vendor',
-                    number_format((float) $receipt->total_amount, 2),
+                    SupportedCurrencies::format((float) $receipt->total_amount, $this->currency),
                     $receipt->receipt_date?->toDateString() ?? 'unknown date',
-                    number_format((float) $median, 2),
+                    SupportedCurrencies::format((float) $median, $this->currency),
                 ),
                 'metadata' => [
                     'receipt_id' => $receipt->id,
@@ -169,11 +169,11 @@ class AnomalyDetectionService
                 'severity' => $changePercent >= 100 ? 'high' : 'medium',
                 'title' => 'Category spend spike',
                 'description' => sprintf(
-                    "%s spend is up %.0f%% ({$this->currencySymbol}%s vs {$this->currencySymbol}%s last month)",
+                    '%s spend is up %.0f%% (%s vs %s last month)',
                     $category,
                     $changePercent,
-                    number_format($currTotal, 2),
-                    number_format($prevTotal, 2),
+                    SupportedCurrencies::format($currTotal, $this->currency),
+                    SupportedCurrencies::format($prevTotal, $this->currency),
                 ),
                 'metadata' => [
                     'category' => $category,
