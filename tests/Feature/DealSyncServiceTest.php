@@ -80,11 +80,15 @@ class DealSyncServiceTest extends TestCase
             'Netto' => [$this->offer(3, 'Netto Marken-Discount', 3.49)],
             'Kaufland' => [$this->offer(4, 'Kaufland', 5.00)],
             'Edeka' => [$this->offer(5, 'EDEKA', 2.22), $this->offer(1, 'Lidl', 1.99, 2.99)],
+            'Penny' => [$this->offer(6, 'PENNY', 1.49)],
+            'REWE' => [$this->offer(7, 'REWE Center', 2.79)],
         ];
 
-        $this->assertSame(5, $this->sync('10115'));
+        $this->assertSame(7, $this->sync('10115'));
 
-        $this->assertSame(5, Deal::count());
+        $this->assertSame(7, Deal::count());
+        $this->assertSame(Retailer::Penny, Deal::where('external_id', '6')->sole()->retailer);
+        $this->assertSame(Retailer::Rewe, Deal::where('external_id', '7')->sole()->retailer);
         $this->assertDatabaseMissing('deals', ['external_id' => '99']);
         Http::assertSent(fn (Request $request): bool => $request['zipCode'] === '10115' && $request['q'] === 'Netto');
 

@@ -7,6 +7,7 @@ use App\Domain\Deals\Data\DealGroup;
 use App\Domain\Products\Services\PurchaseHistoryService;
 use App\Enums\DealSort;
 use App\Enums\DealWeek;
+use App\Enums\Retailer;
 use App\Models\Deal;
 use App\Models\DealPostalCode;
 use Illuminate\Database\Eloquent\Builder;
@@ -57,6 +58,22 @@ class DealCatalogService
     public function currentDeals(string $postalCode): Collection
     {
         return Deal::query()->with('category')->availableIn($postalCode)->current()->get();
+    }
+
+    /**
+     * Retailers that have offers for the postal code in the given week; the
+     * source does not cover every retailer everywhere (no Aldi Nord, for one).
+     *
+     * @return array<int, string>
+     */
+    public function retailersWithOffers(string $postalCode, DealWeek $week): array
+    {
+        $query = Deal::query()->availableIn($postalCode);
+        $week === DealWeek::Upcoming ? $query->upcoming() : $query->current();
+
+        return $query->distinct()->orderBy('retailer')->pluck('retailer')
+            ->map(fn (Retailer $retailer): string => $retailer->value)
+            ->all();
     }
 
     public function lastSyncedAt(string $postalCode): ?string

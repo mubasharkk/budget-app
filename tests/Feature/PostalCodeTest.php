@@ -60,7 +60,7 @@ class PostalCodeTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Deals/Index')
                 ->where('auth.user.postal_code', '31139')
-                ->has('retailers', 5));
+                ->has('retailers', 7));
     }
 
     public function test_user_can_change_an_existing_postal_code(): void

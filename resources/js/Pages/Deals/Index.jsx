@@ -29,6 +29,7 @@ export default function DealsIndex({ tab, filters, priceRange, retailers, sortOp
                             filters={filters}
                             options={{ retailers, sorts: sortOptions, weeks: weekOptions }}
                             syncedAt={data.syncedAt}
+                            availableRetailers={data.availableRetailers}
                             offers={data.offers}
                         />
                     )}

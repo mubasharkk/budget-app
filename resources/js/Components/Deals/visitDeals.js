@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 
-const OFFER_PROPS = ['tab', 'filters', 'syncedAt', 'offers', 'forYou', 'comparisons'];
+const OFFER_PROPS = ['tab', 'filters', 'syncedAt', 'availableRetailers', 'offers', 'forYou', 'comparisons'];
 const PRICE_PROPS = ['tab', 'priceRange', 'prices'];
 
 /**

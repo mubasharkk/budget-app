@@ -1,7 +1,7 @@
 # Deals Page — Implementation Plan
 
 > Status: **Phases 0–2 built** (marktguru source, daily sync, Deals page, "For you", per-product comparison). Phase 3 (assistant `deals_search` intent) not started.
-> Retailers in scope: **Lidl, Penny, Edeka, Netto, Aldi, Kaufland.**
+> Retailers: **Lidl, Aldi, Netto, Kaufland, Edeka, Penny, REWE.** marktguru has no Aldi Nord (checked 2026-10-30 for Berlin and Hamburg; Aldi Süd is covered), so the store filter disables stores without offers in the user's area (`DealCatalogService::retailersWithOffers`).
 
 A page that surfaces current weekly discounter offers, matched against what the
 user actually buys. The value is not a generic deals list — it is the tie-in

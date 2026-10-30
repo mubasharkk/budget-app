@@ -54,6 +54,7 @@ export default function OfferFilters({ filters, options, onChange }) {
             <div className="flex flex-wrap items-center gap-2">
                 <RetailerChips
                     retailers={options.retailers}
+                    available={options.availableRetailers}
                     selected={filters.retailer}
                     onSelect={(retailer) => onChange({ retailer })}
                 />

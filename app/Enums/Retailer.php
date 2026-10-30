@@ -9,6 +9,8 @@ enum Retailer: string
     case Netto = 'netto';
     case Kaufland = 'kaufland';
     case Edeka = 'edeka';
+    case Penny = 'penny';
+    case Rewe = 'rewe';
 
     public function label(): string
     {
@@ -18,11 +20,13 @@ enum Retailer: string
             self::Netto => 'Netto',
             self::Kaufland => 'Kaufland',
             self::Edeka => 'Edeka',
+            self::Penny => 'Penny',
+            self::Rewe => 'REWE',
         };
     }
 
     /**
-     * Map a source's advertiser name ("ALDI SÜD", "Netto Marken-Discount", "EDEKA") to a supported retailer.
+     * Map a source's advertiser name ("ALDI SÜD", "Netto Marken-Discount", "REWE Center") to a supported retailer.
      */
     public static function fromAdvertiserName(?string $advertiserName): ?self
     {

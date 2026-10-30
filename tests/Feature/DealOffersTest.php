@@ -205,7 +205,7 @@ class DealOffersTest extends TestCase
     public function test_invalid_filters_are_rejected(): void
     {
         $this->actingAs($this->user)
-            ->get(route('deals', ['tab' => 'other', 'retailer' => 'penny', 'sort' => 'random', 'week' => 'last', 'expand' => -1]))
+            ->get(route('deals', ['tab' => 'other', 'retailer' => 'metro', 'sort' => 'random', 'week' => 'last', 'expand' => -1]))
             ->assertSessionHasErrors(['tab', 'retailer', 'sort', 'week', 'expand']);
     }
 
@@ -215,11 +215,23 @@ class DealOffersTest extends TestCase
             ->get(route('deals', ['q' => 'eier', 'retailer' => 'aldi', 'sort' => 'price', 'mine' => 1]))
             ->assertInertia(fn ($page) => $page
                 ->component('Deals/Index')
-                ->has('retailers', 5)
+                ->has('retailers', 7)
                 ->has('sortOptions', 4)
                 ->has('weekOptions', 2)
                 ->where('tab', 'offers')
                 ->where('filters', ['q' => 'eier', 'retailer' => 'aldi', 'sort' => 'price', 'week' => 'current', 'mine' => true, 'expand' => null]));
+    }
+
+    public function test_stores_without_offers_in_the_area_are_reported_per_week(): void
+    {
+        Deal::factory()->availableIn('10115')->create(['retailer' => Retailer::Lidl]);
+        Deal::factory()->availableIn('10115')->create(['retailer' => Retailer::Rewe]);
+        Deal::factory()->availableIn('10115')->upcoming()->create(['retailer' => Retailer::Penny]);
+        Deal::factory()->availableIn('80331')->create(['retailer' => Retailer::Aldi]);
+
+        $this->assertSame(['lidl', 'rewe'], $this->page()['availableRetailers']);
+        $this->assertSame(['penny'], $this->page(['week' => 'upcoming'])['availableRetailers']);
+        $this->assertNull($this->page(user: User::factory()->create())['availableRetailers']);
     }
 
     public function test_only_the_open_tabs_data_is_sent(): void

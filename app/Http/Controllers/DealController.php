@@ -51,6 +51,9 @@ class DealController extends Controller
             'filters' => $filters->toArray(),
             'priceRange' => $request->priceRange(),
             'syncedAt' => $forPostalCode(fn () => $this->dealCatalogService->lastSyncedAt($postalCode)),
+            'availableRetailers' => $this->tabProp($offersTab, $forPostalCode(
+                fn () => $this->dealCatalogService->retailersWithOffers($postalCode, $filters->week),
+            )),
             'offers' => $this->tabProp($offersTab, $forPostalCode(fn () => DealGroupResource::collection(
                 $this->dealCatalogService->browse($userId, $postalCode, $filters),
             )->resolve())),

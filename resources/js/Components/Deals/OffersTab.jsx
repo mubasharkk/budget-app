@@ -8,7 +8,7 @@ import PostalCodePrompt from '@/Components/Deals/PostalCodePrompt';
 import SkeletonRows from '@/Components/Deals/SkeletonRows';
 import useSyncPolling from '@/Components/Deals/useSyncPolling';
 
-export default function OffersTab({ filters, options, syncedAt, offers }) {
+export default function OffersTab({ filters, options, syncedAt, availableRetailers, offers }) {
     const postalCode = usePage().props.auth.user.postal_code;
     const [editingPostalCode, setEditingPostalCode] = useState(false);
 
@@ -30,7 +30,12 @@ export default function OffersTab({ filters, options, syncedAt, offers }) {
                 <ForYouSection />
                 <CompareSection />
             </Deferred>
-            <BrowseSection filters={filters} options={options} syncedAt={syncedAt} offers={offers} />
+            <BrowseSection
+                filters={filters}
+                options={{ ...options, availableRetailers: syncedAt ? availableRetailers : null }}
+                syncedAt={syncedAt}
+                offers={offers}
+            />
         </div>
     );
 }

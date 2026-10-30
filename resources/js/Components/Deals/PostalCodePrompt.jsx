@@ -6,7 +6,7 @@ export default function PostalCodePrompt({ onSaved, onCancel }) {
             <div>
                 <h3 className="text-base font-medium text-gray-900">Supermarket deals near you</h3>
                 <p className="mt-1 text-sm text-gray-600">
-                    Offers at Lidl, Aldi, Netto, Kaufland and Edeka differ by region. Enter
+                    Offers at Lidl, Aldi, Netto, Kaufland, Edeka, Penny and REWE differ by region. Enter
                     your postal code to see this week's deals.
                 </p>
             </div>
