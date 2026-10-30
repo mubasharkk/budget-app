@@ -25,6 +25,7 @@ readonly class Offer
         public ?string $validFrom,
         public ?string $validTo,
         public array $raw = [],
+        public ?string $externalUrl = null,
     ) {}
 
     public function discountPercent(): ?int

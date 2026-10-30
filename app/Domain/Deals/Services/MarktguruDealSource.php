@@ -97,6 +97,7 @@ class MarktguruDealSource implements DealSource
             validFrom: $this->date(data_get($row, 'validityDates.0.from')),
             validTo: $this->date(data_get($row, 'validityDates.0.to')),
             raw: $row,
+            externalUrl: $this->url(data_get($row, 'externalUrl')),
         );
     }
 
@@ -105,6 +106,20 @@ class MarktguruDealSource implements DealSource
         $value = is_string($value) ? trim($value) : '';
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * The retailer's own page for the offer, when the source has one; only http(s) links are kept.
+     */
+    private function url(mixed $value): ?string
+    {
+        $url = $this->text($value);
+
+        if ($url === null || mb_strlen($url) > 2048 || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+
+        return in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true) ? $url : null;
     }
 
     private function date(mixed $value): ?string

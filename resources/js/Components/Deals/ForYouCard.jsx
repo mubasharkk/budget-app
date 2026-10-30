@@ -1,5 +1,6 @@
 import DiscountBadge from '@/Components/Deals/DiscountBadge';
 import EndsBadge from '@/Components/Deals/EndsBadge';
+import OfferTitle from '@/Components/Deals/OfferTitle';
 import PriceTag from '@/Components/Deals/PriceTag';
 import RetailerBadge from '@/Components/Deals/RetailerBadge';
 import { formatCurrency } from '@/utils/money';
@@ -14,7 +15,9 @@ export default function ForYouCard({ recommendation }) {
                 <EndsBadge validTo={offer.valid_to} />
                 <DiscountBadge percent={offer.discount_percent} />
             </div>
-            <p className="text-sm font-medium text-gray-900">{offer.title}</p>
+            <p className="flex min-w-0 text-sm font-medium text-gray-900">
+                <OfferTitle offer={offer} />
+            </p>
             <PriceTag offer={offer} size="lg" />
             <p className="text-xs text-gray-500">
                 You bought {product.name} {product.purchase_count}× recently

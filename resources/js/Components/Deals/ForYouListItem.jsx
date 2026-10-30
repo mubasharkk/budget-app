@@ -1,3 +1,4 @@
+import OfferTitle from '@/Components/Deals/OfferTitle';
 import PriceTag from '@/Components/Deals/PriceTag';
 import RetailerBadge from '@/Components/Deals/RetailerBadge';
 import { formatCurrency } from '@/utils/money';
@@ -8,7 +9,9 @@ export default function ForYouListItem({ recommendation }) {
     return (
         <li className="flex items-center justify-between gap-3 py-2.5">
             <div className="min-w-0">
-                <p className="truncate text-sm text-gray-900">{offer.title}</p>
+                <p className="flex min-w-0 text-sm text-gray-900">
+                    <OfferTitle offer={offer} className="truncate" />
+                </p>
                 <div className="mt-0.5 flex items-center gap-2">
                     <RetailerBadge label={offer.retailer_label} />
                     {saving && (

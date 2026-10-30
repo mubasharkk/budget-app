@@ -1,3 +1,4 @@
+import OfferTitle from '@/Components/Deals/OfferTitle';
 import RetailerBadge from '@/Components/Deals/RetailerBadge';
 import { formatCurrency } from '@/utils/money';
 import { formatUnitPrice } from '@/utils/deals';
@@ -16,8 +17,8 @@ export default function RetailerPriceRow({ offer, cheapest, byUnitPrice }) {
             }`}
         >
             <RetailerBadge label={offer.retailer_label} />
-            <span className="truncate text-xs text-gray-600" title={offer.title}>
-                {offer.title}
+            <span className="flex min-w-0 text-xs text-gray-600">
+                <OfferTitle offer={offer} className="truncate" />
             </span>
             <span className="text-right">
                 <span className={`block text-sm font-semibold ${cheapest ? 'text-green-700' : 'text-gray-900'}`}>

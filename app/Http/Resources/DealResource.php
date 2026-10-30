@@ -22,6 +22,7 @@ class DealResource extends JsonResource
             'title' => $this->title,
             'brand' => $this->brand,
             'description' => $this->description,
+            'external_url' => $this->external_url,
             'price' => (float) $this->price,
             'old_price' => $this->old_price !== null ? (float) $this->old_price : null,
             'discount_percent' => $this->discount_percent,

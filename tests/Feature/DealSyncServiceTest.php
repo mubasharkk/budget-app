@@ -159,6 +159,24 @@ class DealSyncServiceTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_the_retailers_offer_page_is_kept_when_the_source_has_a_safe_link(): void
+    {
+        $this->catalogue = [
+            'Kaufland' => [
+                [...$this->offer(1, 'Kaufland', 1.99), 'externalUrl' => 'https://filiale.kaufland.de/angebote/uebersicht.html?kloffer-articleID=02982122'],
+                [...$this->offer(2, 'Kaufland', 2.49), 'externalUrl' => 'javascript:alert(1)'],
+            ],
+            'Lidl' => [[...$this->offer(3, 'Lidl', 0.99), 'externalUrl' => null]],
+        ];
+
+        $this->sync('10115');
+
+        $this->assertSame(
+            ['1' => 'https://filiale.kaufland.de/angebote/uebersicht.html?kloffer-articleID=02982122', '2' => null, '3' => null],
+            Deal::query()->orderBy('external_id')->pluck('external_url', 'external_id')->all(),
+        );
+    }
+
     public function test_every_page_is_fetched(): void
     {
         $this->catalogue = ['Lidl' => array_map(

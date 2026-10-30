@@ -109,6 +109,7 @@ class DealOffersTest extends TestCase
             'unit_price_unit' => 'kg',
             'valid_from' => '2026-10-26',
             'valid_to' => now()->addDays(2)->toDateString(),
+            'external_url' => 'https://filiale.kaufland.de/angebote/uebersicht.html?kloffer-articleID=1',
         ]);
 
         $this->assertSame([
@@ -119,6 +120,7 @@ class DealOffersTest extends TestCase
             'title' => 'Gouda jung',
             'brand' => 'Milbona',
             'description' => $deal->description,
+            'external_url' => 'https://filiale.kaufland.de/angebote/uebersicht.html?kloffer-articleID=1',
             'price' => 1.99,
             'old_price' => 2.99,
             'discount_percent' => 33,
