@@ -6,6 +6,7 @@ use App\Domain\Identity\Services\ProfileService;
 use App\Domain\Incomes\Services\IncomeService;
 use App\Enums\IncomeType;
 use App\Http\Requests\IncomeUpdateRequest;
+use App\Http\Requests\PostalCodeRequest;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -39,6 +40,16 @@ class ProfileController extends Controller
         $this->incomeService->updateMonthlyIncome($request->user(), $request->validated());
 
         return Redirect::route('profile.edit')->with('status', 'income-updated');
+    }
+
+    /**
+     * Save the postal code used for regional deals; returns to wherever it was asked for.
+     */
+    public function updatePostalCode(PostalCodeRequest $request): RedirectResponse
+    {
+        $this->profileService->updatePostalCode($request->user(), $request->validated('postal_code'));
+
+        return Redirect::back()->with('status', 'postal-code-updated');
     }
 
     /**

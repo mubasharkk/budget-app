@@ -4,6 +4,7 @@ use App\Http\Controllers\AgentController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\DealController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -25,6 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/income', [ProfileController::class, 'updateIncome'])->name('profile.income.update');
+    Route::patch('/profile/postal-code', [ProfileController::class, 'updatePostalCode'])->name('profile.postal-code.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Dashboard routes
@@ -45,6 +47,8 @@ Route::middleware('auth')->group(function () {
     // Consumption insights page
     Route::get('/insights', [DashboardController::class, 'insights'])->name('insights');
     Route::get('/deals', [DashboardController::class, 'deals'])->name('deals');
+    Route::get('/deals/offers', [DealController::class, 'offers'])->name('deals.offers');
+    Route::get('/deals/for-you', [DealController::class, 'forYou'])->name('deals.for-you');
 
     // Product price intelligence detail
     Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');

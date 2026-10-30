@@ -36,6 +36,7 @@ class User extends Authenticatable
         'monthly_income',
         'income_type',
         'default_currency',
+        'postal_code',
     ];
 
     /**

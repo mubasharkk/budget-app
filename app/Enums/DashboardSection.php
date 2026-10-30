@@ -15,6 +15,7 @@ enum DashboardSection: string
     case BudgetVsActual = 'budget_vs_actual';
     case MostBoughtItems = 'most_bought_items';
     case DuplicateReceipts = 'duplicate_receipts';
+    case DealsForYou = 'deals_for_you';
 
     public function label(): string
     {
@@ -26,6 +27,7 @@ enum DashboardSection: string
             self::BudgetVsActual => 'Budget vs actual',
             self::MostBoughtItems => 'Most bought items',
             self::DuplicateReceipts => 'Possible duplicate receipts',
+            self::DealsForYou => 'Deals on things you buy',
         };
     }
 

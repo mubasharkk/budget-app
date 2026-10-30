@@ -9,4 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('contracts:roll-billing-dates')->dailyAt('01:00');
+Schedule::command('deals:sync')->dailyAt('05:00');
 Schedule::command('digests:generate-monthly')->monthlyOn(1, '06:00');

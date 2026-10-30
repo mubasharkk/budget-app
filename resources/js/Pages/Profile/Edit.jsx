@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateIncomeForm from './Partials/UpdateIncomeForm';
+import UpdatePostalCodeForm from './Partials/UpdatePostalCodeForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
 export default function Edit({ mustVerifyEmail, status, incomeTypeOptions }) {
@@ -31,6 +32,10 @@ export default function Edit({ mustVerifyEmail, status, incomeTypeOptions }) {
                             incomeTypeOptions={incomeTypeOptions}
                             className="max-w-xl"
                         />
+                    </div>
+
+                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                        <UpdatePostalCodeForm className="max-w-xl" />
                     </div>
 
                     <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">

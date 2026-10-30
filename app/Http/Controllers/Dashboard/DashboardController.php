@@ -14,7 +14,10 @@ use App\Domain\Identity\Services\UserSettingsService;
 use App\Domain\Products\Services\PriceIntelligenceService;
 use App\Enums\BudgetPeriod;
 use App\Enums\DashboardSection;
+use App\Enums\DealSort;
+use App\Enums\DealWeek;
 use App\Enums\ExpenseType;
+use App\Enums\Retailer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardSettingsRequest;
 use App\Http\Requests\TransactionLedgerRequest;
@@ -66,7 +69,11 @@ class DashboardController extends Controller
 
     public function deals(): Response
     {
-        return Inertia::render('Deals');
+        return Inertia::render('Deals', [
+            'retailers' => Retailer::options(),
+            'sortOptions' => DealSort::options(),
+            'weekOptions' => DealWeek::options(),
+        ]);
     }
 
     /**

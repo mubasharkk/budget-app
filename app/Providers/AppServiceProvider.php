@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Deals\Services\DealSource;
+use App\Domain\Deals\Services\MarktguruDealSource;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -12,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(DealSource::class, MarktguruDealSource::class);
     }
 
     /**

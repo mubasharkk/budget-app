@@ -1,0 +1,210 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Domain\Deals\Exceptions\DealSourceUnavailable;
+use App\Domain\Deals\Services\DealSyncService;
+use App\Enums\Retailer;
+use App\Models\Deal;
+use App\Models\DealPostalCode;
+use App\Models\User;
+use Database\Seeders\CategorySeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
+
+class DealSyncServiceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    /**
+     * Offers the fake marktguru returns, keyed by search term.
+     *
+     * @var array<string, array<int, array<string, mixed>>>
+     */
+    private array $catalogue = [];
+
+    /**
+     * When set, the fake marktguru answers every request with this HTTP status.
+     */
+    private ?int $failWithStatus = null;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['providers.marktguru.base_url' => 'https://marktguru.test/api/v1']);
+
+        Http::fake(function (Request $request) {
+            if ($this->failWithStatus !== null) {
+                return Http::response('Server error', $this->failWithStatus);
+            }
+
+            $results = $this->catalogue[$request['q']] ?? [];
+            $page = array_slice($results, (int) $request['offset'], (int) $request['limit']);
+
+            return Http::response(['totalResults' => count($results), 'results' => $page]);
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function offer(int $id, string $advertiser, float $price, ?float $oldPrice = null): array
+    {
+        return [
+            'id' => $id,
+            'price' => $price,
+            'oldPrice' => $oldPrice,
+            'description' => "Offer {$id} description",
+            'brand' => ['name' => 'Brand '.$id],
+            'product' => ['name' => 'Product '.$id],
+            'unit' => ['shortName' => 'kg'],
+            'validityDates' => [['from' => '2026-10-26T00:00:00Z', 'to' => '2026-10-31T23:59:59Z']],
+            'advertisers' => [['name' => $advertiser]],
+        ];
+    }
+
+    private function sync(string $postalCode): int
+    {
+        return app(DealSyncService::class)->syncPostalCode($postalCode);
+    }
+
+    public function test_offers_for_every_retailer_are_stored_with_their_raw_payload(): void
+    {
+        $this->catalogue = [
+            'Lidl' => [$this->offer(1, 'Lidl', 1.99, 2.99), $this->offer(99, 'Rewe', 0.50)],
+            'Aldi' => [$this->offer(2, 'ALDI SÜD', 0.89)],
+            'Netto' => [$this->offer(3, 'Netto Marken-Discount', 3.49)],
+            'Kaufland' => [$this->offer(4, 'Kaufland', 5.00)],
+            'Edeka' => [$this->offer(5, 'EDEKA', 2.22), $this->offer(1, 'Lidl', 1.99, 2.99)],
+        ];
+
+        $this->assertSame(5, $this->sync('10115'));
+
+        $this->assertSame(5, Deal::count());
+        $this->assertDatabaseMissing('deals', ['external_id' => '99']);
+        Http::assertSent(fn (Request $request): bool => $request['zipCode'] === '10115' && $request['q'] === 'Netto');
+
+        $lidl = Deal::where('external_id', '1')->sole();
+        $this->assertSame('marktguru', $lidl->source);
+        $this->assertSame(Retailer::Lidl, $lidl->retailer);
+        $this->assertSame('Product 1', $lidl->title);
+        $this->assertSame('Brand 1', $lidl->brand);
+        $this->assertSame('1.99', $lidl->price);
+        $this->assertSame('2.99', $lidl->old_price);
+        $this->assertSame(33, $lidl->discount_percent);
+        $this->assertSame('2026-10-31', $lidl->valid_to->toDateString());
+        $this->assertSame('Lidl', $lidl->raw['advertisers'][0]['name']);
+        $this->assertSame(['10115'], $lidl->postalCodes()->pluck('postal_code')->all());
+    }
+
+    public function test_stored_offers_get_a_category_and_a_unit_price(): void
+    {
+        $this->seed(CategorySeeder::class);
+        $gouda = array_replace($this->offer(1, 'Lidl', 2.00), ['product' => ['name' => 'Gouda jung 400 g'], 'brand' => null]);
+        $this->catalogue = ['Lidl' => [$gouda]];
+
+        $this->sync('10115');
+
+        $deal = Deal::with('category')->sole();
+        $this->assertSame('groceries-dairy', $deal->category->slug);
+        $this->assertSame('5.00', $deal->unit_price);
+        $this->assertSame('kg', $deal->unit_price_unit);
+    }
+
+    public function test_syncing_again_updates_rows_instead_of_duplicating_them(): void
+    {
+        $this->catalogue = ['Lidl' => [$this->offer(1, 'Lidl', 1.99)]];
+        $this->sync('10115');
+
+        $this->catalogue = ['Lidl' => [$this->offer(1, 'Lidl', 1.49)]];
+        $this->sync('10115');
+
+        $this->assertSame(1, Deal::count());
+        $this->assertSame(1, DealPostalCode::count());
+        $this->assertSame('1.49', Deal::sole()->price);
+    }
+
+    public function test_an_offer_seen_in_two_postal_codes_is_stored_once_and_linked_to_both(): void
+    {
+        $this->catalogue = ['Lidl' => [$this->offer(1, 'Lidl', 1.99)]];
+
+        $this->sync('10115');
+        $this->sync('80331');
+
+        $this->assertSame(1, Deal::count());
+        $this->assertEqualsCanonicalizing(['10115', '80331'], Deal::sole()->postalCodes()->pluck('postal_code')->all());
+    }
+
+    public function test_offers_no_longer_listed_are_unlinked_and_deleted_once_no_postal_code_has_them(): void
+    {
+        $this->catalogue = ['Lidl' => [$this->offer(1, 'Lidl', 1.99), $this->offer(2, 'Lidl', 2.99)]];
+        $this->sync('10115');
+        $this->sync('80331');
+
+        Carbon::setTestNow(now()->addMinute());
+        $this->catalogue = ['Lidl' => [$this->offer(1, 'Lidl', 1.99)]];
+        $this->sync('10115');
+
+        $this->assertEqualsCanonicalizing(['10115', '80331'], Deal::where('external_id', '1')->sole()->postalCodes()->pluck('postal_code')->all());
+        $this->assertSame(['80331'], Deal::where('external_id', '2')->sole()->postalCodes()->pluck('postal_code')->all());
+
+        Carbon::setTestNow(now()->addMinute());
+        $this->sync('80331');
+
+        $this->assertDatabaseMissing('deals', ['external_id' => '2']);
+        Carbon::setTestNow();
+    }
+
+    public function test_every_page_is_fetched(): void
+    {
+        $this->catalogue = ['Lidl' => array_map(
+            fn (int $id): array => $this->offer($id, 'Lidl', 1.00),
+            range(1, DealSyncService::PAGE_SIZE + 30),
+        )];
+
+        $this->assertSame(DealSyncService::PAGE_SIZE + 30, $this->sync('10115'));
+        Http::assertSent(fn (Request $request): bool => $request['q'] === 'Lidl' && (int) $request['offset'] === DealSyncService::PAGE_SIZE);
+    }
+
+    public function test_a_failed_fetch_leaves_stored_offers_untouched(): void
+    {
+        $existing = Deal::factory()->availableIn('10115')->create();
+        $this->failWithStatus = 500;
+
+        try {
+            $this->sync('10115');
+            $this->fail('Expected DealSourceUnavailable.');
+        } catch (DealSourceUnavailable) {
+        }
+
+        $this->assertModelExists($existing);
+        $this->assertSame(1, DealPostalCode::count());
+    }
+
+    public function test_expired_offers_are_pruned(): void
+    {
+        $expired = Deal::factory()->availableIn('10115')->expired()->create();
+        $current = Deal::factory()->availableIn('10115')->create();
+        $openEnded = Deal::factory()->availableIn('10115')->create(['valid_to' => null]);
+
+        $this->assertSame(1, app(DealSyncService::class)->pruneExpired());
+
+        $this->assertModelMissing($expired);
+        $this->assertModelExists($current);
+        $this->assertModelExists($openEnded);
+        $this->assertSame(2, DealPostalCode::count());
+    }
+
+    public function test_postal_codes_in_use_are_distinct(): void
+    {
+        User::factory()->withPostalCode('10115')->count(2)->create();
+        User::factory()->withPostalCode('80331')->create();
+        User::factory()->create();
+
+        $this->assertSame(['10115', '80331'], app(DealSyncService::class)->postalCodesInUse()->all());
+    }
+}

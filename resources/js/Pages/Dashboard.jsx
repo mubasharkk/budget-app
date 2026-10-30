@@ -5,6 +5,7 @@ import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 import BudgetOverview from '@/Components/BudgetOverview';
 import Checkbox from '@/Components/Checkbox';
 import DashboardAtAGlance from '@/Components/DashboardAtAGlance';
+import DealsForYouWidget from '@/Components/DealsForYouWidget';
 import ExpenseOverview from '@/Components/ExpenseOverview';
 import IncomeOverview from '@/Components/IncomeOverview';
 import ConsumedItemsWidget from '@/Components/ConsumedItemsWidget';
@@ -21,6 +22,7 @@ const OPTIONAL_SECTIONS = {
     budget_vs_actual: { Component: BudgetOverview, half: true },
     most_bought_items: { Component: MostBoughtItemsChart, half: true },
     duplicate_receipts: { Component: DuplicateReceiptsWidget, half: true },
+    deals_for_you: { Component: DealsForYouWidget, half: true },
 };
 
 function Card({ children }) {
