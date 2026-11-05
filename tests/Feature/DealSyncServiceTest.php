@@ -163,7 +163,7 @@ class DealSyncServiceTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_the_retailers_offer_page_is_kept_when_the_source_has_a_safe_link(): void
+    public function test_offers_link_to_marktguru_and_to_the_retailers_page_when_it_is_safe(): void
     {
         $this->catalogue = [
             'Kaufland' => [
@@ -178,6 +178,10 @@ class DealSyncServiceTest extends TestCase
         $this->assertSame(
             ['1' => 'https://filiale.kaufland.de/angebote/uebersicht.html?kloffer-articleID=02982122', '2' => null, '3' => null],
             Deal::query()->orderBy('external_id')->pluck('external_url', 'external_id')->all(),
+        );
+        $this->assertSame(
+            ['1' => 'https://www.marktguru.de/offers/1', '2' => 'https://www.marktguru.de/offers/2', '3' => 'https://www.marktguru.de/offers/3'],
+            Deal::query()->orderBy('external_id')->pluck('source_url', 'external_id')->all(),
         );
     }
 

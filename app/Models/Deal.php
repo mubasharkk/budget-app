@@ -23,6 +23,7 @@ class Deal extends Model
         'brand',
         'description',
         'external_url',
+        'source_url',
         'price',
         'old_price',
         'discount_percent',

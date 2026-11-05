@@ -110,6 +110,7 @@ class DealOffersTest extends TestCase
             'valid_from' => '2026-10-26',
             'valid_to' => now()->addDays(2)->toDateString(),
             'external_url' => 'https://filiale.kaufland.de/angebote/uebersicht.html?kloffer-articleID=1',
+            'source_url' => 'https://www.marktguru.de/offers/1',
         ]);
 
         $this->assertSame([
@@ -121,6 +122,7 @@ class DealOffersTest extends TestCase
             'brand' => 'Milbona',
             'description' => $deal->description,
             'external_url' => 'https://filiale.kaufland.de/angebote/uebersicht.html?kloffer-articleID=1',
+            'source_url' => 'https://www.marktguru.de/offers/1',
             'price' => 1.99,
             'old_price' => 2.99,
             'discount_percent' => 33,

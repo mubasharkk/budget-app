@@ -46,7 +46,7 @@ class DealSyncService
                 Deal::query()->upsert(
                     $chunk->map(fn (Offer $offer): array => $this->toRow($offer, $source, $now))->values()->all(),
                     ['source', 'external_id'],
-                    ['retailer', 'category_id', 'advertiser_name', 'title', 'brand', 'description', 'external_url', 'price', 'old_price', 'discount_percent', 'unit', 'unit_price', 'unit_price_unit', 'valid_from', 'valid_to', 'raw', 'fetched_at', 'updated_at'],
+                    ['retailer', 'category_id', 'advertiser_name', 'title', 'brand', 'description', 'external_url', 'source_url', 'price', 'old_price', 'discount_percent', 'unit', 'unit_price', 'unit_price_unit', 'valid_from', 'valid_to', 'raw', 'fetched_at', 'updated_at'],
                 );
             }
 
@@ -151,6 +151,7 @@ class DealSyncService
             'brand' => $offer->brand !== null ? mb_substr($offer->brand, 0, 255) : null,
             'description' => $offer->description,
             'external_url' => $offer->externalUrl,
+            'source_url' => $offer->sourceUrl,
             'price' => $offer->price,
             'old_price' => $offer->oldPrice,
             'discount_percent' => $offer->discountPercent(),

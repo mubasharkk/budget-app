@@ -98,6 +98,7 @@ class MarktguruDealSource implements DealSource
             validTo: $this->date(data_get($row, 'validityDates.0.to')),
             raw: $row,
             externalUrl: $this->url(data_get($row, 'externalUrl')),
+            sourceUrl: $this->offerPageUrl((string) data_get($row, 'id')),
         );
     }
 
@@ -106,6 +107,14 @@ class MarktguruDealSource implements DealSource
         $value = is_string($value) ? trim($value) : '';
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * marktguru's own page for the offer (its web app routes /offers/{id}).
+     */
+    private function offerPageUrl(string $id): string
+    {
+        return rtrim((string) config('providers.marktguru.web_url'), '/').'/offers/'.rawurlencode($id);
     }
 
     /**

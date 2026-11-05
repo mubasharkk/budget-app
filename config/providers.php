@@ -21,6 +21,7 @@ return [
         'api_key' => env('MARKTGURU_API_KEY', '8Kk+pmbf7TgJ9nVj2cXeA7P5zBGv8iuutVVMRfOfvNE='),
         'client_key' => env('MARKTGURU_CLIENT_KEY', 'WU/RH+PMGDi+gkZer3WbMelt6zcYHSTytNB7VpTia90='),
         'base_url' => env('MARKTGURU_BASE_URL', 'https://api.marktguru.de/api/v1'),
+        'web_url' => env('MARKTGURU_WEB_URL', 'https://www.marktguru.de'),
     ],
 
 ];
