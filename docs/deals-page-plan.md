@@ -1,7 +1,7 @@
 # Deals Page — Implementation Plan
 
 > Status: **Phases 0–2 built** (marktguru source, daily sync, Deals page, "For you", per-product comparison). Phase 3 (assistant `deals_search` intent) not started.
-> Retailers: **Lidl, Aldi, Netto, Kaufland, Edeka, Penny, REWE.** marktguru has no Aldi Nord (checked 2026-10-30 for Berlin and Hamburg; Aldi Süd is covered), so the store filter disables stores without offers in the user's area (`DealCatalogService::retailersWithOffers`).
+> Retailers: **Lidl, Aldi, Netto, Kaufland, Edeka, Penny, REWE.** marktguru has no Aldi Nord (checked 2026-10-30 and 2026-11-05 for Berlin and Hamburg; Aldi Süd is covered), so Aldi Nord comes from a second source: `AldiNordOfferFeed` (a `RetailerOfferFeed`) reads the offer JSON embedded in aldi-nord.de's `angebote.html` / `angebote-vorschau.html` (no public API; cached for an hour, stored as `source = aldi_nord`). The sync uses it only for postal codes where marktguru returns no Aldi offers, so Aldi Süd regions never get Aldi Nord's offers; if the page breaks, the sync logs a warning and keeps the last Aldi Nord offers. The store filter still disables stores without offers in the user's area (`DealCatalogService::retailersWithOffers`).
 
 A page that surfaces current weekly discounter offers, matched against what the
 user actually buys. The value is not a generic deals list — it is the tie-in

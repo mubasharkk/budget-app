@@ -24,4 +24,12 @@ return [
         'web_url' => env('MARKTGURU_WEB_URL', 'https://www.marktguru.de'),
     ],
 
+    /*
+    | Aldi Nord's website, read for its weekly offers where marktguru has none
+    | (marktguru only carries Aldi Süd).
+    */
+    'aldi_nord' => [
+        'web_url' => env('ALDI_NORD_WEB_URL', 'https://www.aldi-nord.de'),
+    ],
+
 ];

@@ -11,6 +11,7 @@ readonly class Offer
 {
     /**
      * @param  array<string, mixed>  $raw  the source's original payload for this offer
+     * @param  ?float  $unitPrice  the source's own price per $unitPriceUnit, when it gives one
      */
     public function __construct(
         public string $externalId,
@@ -27,6 +28,8 @@ readonly class Offer
         public array $raw = [],
         public ?string $externalUrl = null,
         public ?string $sourceUrl = null,
+        public ?float $unitPrice = null,
+        public ?string $unitPriceUnit = null,
     ) {}
 
     public function discountPercent(): ?int

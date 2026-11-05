@@ -10,6 +10,7 @@ use App\Models\DealPostalCode;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DealSyncService
 {
@@ -20,16 +21,21 @@ class DealSyncService
      */
     public const MAX_PAGES = 10;
 
+    /**
+     * @param  iterable<int, RetailerOfferFeed>  $offerFeeds  retailers' own catalogues, used where the main source has none of their offers
+     */
     public function __construct(
         private DealSource $dealSource,
         private DealCategorizer $dealCategorizer,
         private UnitPriceCalculator $unitPriceCalculator,
+        private iterable $offerFeeds = [],
     ) {}
 
     /**
      * Fetch every current offer for the postal code and store it. Offers no
      * longer listed there are unlinked; deals left with no postal code are
-     * deleted. Nothing is written if any fetch fails.
+     * deleted. Nothing is written if the main source fails; a failing offer
+     * feed only keeps that feed's stored offers as they were.
      *
      * @return int number of offers listed for the postal code after the sync
      *
@@ -37,46 +43,58 @@ class DealSyncService
      */
     public function syncPostalCode(string $postalCode): int
     {
-        $offers = $this->fetchAll($postalCode);
-        $source = $this->dealSource->name();
+        $offersBySource = $this->fetchAll($postalCode);
         $now = now();
 
-        DB::transaction(function () use ($offers, $source, $postalCode, $now): void {
-            foreach ($offers->chunk(200) as $chunk) {
-                Deal::query()->upsert(
-                    $chunk->map(fn (Offer $offer): array => $this->toRow($offer, $source, $now))->values()->all(),
-                    ['source', 'external_id'],
-                    ['retailer', 'category_id', 'advertiser_name', 'title', 'brand', 'description', 'external_url', 'source_url', 'price', 'old_price', 'discount_percent', 'unit', 'unit_price', 'unit_price_unit', 'valid_from', 'valid_to', 'raw', 'fetched_at', 'updated_at'],
-                );
+        DB::transaction(function () use ($offersBySource, $postalCode, $now): void {
+            foreach ($offersBySource as $source => $offers) {
+                $this->store($source, $offers, $postalCode, $now);
             }
-
-            $dealIds = Deal::query()
-                ->where('source', $source)
-                ->whereIn('external_id', $offers->keys()->all())
-                ->pluck('id');
-
-            foreach ($dealIds->chunk(500) as $chunk) {
-                DealPostalCode::query()->upsert(
-                    $chunk->map(fn (int $dealId): array => [
-                        'deal_id' => $dealId,
-                        'postal_code' => $postalCode,
-                        'fetched_at' => $now,
-                    ])->values()->all(),
-                    ['deal_id', 'postal_code'],
-                    ['fetched_at'],
-                );
-            }
-
-            DealPostalCode::query()
-                ->where('postal_code', $postalCode)
-                ->where('fetched_at', '<', $now)
-                ->whereHas('deal', fn ($deal) => $deal->where('source', $source))
-                ->delete();
 
             $this->deleteUnlinkedDeals();
         });
 
-        return $offers->count();
+        return $offersBySource->sum(fn (Collection $offers): int => $offers->count());
+    }
+
+    /**
+     * Upsert one source's offers, link them to the postal code and unlink that
+     * source's offers the postal code no longer lists.
+     *
+     * @param  Collection<string, Offer>  $offers
+     */
+    private function store(string $source, Collection $offers, string $postalCode, \DateTimeInterface $now): void
+    {
+        foreach ($offers->chunk(200) as $chunk) {
+            Deal::query()->upsert(
+                $chunk->map(fn (Offer $offer): array => $this->toRow($offer, $source, $now))->values()->all(),
+                ['source', 'external_id'],
+                ['retailer', 'category_id', 'advertiser_name', 'title', 'brand', 'description', 'external_url', 'source_url', 'price', 'old_price', 'discount_percent', 'unit', 'unit_price', 'unit_price_unit', 'valid_from', 'valid_to', 'raw', 'fetched_at', 'updated_at'],
+            );
+        }
+
+        $dealIds = $offers->isEmpty() ? collect() : Deal::query()
+            ->where('source', $source)
+            ->whereIn('external_id', $offers->keys()->all())
+            ->pluck('id');
+
+        foreach ($dealIds->chunk(500) as $chunk) {
+            DealPostalCode::query()->upsert(
+                $chunk->map(fn (int $dealId): array => [
+                    'deal_id' => $dealId,
+                    'postal_code' => $postalCode,
+                    'fetched_at' => $now,
+                ])->values()->all(),
+                ['deal_id', 'postal_code'],
+                ['fetched_at'],
+            );
+        }
+
+        DealPostalCode::query()
+            ->where('postal_code', $postalCode)
+            ->where('fetched_at', '<', $now)
+            ->whereHas('deal', fn ($deal) => $deal->where('source', $source))
+            ->delete();
     }
 
     /**
@@ -107,11 +125,48 @@ class DealSyncService
     }
 
     /**
-     * Every page of offers for each supported retailer, keyed by external id.
+     * Offers to store per source, keyed by external id. An offer feed is used
+     * only when the main source has none of its retailer's offers here (so an
+     * Aldi Süd region never gets Aldi Nord's offers); otherwise it gets an
+     * empty list, which unlinks its offers from this postal code. A feed that
+     * fails is left out, keeping what it stored before.
      *
-     * @return Collection<string, Offer>
+     * @return Collection<string, Collection<string, Offer>>
+     *
+     * @throws DealSourceUnavailable
      */
     private function fetchAll(string $postalCode): Collection
+    {
+        $mainOffers = $this->fetchFromMainSource($postalCode);
+        $offersBySource = collect([$this->dealSource->name() => $mainOffers]);
+
+        foreach ($this->offerFeeds as $feed) {
+            if ($mainOffers->contains(fn (Offer $offer): bool => $offer->retailer === $feed->retailer())) {
+                $offersBySource->put($feed->name(), collect());
+
+                continue;
+            }
+
+            try {
+                $offersBySource->put($feed->name(), collect($feed->offers())
+                    ->filter(fn (Offer $offer): bool => $offer->retailer === $feed->retailer())
+                    ->keyBy(fn (Offer $offer): string => $offer->externalId));
+            } catch (DealSourceUnavailable $exception) {
+                Log::warning('Deal offer feed unavailable', ['feed' => $feed->name(), 'postal_code' => $postalCode, 'error' => $exception->getMessage()]);
+            }
+        }
+
+        return $offersBySource;
+    }
+
+    /**
+     * Every page of the main source's offers for each supported retailer, keyed by external id.
+     *
+     * @return Collection<string, Offer>
+     *
+     * @throws DealSourceUnavailable
+     */
+    private function fetchFromMainSource(string $postalCode): Collection
     {
         $offers = collect();
 
@@ -139,7 +194,9 @@ class DealSyncService
      */
     private function toRow(Offer $offer, string $source, \DateTimeInterface $now): array
     {
-        $unitPrice = $this->unitPriceCalculator->calculate($offer->price, $offer->raw, $offer->title, $offer->description, $offer->unit);
+        $unitPrice = $offer->unitPrice !== null && $offer->unitPriceUnit !== null
+            ? ['unit_price' => $offer->unitPrice, 'unit_price_unit' => $offer->unitPriceUnit]
+            : $this->unitPriceCalculator->calculate($offer->price, $offer->raw, $offer->title, $offer->description, $offer->unit);
 
         return [
             'source' => $source,

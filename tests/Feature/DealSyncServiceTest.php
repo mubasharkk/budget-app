@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Deals\Exceptions\DealSourceUnavailable;
+use App\Domain\Deals\Services\AldiNordOfferFeed;
 use App\Domain\Deals\Services\DealSyncService;
 use App\Enums\Retailer;
 use App\Models\Deal;
@@ -12,6 +13,7 @@ use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -31,13 +33,34 @@ class DealSyncServiceTest extends TestCase
      */
     private ?int $failWithStatus = null;
 
+    /**
+     * Products on the fake Aldi Nord offer pages, keyed by page.
+     *
+     * @var array<string, array<int, array<string, mixed>>>
+     */
+    private array $aldiNordPages = [];
+
+    /**
+     * When set, the fake Aldi Nord site answers with this HTTP status.
+     */
+    private ?int $aldiNordFailsWithStatus = null;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        config(['providers.marktguru.base_url' => 'https://marktguru.test/api/v1']);
+        config([
+            'providers.marktguru.base_url' => 'https://marktguru.test/api/v1',
+            'providers.aldi_nord.web_url' => 'https://aldi-nord.test',
+        ]);
 
         Http::fake(function (Request $request) {
+            if (str_starts_with($request->url(), 'https://aldi-nord.test/')) {
+                return $this->aldiNordFailsWithStatus !== null
+                    ? Http::response('Server error', $this->aldiNordFailsWithStatus)
+                    : Http::response($this->aldiNordPage($this->aldiNordPages[basename($request->url())] ?? []));
+            }
+
             if ($this->failWithStatus !== null) {
                 return Http::response('Server error', $this->failWithStatus);
             }
@@ -67,6 +90,43 @@ class DealSyncServiceTest extends TestCase
         ];
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $products
+     */
+    private function aldiNordPage(array $products): string
+    {
+        $apiData = json_encode([['OFFER_GET', ['req' => ['week' => 'current'], 'res' => [
+            'algoliaDataMap' => collect($products)->keyBy('objectID')->all(),
+        ]]]]);
+
+        return '<html><body><script id="__NEXT_DATA__" type="application/json">'
+            .json_encode(['props' => ['pageProps' => ['apiData' => $apiData]]])
+            .'</script></body></html>';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function aldiNordProduct(string $id, float $price, ?float $strikePrice = null, string $from = '2026-11-02'): array
+    {
+        return [
+            'objectID' => $id,
+            'name' => "Aldi product {$id}",
+            'brandName' => 'GUT BIO',
+            'shortDescription' => "Verschiedene Sorten\n\n\nIm Aufsteller",
+            'salesUnit' => '180-g-Dose',
+            'productSlug' => "aldi-product-{$id}",
+            'isAvailable' => true,
+            'promotionPrices' => [[
+                'priceValue' => $price,
+                'strikePrice' => $strikePrice !== null ? ['strikePriceValue' => $strikePrice] : [],
+                'basePrice' => [['basePriceValue' => 7.72, 'basePriceScale' => 'kg (ATG)']],
+                'validFromLocalDate' => $from,
+                'validUntilLocalDate' => '2026-11-07',
+            ]],
+        ];
+    }
+
     private function sync(string $postalCode): int
     {
         return app(DealSyncService::class)->syncPostalCode($postalCode);
@@ -90,7 +150,7 @@ class DealSyncServiceTest extends TestCase
         $this->assertSame(Retailer::Penny, Deal::where('external_id', '6')->sole()->retailer);
         $this->assertSame(Retailer::Rewe, Deal::where('external_id', '7')->sole()->retailer);
         $this->assertDatabaseMissing('deals', ['external_id' => '99']);
-        Http::assertSent(fn (Request $request): bool => $request['zipCode'] === '10115' && $request['q'] === 'Netto');
+        Http::assertSent(fn (Request $request): bool => ($request['zipCode'] ?? null) === '10115' && ($request['q'] ?? null) === 'Netto');
 
         $lidl = Deal::where('external_id', '1')->sole();
         $this->assertSame('marktguru', $lidl->source);
@@ -193,7 +253,7 @@ class DealSyncServiceTest extends TestCase
         )];
 
         $this->assertSame(DealSyncService::PAGE_SIZE + 30, $this->sync('10115'));
-        Http::assertSent(fn (Request $request): bool => $request['q'] === 'Lidl' && (int) $request['offset'] === DealSyncService::PAGE_SIZE);
+        Http::assertSent(fn (Request $request): bool => ($request['q'] ?? null) === 'Lidl' && (int) $request['offset'] === DealSyncService::PAGE_SIZE);
     }
 
     public function test_a_failed_fetch_leaves_stored_offers_untouched(): void
@@ -209,6 +269,68 @@ class DealSyncServiceTest extends TestCase
 
         $this->assertModelExists($existing);
         $this->assertSame(1, DealPostalCode::count());
+    }
+
+    public function test_aldi_nord_offers_fill_in_where_marktguru_has_no_aldi(): void
+    {
+        Cache::flush();
+        $this->catalogue = ['Lidl' => [$this->offer(1, 'Lidl', 1.99)]];
+        $this->aldiNordPages = [
+            'angebote.html' => [$this->aldiNordProduct('287', 1.39, 2.49), [...$this->aldiNordProduct('300', 2.00), 'isAvailable' => false]],
+            'angebote-vorschau.html' => [$this->aldiNordProduct('287', 1.29, from: '2026-11-09')],
+        ];
+
+        $this->assertSame(3, $this->sync('13439'));
+
+        $deal = Deal::where('external_id', '287:2026-11-02')->sole();
+        $this->assertSame('aldi_nord', $deal->source);
+        $this->assertSame(Retailer::Aldi, $deal->retailer);
+        $this->assertSame('Aldi product 287', $deal->title);
+        $this->assertSame('Verschiedene Sorten Im Aufsteller', $deal->description);
+        $this->assertSame('1.39', $deal->price);
+        $this->assertSame(44, $deal->discount_percent);
+        $this->assertSame('7.72', $deal->unit_price);
+        $this->assertSame('kg', $deal->unit_price_unit);
+        $this->assertSame('https://aldi-nord.test/produkt/aldi-product-287.html', $deal->external_url);
+        $this->assertNull($deal->source_url);
+        $this->assertSame(['13439'], $deal->postalCodes()->pluck('postal_code')->all());
+        $this->assertNull(Deal::where('external_id', '287:2026-11-09')->sole()->old_price);
+        $this->assertDatabaseMissing('deals', ['external_id' => '300:2026-11-02']);
+
+        $this->sync('20095');
+        Http::assertSentCount(2 * count(Retailer::cases()) + count(AldiNordOfferFeed::PAGES));
+    }
+
+    public function test_aldi_nord_offers_are_left_out_where_marktguru_has_aldi_sued(): void
+    {
+        Cache::flush();
+        $this->aldiNordPages = ['angebote.html' => [$this->aldiNordProduct('287', 1.39)]];
+        $this->sync('80331');
+        $this->assertSame(1, Deal::where('source', 'aldi_nord')->count());
+
+        Carbon::setTestNow(now()->addMinute());
+        $this->catalogue = ['Aldi' => [$this->offer(2, 'ALDI SÜD', 0.89)]];
+        $this->sync('80331');
+        Carbon::setTestNow();
+
+        $this->assertSame(['marktguru'], Deal::query()->pluck('source')->all());
+    }
+
+    public function test_a_failing_aldi_nord_page_keeps_its_offers_and_still_syncs_marktguru(): void
+    {
+        Cache::flush();
+        $this->aldiNordPages = ['angebote.html' => [$this->aldiNordProduct('287', 1.39)]];
+        $this->sync('13439');
+
+        Cache::flush();
+        Carbon::setTestNow(now()->addMinute());
+        $this->aldiNordFailsWithStatus = 503;
+        $this->catalogue = ['Lidl' => [$this->offer(1, 'Lidl', 1.99)]];
+        $this->assertSame(1, $this->sync('13439'));
+        Carbon::setTestNow();
+
+        $this->assertEqualsCanonicalizing(['aldi_nord', 'marktguru'], Deal::query()->pluck('source')->all());
+        $this->assertSame(2, DealPostalCode::count());
     }
 
     public function test_expired_offers_are_pruned(): void
