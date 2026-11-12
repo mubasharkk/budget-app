@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BudgetPeriod;
+use App\Models\Concerns\HasTasks;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Budget extends Model
 {
-    use CrudTrait, HasFactory;
+    use CrudTrait, HasFactory, HasTasks;
 
     protected $fillable = [
         'user_id',

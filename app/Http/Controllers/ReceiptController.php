@@ -8,6 +8,7 @@ use App\Domain\Receipts\Exceptions\ReceiptCannotBeRetried;
 use App\Domain\Receipts\Services\ReceiptAttachmentService;
 use App\Domain\Receipts\Services\ReceiptService;
 use App\Domain\Receipts\Services\ReceiptUploadService;
+use App\Domain\Tasks\Services\TaskService;
 use App\Http\Requests\StoreReceiptRequest;
 use App\Http\Requests\UpdateReceiptRequest;
 use App\Models\Receipt;
@@ -26,6 +27,7 @@ class ReceiptController extends Controller
         private ReceiptUploadService $uploadService,
         private CategoryService $categoryService,
         private ReceiptAttachmentService $attachmentService,
+        private TaskService $taskService,
     ) {}
 
     public function index(Request $request): Response
@@ -80,6 +82,8 @@ class ReceiptController extends Controller
             'receipt' => $this->receiptService->loadForDisplay($receipt),
             'attachments' => $this->attachmentService->forDisplay($receipt),
             'maxAttachments' => ReceiptAttachmentService::MAX_ATTACHMENTS,
+            'tasks' => $this->taskService->forLinked($receipt),
+            ...$this->taskService->formOptions(),
         ]);
     }
 
@@ -94,6 +98,8 @@ class ReceiptController extends Controller
             'receipt' => $this->receiptService->loadForDisplay($receipt),
             'attachments' => $this->attachmentService->forDisplay($receipt),
             'maxAttachments' => ReceiptAttachmentService::MAX_ATTACHMENTS,
+            'tasks' => $this->taskService->forLinked($receipt),
+            ...$this->taskService->formOptions(),
         ]);
     }
 

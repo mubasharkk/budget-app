@@ -11,6 +11,7 @@ use App\Domain\Analytics\Services\TransactionLedgerService;
 use App\Domain\Budgets\Services\BudgetService;
 use App\Domain\Contracts\Services\ContractBillingService;
 use App\Domain\Identity\Services\UserSettingsService;
+use App\Domain\Tasks\Services\TaskService;
 use App\Enums\BudgetPeriod;
 use App\Enums\DashboardSection;
 use App\Enums\ExpenseType;
@@ -34,6 +35,7 @@ class DashboardController extends Controller
         private UserSettingsService $userSettingsService,
         private TransactionLedgerService $transactionLedgerService,
         private ContractBillingService $contractBillingService,
+        private TaskService $taskService,
     ) {}
 
     public function index(Request $request): Response
@@ -85,6 +87,14 @@ class DashboardController extends Controller
             $request->user()->id,
             in_array($days, [7, 14, 30], true) ? $days : 30,
         ));
+    }
+
+    /**
+     * Overdue tasks and those due in the next week.
+     */
+    public function tasks(Request $request): JsonResponse
+    {
+        return response()->json($this->taskService->dueSoon($request->user()->id));
     }
 
     /**

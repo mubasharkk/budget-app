@@ -12,6 +12,7 @@ use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\ReceiptAttachmentController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SavingController;
+use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -80,6 +81,12 @@ Route::middleware('auth')->group(function () {
 
     // Manual savings entries
     Route::resource('savings', SavingController::class)->except('show');
+
+    // Finance to-do list
+    Route::resource('tasks', TaskController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::patch('/tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
+    Route::patch('/tasks/{task}/reopen', [TaskController::class, 'reopen'])->name('tasks.reopen');
+    Route::get('/dashboard/tasks', [DashboardController::class, 'tasks'])->name('dashboard.tasks');
 
     // Category budgets
     Route::resource('budgets', BudgetController::class)->except('show');

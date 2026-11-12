@@ -1,10 +1,18 @@
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import LinkedTasks from '@/Components/Tasks/LinkedTasks';
 import PrimaryButton from '@/Components/PrimaryButton';
 import CancelButton from '@/Components/CancelButton';
 import SavingForm from './SavingForm';
 
-export default function Edit({ saving, currencies }) {
+export default function Edit({
+    saving,
+    currencies,
+    tasks,
+    priorities,
+    repeatOptions,
+    linkTypes,
+}) {
     const { data, setData, put, processing, errors } = useForm({
         amount: saving.amount,
         currency: saving.currency,
@@ -29,7 +37,7 @@ export default function Edit({ saving, currencies }) {
             <Head title="Edit Savings" />
 
             <div className="py-12">
-                <div className="mx-auto max-w-3xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-3xl space-y-6 sm:px-6 lg:px-8">
                     <form
                         onSubmit={submit}
                         className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg"
@@ -51,6 +59,14 @@ export default function Edit({ saving, currencies }) {
                             </PrimaryButton>
                         </div>
                     </form>
+
+                    <LinkedTasks
+                        tasks={tasks}
+                        link={{ type: 'saving', id: saving.id }}
+                        priorities={priorities}
+                        repeatOptions={repeatOptions}
+                        linkTypes={linkTypes}
+                    />
                 </div>
             </div>
         </AuthenticatedLayout>

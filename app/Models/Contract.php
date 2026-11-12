@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\BillingCycle;
 use App\Enums\ContractStatus;
 use App\Enums\ExpenseType;
+use App\Models\Concerns\HasTasks;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Contract extends Model
 {
-    use CrudTrait, HasFactory;
+    use CrudTrait, HasFactory, HasTasks;
 
     protected $fillable = [
         'user_id',

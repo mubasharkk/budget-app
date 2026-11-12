@@ -13,6 +13,7 @@ import DuplicateReceiptsWidget from '@/Components/DuplicateReceiptsWidget';
 import MostBoughtItemsChart from '@/Components/MostBoughtItemsChart';
 import TransactionsWidget from '@/Components/TransactionsWidget';
 import UpcomingBillsWidget from '@/Components/UpcomingBillsWidget';
+import TasksWidget from '@/Components/TasksWidget';
 
 const OPTIONAL_SECTIONS = {
     transactions: { Component: TransactionsWidget, half: false },
@@ -23,6 +24,7 @@ const OPTIONAL_SECTIONS = {
     most_bought_items: { Component: MostBoughtItemsChart, half: true },
     duplicate_receipts: { Component: DuplicateReceiptsWidget, half: true },
     deals_for_you: { Component: DealsForYouWidget, half: true },
+    tasks: { Component: TasksWidget, half: true },
 };
 
 function Card({ children }) {

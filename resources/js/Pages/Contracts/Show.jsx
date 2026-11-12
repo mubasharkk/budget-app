@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import LinkedTasks from '@/Components/Tasks/LinkedTasks';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
@@ -17,7 +18,7 @@ function Row({ label, value }) {
     );
 }
 
-export default function Show({ contract }) {
+export default function Show({ contract, tasks, priorities, repeatOptions, linkTypes }) {
     return (
         <AuthenticatedLayout
             header={
@@ -52,7 +53,7 @@ export default function Show({ contract }) {
             <Head title={contract.name} />
 
             <div className="py-12">
-                <div className="mx-auto max-w-3xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-3xl space-y-6 sm:px-6 lg:px-8">
                     <div className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
                         <dl>
                             <Row
@@ -116,6 +117,14 @@ export default function Show({ contract }) {
                             </Link>
                         </div>
                     </div>
+
+                    <LinkedTasks
+                        tasks={tasks}
+                        link={{ type: 'contract', id: contract.id }}
+                        priorities={priorities}
+                        repeatOptions={repeatOptions}
+                        linkTypes={linkTypes}
+                    />
                 </div>
             </div>
         </AuthenticatedLayout>

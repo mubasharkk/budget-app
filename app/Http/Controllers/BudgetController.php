@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Budgets\Services\BudgetService;
 use App\Domain\Categories\Services\CategoryService;
 use App\Domain\Shared\Support\SupportedCurrencies;
+use App\Domain\Tasks\Services\TaskService;
 use App\Enums\BudgetPeriod;
 use App\Http\Requests\BudgetRequest;
 use App\Models\Budget;
@@ -18,6 +19,7 @@ class BudgetController extends Controller
     public function __construct(
         private BudgetService $budgetService,
         private CategoryService $categoryService,
+        private TaskService $taskService,
     ) {}
 
     public function index(Request $request): Response
@@ -51,6 +53,8 @@ class BudgetController extends Controller
 
         return Inertia::render('Budgets/Edit', [
             'budget' => $budget->load('category:id,name'),
+            'tasks' => $this->taskService->forLinked($budget),
+            ...$this->taskService->formOptions(),
             ...$this->formOptions(),
         ]);
     }

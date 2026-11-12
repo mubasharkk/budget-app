@@ -7,12 +7,21 @@ import CancelButton from '@/Components/CancelButton';
 import InputError from '@/Components/InputError';
 import ReceiptKindIcon from '@/Components/ReceiptKindIcon';
 import ReceiptAttachments from '@/Components/ReceiptAttachments';
+import LinkedTasks from '@/Components/Tasks/LinkedTasks';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { ArrowLeftIcon, TrashIcon, XMarkIcon, CheckIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { formatCurrencyIn, getDefaultCurrency } from '@/utils/money';
 
-export default function Show({ receipt, attachments = [], maxAttachments = 10 }) {
+export default function Show({
+    receipt,
+    attachments = [],
+    maxAttachments = 10,
+    tasks = [],
+    priorities = [],
+    repeatOptions = [],
+    linkTypes = [],
+}) {
     const [categories, setCategories] = useState([]);
     const [subcategories, setSubcategories] = useState([]);
     const [showOcrText, setShowOcrText] = useState(false);
@@ -252,6 +261,16 @@ export default function Show({ receipt, attachments = [], maxAttachments = 10 })
                                     )}
 
                                     <ReceiptAttachments receiptId={receipt.id} attachments={attachments} max={maxAttachments} />
+
+                                    <div className="mt-6">
+                                        <LinkedTasks
+                                            tasks={tasks}
+                                            link={{ type: 'receipt', id: receipt.id }}
+                                            priorities={priorities}
+                                            repeatOptions={repeatOptions}
+                                            linkTypes={linkTypes}
+                                        />
+                                    </div>
 
                                     {/* OCR Text */}
                                     {receipt.ocr_text && (

@@ -17,6 +17,7 @@ const NAV_GROUPS = [
             { label: 'Income', route: 'incomes.index', match: 'incomes.*' },
             { label: 'Savings', route: 'savings.index', match: 'savings.*' },
             { label: 'Budgets', route: 'budgets.index', match: 'budgets.*' },
+            { label: 'Tasks', route: 'tasks.index', match: 'tasks.*' },
         ],
     },
     {

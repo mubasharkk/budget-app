@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ExpenseType;
 use App\Enums\ReceiptKind;
+use App\Models\Concerns\HasTasks;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,7 +19,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Receipt extends Model implements HasMedia
 {
-    use CrudTrait, HasFactory, InteractsWithMedia;
+    use CrudTrait, HasFactory, HasTasks, InteractsWithMedia;
 
     public const RECEIPT_COLLECTION = 'receipt';
 

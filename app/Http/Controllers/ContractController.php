@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Contracts\Services\ContractService;
+use App\Domain\Tasks\Services\TaskService;
 use App\Http\Requests\ContractRequest;
 use App\Models\Contract;
 use Illuminate\Http\RedirectResponse;
@@ -12,7 +13,10 @@ use Inertia\Response;
 
 class ContractController extends Controller
 {
-    public function __construct(private ContractService $contractService) {}
+    public function __construct(
+        private ContractService $contractService,
+        private TaskService $taskService,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -44,6 +48,8 @@ class ContractController extends Controller
 
         return Inertia::render('Contracts/Show', [
             'contract' => $contract->load(['provider', 'category']),
+            'tasks' => $this->taskService->forLinked($contract),
+            ...$this->taskService->formOptions(),
         ]);
     }
 

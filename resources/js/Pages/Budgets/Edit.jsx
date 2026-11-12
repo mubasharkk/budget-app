@@ -1,11 +1,16 @@
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import LinkedTasks from '@/Components/Tasks/LinkedTasks';
 import PrimaryButton from '@/Components/PrimaryButton';
 import CancelButton from '@/Components/CancelButton';
 import BudgetForm from './BudgetForm';
 
 export default function Edit({
     budget,
+    tasks,
+    priorities,
+    repeatOptions,
+    linkTypes,
     categories,
     periods,
     currencies,
@@ -34,7 +39,7 @@ export default function Edit({
             <Head title="Edit Budget" />
 
             <div className="py-12">
-                <div className="mx-auto max-w-3xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-3xl space-y-6 sm:px-6 lg:px-8">
                     <form
                         onSubmit={submit}
                         className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg"
@@ -60,6 +65,14 @@ export default function Edit({
                             </PrimaryButton>
                         </div>
                     </form>
+
+                    <LinkedTasks
+                        tasks={tasks}
+                        link={{ type: 'budget', id: budget.id }}
+                        priorities={priorities}
+                        repeatOptions={repeatOptions}
+                        linkTypes={linkTypes}
+                    />
                 </div>
             </div>
         </AuthenticatedLayout>

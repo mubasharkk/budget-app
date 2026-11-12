@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Savings\Services\SavingService;
 use App\Domain\Shared\Support\SupportedCurrencies;
+use App\Domain\Tasks\Services\TaskService;
 use App\Http\Requests\SavingRequest;
 use App\Models\Saving;
 use Illuminate\Http\RedirectResponse;
@@ -13,7 +14,10 @@ use Inertia\Response;
 
 class SavingController extends Controller
 {
-    public function __construct(private SavingService $savingService) {}
+    public function __construct(
+        private SavingService $savingService,
+        private TaskService $taskService,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -44,6 +48,8 @@ class SavingController extends Controller
 
         return Inertia::render('Savings/Edit', [
             'saving' => $saving,
+            'tasks' => $this->taskService->forLinked($saving),
+            ...$this->taskService->formOptions(),
             ...$this->formOptions(),
         ]);
     }
