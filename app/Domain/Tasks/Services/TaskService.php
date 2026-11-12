@@ -36,26 +36,23 @@ class TaskService
     public const LINK_OPTIONS_LIMIT = 50;
 
     /**
-     * Open tasks grouped by when they are due, plus the recently finished ones.
+     * Open tasks grouped by priority (highest first), plus the recently finished ones.
      *
-     * @return array{overdue: array<int, mixed>, today: array<int, mixed>, this_week: array<int, mixed>, later: array<int, mixed>, someday: array<int, mixed>, done: array<int, mixed>}
+     * @return array{high: array<int, mixed>, normal: array<int, mixed>, low: array<int, mixed>, done: array<int, mixed>}
      */
     public function board(int $userId): array
     {
-        $today = Carbon::today();
-        $weekEnd = $today->copy()->addDays(7);
-
         $open = $this->sorted($this->query($userId)->open()->get());
         $done = $this->query($userId)->done()->latest('completed_at')->limit(self::RECENTLY_DONE_LIMIT)->get();
 
-        $group = fn (callable $matches): array => $this->toArray($open->filter($matches)->values());
+        $group = fn (TaskPriority $priority): array => $this->toArray(
+            $open->filter(fn (Task $task): bool => $task->priority === $priority)->values(),
+        );
 
         return [
-            'overdue' => $group(fn (Task $task): bool => $task->due_date?->lt($today) ?? false),
-            'today' => $group(fn (Task $task): bool => $task->due_date?->isSameDay($today) ?? false),
-            'this_week' => $group(fn (Task $task): bool => $task->due_date !== null && $task->due_date->gt($today) && $task->due_date->lte($weekEnd)),
-            'later' => $group(fn (Task $task): bool => $task->due_date?->gt($weekEnd) ?? false),
-            'someday' => $group(fn (Task $task): bool => $task->due_date === null),
+            TaskPriority::High->value => $group(TaskPriority::High),
+            TaskPriority::Normal->value => $group(TaskPriority::Normal),
+            TaskPriority::Low->value => $group(TaskPriority::Low),
             'done' => $this->toArray($done),
         ];
     }
@@ -225,7 +222,8 @@ class TaskService
     }
 
     /**
-     * Earliest due first (undated last), then higher priority, then oldest.
+     * Higher priority first, then earliest due (undated last), then the
+     * largest amount, then oldest.
      *
      * @param  \Illuminate\Support\Collection<int, Task>  $tasks
      * @return \Illuminate\Support\Collection<int, Task>
@@ -233,8 +231,9 @@ class TaskService
     private function sorted(\Illuminate\Support\Collection $tasks): \Illuminate\Support\Collection
     {
         return $tasks->sortBy([
-            fn (Task $a, Task $b): int => ($a->due_date?->timestamp ?? PHP_INT_MAX) <=> ($b->due_date?->timestamp ?? PHP_INT_MAX),
             fn (Task $a, Task $b): int => $b->priority->weight() <=> $a->priority->weight(),
+            fn (Task $a, Task $b): int => ($a->due_date?->timestamp ?? PHP_INT_MAX) <=> ($b->due_date?->timestamp ?? PHP_INT_MAX),
+            fn (Task $a, Task $b): int => (float) $b->amount <=> (float) $a->amount,
             fn (Task $a, Task $b): int => $a->id <=> $b->id,
         ])->values();
     }

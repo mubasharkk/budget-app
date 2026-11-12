@@ -9,11 +9,9 @@ import TaskSection from '@/Components/Tasks/TaskSection';
 import TaskSummary from '@/Components/Tasks/TaskSummary';
 
 const SECTIONS = [
-    { key: 'overdue', title: 'Overdue', tone: 'red' },
-    { key: 'today', title: 'Today' },
-    { key: 'this_week', title: 'Next 7 days' },
-    { key: 'later', title: 'Later' },
-    { key: 'someday', title: 'No due date' },
+    { key: 'high', title: 'High priority', tone: 'red' },
+    { key: 'normal', title: 'Normal priority', tone: 'blue' },
+    { key: 'low', title: 'Low priority', tone: 'yellow' },
     { key: 'done', title: 'Recently done' },
 ];
 

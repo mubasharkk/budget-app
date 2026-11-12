@@ -11,8 +11,8 @@ import { dueLabel, dueTone, formatDueDate } from './taskDates';
 
 const PRIORITY_BADGE = {
     high: { label: 'High', classes: 'bg-red-50 text-red-700 ring-red-600/20' },
-    normal: { label: 'Normal', classes: 'bg-gray-50 text-gray-600 ring-gray-500/20' },
-    low: { label: 'Low', classes: 'bg-white text-gray-400 ring-gray-300' },
+    normal: { label: 'Normal', classes: 'bg-blue-50 text-blue-700 ring-blue-600/20' },
+    low: { label: 'Low', classes: 'bg-yellow-50 text-yellow-800 ring-yellow-600/20' },
 };
 
 /**

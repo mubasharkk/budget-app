@@ -2,6 +2,8 @@ import TaskRow from './TaskRow';
 
 const TONES = {
     red: 'text-red-700',
+    blue: 'text-blue-700',
+    yellow: 'text-yellow-700',
     gray: 'text-gray-500',
 };
 

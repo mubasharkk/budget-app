@@ -29,28 +29,29 @@ class TaskTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_the_list_groups_open_tasks_by_due_date_and_shows_only_the_users_own(): void
+    public function test_the_list_groups_open_tasks_by_priority_then_deadline_then_amount_and_shows_only_the_users_own(): void
     {
         $user = User::factory()->create();
-        Task::factory()->for($user)->dueOn('2026-11-10')->create(['title' => 'Overdue']);
-        Task::factory()->for($user)->dueOn('2026-11-12')->create(['title' => 'Today']);
-        Task::factory()->for($user)->dueOn('2026-11-15')->create(['title' => 'Low this week', 'priority' => TaskPriority::Low]);
-        Task::factory()->for($user)->dueOn('2026-11-15')->create(['title' => 'High this week', 'priority' => TaskPriority::High]);
-        Task::factory()->for($user)->dueOn('2026-12-01')->create(['title' => 'Later']);
-        Task::factory()->for($user)->create(['title' => 'Someday', 'due_date' => null]);
-        Task::factory()->for($user)->dueOn('2026-11-01')->completed()->create(['title' => 'Done']);
-        Task::factory()->dueOn('2026-11-12')->create(['title' => 'Someone else']);
+        Task::factory()->for($user)->dueOn('2026-11-15')->create(['title' => 'High later', 'priority' => TaskPriority::High]);
+        Task::factory()->for($user)->dueOn('2026-11-10')->create(['title' => 'High overdue', 'priority' => TaskPriority::High]);
+        Task::factory()->for($user)->dueOn('2026-11-12')->create(['title' => 'Normal small', 'amount' => 10]);
+        Task::factory()->for($user)->dueOn('2026-11-12')->create(['title' => 'Normal big', 'amount' => 500]);
+        Task::factory()->for($user)->create(['title' => 'Normal undated', 'due_date' => null, 'amount' => 9999]);
+        Task::factory()->for($user)->dueOn('2026-11-01')->create(['title' => 'Low', 'priority' => TaskPriority::Low]);
+        Task::factory()->for($user)->dueOn('2026-11-01')->completed()->create(['title' => 'Done', 'priority' => TaskPriority::High]);
+        Task::factory()->dueOn('2026-11-12')->create(['title' => 'Someone else', 'priority' => TaskPriority::High]);
 
         $this->actingAs($user)->get(route('tasks.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Tasks/Index')
-                ->where('board.overdue.0.title', 'Overdue')
-                ->has('board.today', 1)
-                ->where('board.this_week.0.title', 'High this week')
-                ->where('board.this_week.1.title', 'Low this week')
-                ->where('board.later.0.title', 'Later')
-                ->where('board.someday.0.title', 'Someday')
+                ->where('board.high.0.title', 'High overdue')
+                ->where('board.high.1.title', 'High later')
+                ->has('board.high', 2)
+                ->where('board.normal.0.title', 'Normal big')
+                ->where('board.normal.1.title', 'Normal small')
+                ->where('board.normal.2.title', 'Normal undated')
+                ->where('board.low.0.title', 'Low')
                 ->where('board.done.0.title', 'Done')
             );
     }
@@ -69,8 +70,8 @@ class TaskTest extends TestCase
                 ->where('summary.open_amount', 150.5)
                 ->where('summary.overdue_count', 1)
                 ->where('summary.overdue_amount', 120.5)
-                ->where('board.overdue.0.priority', 'high')
-                ->where('board.overdue.0.amount', '120.50')
+                ->where('board.high.0.priority', 'high')
+                ->where('board.high.0.amount', '120.50')
             );
     }
 
