@@ -76,11 +76,6 @@ export default function TaskRow({ task, onEdit, onChanged, showLink = true }) {
                             {task.repeats_label}
                         </span>
                     )}
-                    {task.amount && (
-                        <span className="font-semibold text-gray-700" title="Amount payable or cost">
-                            {formatCurrency(task.amount)}
-                        </span>
-                    )}
                     {showLink && task.link && (
                         <Link
                             href={task.link.url}
@@ -98,6 +93,17 @@ export default function TaskRow({ task, onEdit, onChanged, showLink = true }) {
                     </p>
                 )}
             </div>
+
+            {task.amount && (
+                <span
+                    className={`shrink-0 text-base font-semibold tabular-nums ${
+                        task.is_done ? 'text-gray-400 line-through' : 'text-gray-900'
+                    }`}
+                    title="Amount payable or cost"
+                >
+                    {formatCurrency(task.amount)}
+                </span>
+            )}
 
             <div className="flex shrink-0 items-center gap-2">
                 {onEdit && (
