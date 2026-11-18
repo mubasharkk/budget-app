@@ -46,6 +46,7 @@ Route::middleware('auth')->group(function () {
 
     // Consumption insights page
     Route::get('/insights', [DashboardController::class, 'insights'])->name('insights');
+    Route::put('/insights/settings', [DashboardController::class, 'updateInsightsSettings'])->name('insights.settings.update');
     Route::get('/deals', [DealController::class, 'index'])->name('deals');
     Route::get('/deals/for-you', [DealController::class, 'forYou'])->name('deals.for-you');
 

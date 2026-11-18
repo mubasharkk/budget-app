@@ -107,15 +107,17 @@ class LlmService
      * Match receipt line items to canonical products using existing catalog context.
      *
      * @param  array<int, array{receipt_item_id: int, name: string, unit_price: float, quantity: float, category: ?string}>  $lineItems
-     * @param  array<int, array{id: int, name: string, normalized_name: string, brand: ?string, unit: ?string, size: ?string}>  $existingProducts
+     * @param  array<int, array{id: int, name: string, normalized_name: string, brand: ?string, unit: ?string, size: ?string, group: ?string}>  $existingProducts
+     * @param  array<int, array{name: string, unit: ?string}>  $existingGroups
      * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
      */
-    public function matchLineItemsToProducts(array $lineItems, array $existingProducts): array
+    public function matchLineItemsToProducts(array $lineItems, array $existingProducts, array $existingGroups = []): array
     {
         try {
             $prompt = View::make('prompts.product-matching', [
                 'lineItems' => $lineItems,
                 'products' => $existingProducts,
+                'groups' => $existingGroups,
             ])->render();
 
             $response = $this->client->chat()->create([
@@ -132,7 +134,7 @@ class LlmService
                     ],
                 ],
                 'temperature' => 0.1,
-                'max_tokens' => 2000,
+                'max_tokens' => 4000,
             ]);
 
             return $this->handleResponse($response);
@@ -141,6 +143,51 @@ class LlmService
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
+            return [
+                'success' => false,
+                'data' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Give existing products a general name (consumable group), reusing the
+     * user's existing general names where they fit.
+     *
+     * @param  array<int, array{id: int, name: string, brand: ?string, unit: ?string, size: ?string, category: ?string}>  $products
+     * @param  array<int, array{name: string, unit: ?string}>  $existingGroups
+     * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
+     */
+    public function groupProducts(array $products, array $existingGroups): array
+    {
+        try {
+            $prompt = View::make('prompts.product-grouping', [
+                'products' => $products,
+                'groups' => $existingGroups,
+            ])->render();
+
+            $response = $this->client->chat()->create([
+                'model' => $this->model,
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You give shopping products a short general English name. Return strict JSON only.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'temperature' => 0.1,
+                'max_tokens' => 4000,
+            ]);
+
+            return $this->handleResponse($response);
+        } catch (\Exception $e) {
+            Log::error('LLM product grouping failed', ['error' => $e->getMessage()]);
 
             return [
                 'success' => false,

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\LineItemType;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,7 @@ class ReceiptItem extends Model
     protected $fillable = [
         'receipt_id',
         'name',
+        'line_type',
         'quantity',
         'unit_price',
         'total',
@@ -22,10 +24,15 @@ class ReceiptItem extends Model
         'product_id',
     ];
 
+    protected $attributes = [
+        'line_type' => 'product',
+    ];
+
     protected $casts = [
         'quantity' => 'decimal:3',
         'unit_price' => 'decimal:4',
         'total' => 'decimal:2',
+        'line_type' => LineItemType::class,
     ];
 
     /**

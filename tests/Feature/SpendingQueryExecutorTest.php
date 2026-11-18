@@ -2,10 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Analytics\Services\ConsumptionService;
-use App\Domain\Analytics\Services\ExpenseService;
 use App\Domain\Assistant\Services\SpendingQueryExecutor;
-use App\Domain\Budgets\Services\BudgetService;
 use App\Models\Category;
 use App\Models\Contract;
 use App\Models\Receipt;
@@ -21,11 +18,7 @@ class SpendingQueryExecutorTest extends TestCase
 
     private function executor(): SpendingQueryExecutor
     {
-        return new SpendingQueryExecutor(
-            app(ExpenseService::class),
-            app(ConsumptionService::class),
-            app(BudgetService::class),
-        );
+        return app(SpendingQueryExecutor::class);
     }
 
     public function test_category_spend_returns_fixed_and_variable(): void
@@ -38,11 +31,7 @@ class SpendingQueryExecutorTest extends TestCase
             'quantity' => 1, 'unit_price' => 75, 'category_id' => $groceries->id,
         ]);
 
-        $result = (new SpendingQueryExecutor(
-            app(ExpenseService::class),
-            app(ConsumptionService::class),
-            app(BudgetService::class),
-        ))->execute($user->id, [
+        $result = $this->executor()->execute($user->id, [
             'intent' => 'category_spend',
             'category' => 'Groceries',
             'start_date' => '2026-06-01',
@@ -189,11 +178,7 @@ class SpendingQueryExecutorTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
 
-        (new SpendingQueryExecutor(
-            app(ExpenseService::class),
-            app(ConsumptionService::class),
-            app(BudgetService::class),
-        ))->execute($user->id, [
+        $this->executor()->execute($user->id, [
             'intent' => 'drop_table',
             'start_date' => '2026-06-01',
             'end_date' => '2026-06-30',

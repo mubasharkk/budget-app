@@ -7,9 +7,10 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
+import Checkbox from '@/Components/Checkbox';
+import ConsumedItemList from '@/Components/Insights/ConsumedItemList';
+import ConsumptionScopePanel from '@/Components/Insights/ConsumptionScopePanel';
 import {
-    BarChart,
-    Bar,
     LineChart,
     Line,
     CartesianGrid,
@@ -68,6 +69,7 @@ export default function Insights() {
     const [endDate, setEndDate] = useState('');
     const [categoryId, setCategoryId] = useState('');
     const [year, setYear] = useState(CURRENT_YEAR);
+    const [includeBusiness, setIncludeBusiness] = useState(false);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -77,6 +79,7 @@ export default function Insights() {
         if (startDate) params.start_date = startDate;
         if (endDate) params.end_date = endDate;
         if (categoryId) params.category_id = categoryId;
+        if (includeBusiness) params.include_business = 1;
         Object.assign(params, overrides);
 
         axios
@@ -101,6 +104,7 @@ export default function Insights() {
         setEndDate('');
         setCategoryId('');
         setYear(CURRENT_YEAR);
+        setIncludeBusiness(false);
         // refetch with cleared params on next tick via the values directly
         setLoading(true);
         axios
@@ -109,8 +113,8 @@ export default function Insights() {
             .finally(() => setLoading(false));
     };
 
-    const topByQuantity = data ? toNumber(data.top_by_quantity, ['total_quantity']) : [];
-    const topBySpend = data ? toNumber(data.top_by_spend, ['total_spend']) : [];
+    const topByQuantity = data?.top_by_quantity ?? [];
+    const topBySpend = data?.top_by_spend ?? [];
     const vendors = data ? toNumber(data.vendors, ['receipt_count', 'total_spent']) : [];
     const contractSeries = data?.contract_series ?? [];
     const monthlyTrend = data
@@ -148,7 +152,7 @@ export default function Insights() {
 
                     {/* Filters */}
                     <div className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-6">
                             <div>
                                 <InputLabel htmlFor="start" value="From" />
                                 <TextInput
@@ -211,6 +215,20 @@ export default function Insights() {
                                     ))}
                                 </select>
                             </div>
+                            <div className="flex items-end">
+                                <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
+                                    <Checkbox
+                                        checked={includeBusiness}
+                                        onChange={(e) => {
+                                            setIncludeBusiness(e.target.checked);
+                                            fetchData({
+                                                include_business: e.target.checked ? 1 : undefined,
+                                            });
+                                        }}
+                                    />
+                                    Include business purchases
+                                </label>
+                            </div>
                             <div className="flex items-end gap-2">
                                 <PrimaryButton
                                     type="button"
@@ -227,6 +245,12 @@ export default function Insights() {
                             </div>
                         </div>
                     </div>
+
+                    <ConsumptionScopePanel
+                        categories={categoryOptions}
+                        excludedIds={data?.excluded_category_ids ?? []}
+                        onSaved={() => fetchData()}
+                    />
 
                     {loading ? (
                         <div className="h-72 animate-pulse rounded-lg bg-gray-200" />
@@ -312,39 +336,13 @@ export default function Insights() {
                         </Panel>
 
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            <Panel title="Most consumed (by quantity)">
+                            <Panel title="Most consumed">
                                 {topByQuantity.length === 0 ? (
                                     <EmptyState>
                                         No items in this range.
                                     </EmptyState>
                                 ) : (
-                                    <ResponsiveContainer
-                                        width="100%"
-                                        height={320}
-                                    >
-                                        <BarChart
-                                            layout="vertical"
-                                            data={topByQuantity}
-                                            margin={{ left: 30 }}
-                                        >
-                                            <XAxis
-                                                type="number"
-                                                tick={{ fontSize: 12 }}
-                                            />
-                                            <YAxis
-                                                type="category"
-                                                dataKey="item_name"
-                                                width={120}
-                                                tick={{ fontSize: 12 }}
-                                            />
-                                            <Tooltip />
-                                            <Bar
-                                                dataKey="total_quantity"
-                                                name="Quantity"
-                                                fill="#3B82F6"
-                                            />
-                                        </BarChart>
-                                    </ResponsiveContainer>
+                                    <ConsumedItemList items={topByQuantity} />
                                 )}
                             </Panel>
 
@@ -354,30 +352,7 @@ export default function Insights() {
                                         No items in this range.
                                     </EmptyState>
                                 ) : (
-                                    <ul className="divide-y divide-gray-100">
-                                        {topBySpend.map((item) => (
-                                            <li
-                                                key={`${item.item_name}-${item.category_name}`}
-                                                className="flex items-center justify-between py-2.5"
-                                            >
-                                                <div className="min-w-0">
-                                                    <div className="truncate text-sm font-medium text-gray-900">
-                                                        {item.item_name}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {item.category_name ??
-                                                            'Uncategorized'}{' '}
-                                                        · ×{item.purchase_count}
-                                                    </div>
-                                                </div>
-                                                <div className="font-semibold text-gray-900">
-                                                    {formatCurrency(
-                                                        item.total_spend,
-                                                    )}
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <ConsumedItemList items={topBySpend} />
                                 )}
                             </Panel>
 

@@ -2,14 +2,17 @@
 
 namespace App\Domain\Assistant\Services;
 
+use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Analytics\Services\ConsumptionService;
 use App\Domain\Analytics\Services\ExpenseService;
 use App\Domain\Budgets\Services\BudgetService;
+use App\Domain\Identity\Services\UserSettingsService;
 use App\Enums\BudgetPeriod;
 use App\Models\Category;
 use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 
@@ -19,6 +22,7 @@ class SpendingQueryExecutor
         private ExpenseService $expenseService,
         private ConsumptionService $consumptionService,
         private BudgetService $budgetService,
+        private UserSettingsService $userSettingsService,
     ) {}
 
     /**
@@ -214,6 +218,7 @@ class SpendingQueryExecutor
             $end->toDateString(),
             $categoryId,
             5,
+            $this->consumptionScope($userId),
         );
 
         return [
@@ -243,6 +248,7 @@ class SpendingQueryExecutor
             $categoryId,
             $metric,
             10,
+            $this->consumptionScope($userId),
         );
 
         return [
@@ -259,6 +265,18 @@ class SpendingQueryExecutor
                 'purchases' => (int) $row->purchase_count,
             ])->all(),
         ];
+    }
+
+    /**
+     * The user's consumption scope: personal receipts, minus excluded categories.
+     */
+    private function consumptionScope(int $userId): ConsumptionScope
+    {
+        $user = User::query()->find($userId);
+
+        return new ConsumptionScope(
+            excludedCategoryIds: $user !== null ? $this->userSettingsService->excludedConsumptionCategoryIds($user) : [],
+        );
     }
 
     /**

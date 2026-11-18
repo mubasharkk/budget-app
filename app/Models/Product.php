@@ -15,6 +15,7 @@ class Product extends Model
     protected $fillable = [
         'user_id',
         'category_id',
+        'consumable_group_id',
         'name',
         'normalized_name',
         'brand',
@@ -41,6 +42,11 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function consumableGroup(): BelongsTo
+    {
+        return $this->belongsTo(ConsumableGroup::class);
     }
 
     public function priceObservations(): HasMany

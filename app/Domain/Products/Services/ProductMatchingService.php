@@ -2,7 +2,9 @@
 
 namespace App\Domain\Products\Services;
 
+use App\Domain\Products\Support\LineItemClassifier;
 use App\Domain\Shared\Services\LlmService;
+use App\Enums\LineItemType;
 use App\Models\PriceObservation;
 use App\Models\Product;
 use App\Models\Receipt;
@@ -13,7 +15,10 @@ use Illuminate\Support\Str;
 
 class ProductMatchingService
 {
-    public function __construct(private LlmService $llmService) {}
+    public function __construct(
+        private LlmService $llmService,
+        private ConsumableGroupService $consumableGroupService,
+    ) {}
 
     /**
      * Match all line items on a processed receipt to canonical products and record price observations.
@@ -32,7 +37,11 @@ class ProductMatchingService
         $existingProducts = $this->existingProductsForUser($userId);
         $lineItems = $this->formatLineItemsForPrompt($items);
 
-        $result = $this->llmService->matchLineItemsToProducts($lineItems, $existingProducts);
+        $result = $this->llmService->matchLineItemsToProducts(
+            $lineItems,
+            $existingProducts,
+            $this->consumableGroupService->namesForPrompt($userId),
+        );
 
         if (! $result['success']) {
             throw new \RuntimeException('Product matching failed: '.($result['error'] ?? 'Unknown error'));
@@ -52,22 +61,34 @@ class ProductMatchingService
                 continue;
             }
 
+            $lineType = LineItemType::tryFrom((string) ($match['line_type'] ?? ''))
+                ?? LineItemClassifier::classify($item->name, (float) $item->total, $item->category?->name);
+
+            if (! $lineType->isConsumption()) {
+                $item->update(['line_type' => $lineType, 'product_id' => null]);
+                PriceObservation::query()->where('receipt_item_id', $item->id)->delete();
+
+                continue;
+            }
+
             $product = $this->resolveProduct($userId, $match, $item);
-            $item->update(['product_id' => $product->id]);
+            $item->update(['line_type' => $lineType, 'product_id' => $product->id]);
+            $this->consumableGroupService->assign($product, $match['group'] ?? null, $match['group_unit'] ?? null);
 
             $this->recordPriceObservation($product, $item, $receipt);
         }
     }
 
     /**
-     * @return array<int, array{id: int, name: string, normalized_name: string, brand: ?string, unit: ?string, size: ?string}>
+     * @return array<int, array{id: int, name: string, normalized_name: string, brand: ?string, unit: ?string, size: ?string, group: ?string}>
      */
     private function existingProductsForUser(int $userId): array
     {
         return Product::query()
             ->where('user_id', $userId)
+            ->with('consumableGroup:id,name')
             ->orderBy('name')
-            ->get(['id', 'name', 'normalized_name', 'brand', 'unit', 'size'])
+            ->get(['id', 'name', 'normalized_name', 'brand', 'unit', 'size', 'consumable_group_id'])
             ->map(fn (Product $product): array => [
                 'id' => $product->id,
                 'name' => $product->name,
@@ -75,6 +96,7 @@ class ProductMatchingService
                 'brand' => $product->brand,
                 'unit' => $product->unit,
                 'size' => $product->size,
+                'group' => $product->consumableGroup?->name,
             ])
             ->all();
     }

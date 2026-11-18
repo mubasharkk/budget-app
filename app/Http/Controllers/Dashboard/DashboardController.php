@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Domain\Analytics\Data\ConsumptionReportFilters;
+use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Analytics\Services\ConsumptionService;
 use App\Domain\Analytics\Services\DashboardService;
 use App\Domain\Analytics\Services\DashboardSnapshotService;
@@ -17,6 +18,7 @@ use App\Enums\DashboardSection;
 use App\Enums\ExpenseType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardSettingsRequest;
+use App\Http\Requests\InsightsSettingsRequest;
 use App\Http\Requests\TransactionLedgerRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -125,7 +127,24 @@ class DashboardController extends Controller
         return response()->json($this->consumptionService->report(
             $request->user()->id,
             ConsumptionReportFilters::fromArray($request->query()),
+            new ConsumptionScope(
+                includeBusiness: $request->boolean('include_business'),
+                excludedCategoryIds: $this->userSettingsService->excludedConsumptionCategoryIds($request->user()),
+            ),
         ));
+    }
+
+    /**
+     * Save which categories do not count as consumption on the Insights page.
+     */
+    public function updateInsightsSettings(InsightsSettingsRequest $request): JsonResponse
+    {
+        return response()->json([
+            'excluded_category_ids' => $this->userSettingsService->updateExcludedConsumptionCategoryIds(
+                $request->user(),
+                $request->validated('excluded_category_ids'),
+            ),
+        ]);
     }
 
     /**
