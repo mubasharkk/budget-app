@@ -9,6 +9,7 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import Checkbox from '@/Components/Checkbox';
 import ConsumedItemList from '@/Components/Insights/ConsumedItemList';
+import ConsumptionAnalysisCard from '@/Components/Insights/ConsumptionAnalysisCard';
 import ConsumptionScopePanel from '@/Components/Insights/ConsumptionScopePanel';
 import {
     LineChart,
@@ -245,6 +246,8 @@ export default function Insights() {
                             </div>
                         </div>
                     </div>
+
+                    <ConsumptionAnalysisCard startDate={startDate} endDate={endDate} />
 
                     <ConsumptionScopePanel
                         categories={categoryOptions}

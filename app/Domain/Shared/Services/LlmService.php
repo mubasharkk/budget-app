@@ -198,6 +198,42 @@ class LlmService
     }
 
     /**
+     * Write an analysis of the user's consumption from exact, pre-computed figures.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{success: bool, data: ?array, error?: string, raw_response?: array}
+     */
+    public function analyseConsumption(array $payload): array
+    {
+        try {
+            $prompt = View::make('prompts.consumption-analysis', $payload)->render();
+
+            $response = $this->client->chat()->create([
+                'model' => $this->model,
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You write short, accurate analyses of household consumption from exact figures. Return strict JSON only.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'temperature' => 0.4,
+                'max_tokens' => 1500,
+            ]);
+
+            return $this->handleResponse($response);
+        } catch (\Exception $e) {
+            Log::error('LLM consumption analysis failed', ['error' => $e->getMessage()]);
+
+            return ['success' => false, 'data' => null, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Generate a narrative monthly digest summary from structured data.
      *
      * @param  array<string, mixed>  $data
