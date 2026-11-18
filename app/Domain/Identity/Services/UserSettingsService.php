@@ -2,6 +2,7 @@
 
 namespace App\Domain\Identity\Services;
 
+use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Enums\DashboardSection;
 use App\Models\User;
 
@@ -70,6 +71,47 @@ class UserSettingsService
         $user->save();
 
         return $categoryIds;
+    }
+
+    /**
+     * Whether business receipts count as consumption on the Insights page.
+     */
+    public function consumptionIncludesBusiness(User $user): bool
+    {
+        return (bool) data_get($user->settings, 'insights.include_business', false);
+    }
+
+    /**
+     * What counts as consumption for the user: their excluded categories and
+     * whether business receipts count.
+     */
+    public function consumptionScope(User $user): ConsumptionScope
+    {
+        return new ConsumptionScope(
+            includeBusiness: $this->consumptionIncludesBusiness($user),
+            excludedCategoryIds: $this->excludedConsumptionCategoryIds($user),
+        );
+    }
+
+    /**
+     * Save what counts as consumption under settings.insights, leaving any
+     * other settings untouched.
+     *
+     * @param  array<int, mixed>  $excludedCategoryIds
+     * @return array{excluded_category_ids: array<int, int>, include_business: bool}
+     */
+    public function updateConsumptionSettings(User $user, array $excludedCategoryIds, bool $includeBusiness): array
+    {
+        $excludedCategoryIds = $this->normaliseIds($excludedCategoryIds);
+
+        $settings = $user->settings ?? [];
+        data_set($settings, 'insights.excluded_category_ids', $excludedCategoryIds);
+        data_set($settings, 'insights.include_business', $includeBusiness);
+
+        $user->settings = $settings;
+        $user->save();
+
+        return ['excluded_category_ids' => $excludedCategoryIds, 'include_business' => $includeBusiness];
     }
 
     /**

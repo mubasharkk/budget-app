@@ -2,7 +2,6 @@
 
 namespace App\Domain\Analytics\Services;
 
-use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Analytics\Exceptions\ConsumptionAnalysisFailed;
 use App\Domain\Identity\Services\UserSettingsService;
 use App\Domain\Shared\Services\LlmService;
@@ -43,18 +42,19 @@ class ConsumptionAnalysisService
             ->latest()
             ->latest('id')
             ->limit(self::HISTORY)
-            ->get(['id', 'period_start', 'period_end', 'summary', 'findings', 'tips', 'created_at']);
+            ->get(['id', 'period_label', 'period_start', 'period_end', 'summary', 'findings', 'tips', 'created_at']);
     }
 
     /**
-     * Compare the period with the one of the same length before it and have
-     * the AI write about it.
+     * Compare the period with the one before it and have the AI write about it.
+     *
+     * @param  array{label: string, start: CarbonImmutable, end: CarbonImmutable, previous_start: CarbonImmutable, previous_end: CarbonImmutable}  $window
      *
      * @throws ConsumptionAnalysisFailed
      */
-    public function analyse(User $user, CarbonImmutable $start, CarbonImmutable $end): ConsumptionAnalysis
+    public function analyse(User $user, array $window): ConsumptionAnalysis
     {
-        $payload = $this->payload($user, $start, $end);
+        $payload = $this->payload($user, $window);
 
         if ($payload['items'] === []) {
             throw ConsumptionAnalysisFailed::nothingConsumed();
@@ -69,8 +69,9 @@ class ConsumptionAnalysisService
 
         return ConsumptionAnalysis::query()->create([
             'user_id' => $user->id,
-            'period_start' => $start->toDateString(),
-            'period_end' => $end->toDateString(),
+            'period_label' => $window['label'],
+            'period_start' => $window['start']->toDateString(),
+            'period_end' => $window['end']->toDateString(),
             'summary' => $summary,
             'findings' => collect($result['data']['findings'] ?? [])
                 ->filter(fn ($finding): bool => is_array($finding) && filled($finding['title'] ?? null))
@@ -85,14 +86,13 @@ class ConsumptionAnalysisService
     /**
      * The exact figures the AI is given.
      *
-     * @return array{currency: string, period: array{start: string, end: string}, previous_period: array{start: string, end: string}, totals: array{spend: float, previous_spend: float}, items: array<int, array<string, mixed>>}
+     * @param  array{label: string, start: CarbonImmutable, end: CarbonImmutable, previous_start: CarbonImmutable, previous_end: CarbonImmutable}  $window
+     * @return array{currency: string, label: string, period: array{start: string, end: string}, previous_period: array{start: string, end: string}, totals: array{spend: float, previous_spend: float}, items: array<int, array<string, mixed>>}
      */
-    public function payload(User $user, CarbonImmutable $start, CarbonImmutable $end): array
+    public function payload(User $user, array $window): array
     {
-        $scope = new ConsumptionScope(excludedCategoryIds: $this->userSettingsService->excludedConsumptionCategoryIds($user));
-        $days = (int) $start->diffInDays($end) + 1;
-        $previousEnd = $start->subDay();
-        $previousStart = $previousEnd->subDays($days - 1);
+        $scope = $this->userSettingsService->consumptionScope($user);
+        ['start' => $start, 'end' => $end, 'previous_start' => $previousStart, 'previous_end' => $previousEnd] = $window;
 
         $all = fn (CarbonImmutable $from, CarbonImmutable $to): Collection => $this->consumptionService
             ->topItems($user->id, 'spend', $from->toDateString(), $to->toDateString(), null, PHP_INT_MAX, $scope);
@@ -102,6 +102,7 @@ class ConsumptionAnalysisService
 
         return [
             'currency' => $user->default_currency ?? 'EUR',
+            'label' => $window['label'],
             'period' => ['start' => $start->toDateString(), 'end' => $end->toDateString()],
             'previous_period' => ['start' => $previousStart->toDateString(), 'end' => $previousEnd->toDateString()],
             'totals' => [

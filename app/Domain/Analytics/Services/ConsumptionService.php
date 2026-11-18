@@ -27,16 +27,6 @@ class ConsumptionService
     {
         $scope ??= ConsumptionScope::default();
 
-        $contractSeries = $this->monthlyContractSeries($userId, $filters->year, $filters->categoryId);
-
-        $monthlyTrend = array_map(function (array $row) use ($contractSeries): array {
-            foreach ($contractSeries as $series) {
-                $row[$series['key']] = $series['monthly'][$row['month']] ?? 0.0;
-            }
-
-            return $row;
-        }, $this->monthlySpendTrend($userId, $filters->year, $filters->categoryId, $scope));
-
         $topItems = fn (string $metric): Collection => $this->topItems(
             $userId, $metric, $filters->startDate, $filters->endDate, $filters->categoryId, $filters->limit, $scope
         );
@@ -50,18 +40,118 @@ class ConsumptionService
             'year' => $filters->year,
             'include_business' => $scope->includeBusiness,
             'excluded_category_ids' => $scope->excludedCategoryIds,
-            'monthly_trend' => $monthlyTrend,
-            'contract_series' => array_map(
-                fn (array $series): array => ['key' => $series['key'], 'label' => $series['label']],
-                $contractSeries
-            ),
+            'spend_series' => $this->monthlyCategorySeries($userId, $filters->year, $scope),
             'items' => $topItems($filters->metric),
             'top_by_quantity' => $topItems('quantity'),
             'top_by_spend' => $topItems('spend'),
-            'vendors' => $this->vendorLeaderboard(
-                $userId, $filters->startDate, $filters->endDate, $filters->limit
+            'vendors' => $this->consumptionVendors(
+                $userId, $filters->startDate, $filters->endDate, $filters->categoryId, $filters->limit, $scope
             ),
         ];
+    }
+
+    /**
+     * Spend per month of the year in each parent category, receipts and
+     * contracts kept apart, within the scope (business receipts and contracts
+     * only when included; excluded categories left out). Every receipt line
+     * counts, since deposits and discounts are real money. Largest first.
+     *
+     * @return array<int, array{key: string, label: string, variable: array<int, float>, fixed: array<int, float>, total: float}>
+     */
+    public function monthlyCategorySeries(int $userId, int $year, ConsumptionScope $scope): array
+    {
+        $parents = Category::query()->get(['id', 'name', 'parent_id'])->keyBy('id');
+        $parentOf = function (?int $categoryId) use ($parents): ?Category {
+            $category = $categoryId !== null ? $parents->get($categoryId) : null;
+
+            return $category?->parent_id !== null ? $parents->get($category->parent_id) : $category;
+        };
+
+        $series = [];
+        $add = function (?Category $category, string $kind, int $month, float $amount) use (&$series): void {
+            $key = $category !== null ? 'cat_'.$category->id : 'uncategorised';
+            $series[$key] ??= [
+                'key' => $key,
+                'label' => $category?->name ?? 'Uncategorised',
+                'variable' => array_fill(1, 12, 0.0),
+                'fixed' => array_fill(1, 12, 0.0),
+            ];
+            $series[$key][$kind][$month] += $amount;
+        };
+
+        $lines = ReceiptItem::query()
+            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
+            ->where('receipts.user_id', $userId)
+            ->whereBetween('receipts.receipt_date', [sprintf('%04d-01-01 00:00:00', $year), sprintf('%04d-12-31 23:59:59', $year)])
+            ->select(['receipt_items.total', 'receipt_items.category_id', 'receipts.receipt_date']);
+        $this->applyScope($lines, $scope);
+
+        foreach ($lines->toBase()->get() as $line) {
+            $add($parentOf($line->category_id), 'variable', (int) Carbon::parse($line->receipt_date)->format('n'), (float) $line->total);
+        }
+
+        $excluded = $this->expandCategoryIds($scope->excludedCategoryIds);
+        $contracts = $this->contractsForTrend($userId, null)
+            ->filter(fn (Contract $contract): bool => ($scope->includeBusiness || $contract->expense_type === ExpenseType::Personal)
+                && ! in_array($contract->category_id, $excluded, true));
+
+        foreach ($contracts as $contract) {
+            for ($month = 1; $month <= 12; $month++) {
+                $amount = $this->contractTotalForMonth(collect([$contract]), Carbon::create($year, $month, 1)->startOfMonth());
+
+                if ($amount > 0) {
+                    $add($parentOf($contract->category_id), 'fixed', $month, $amount);
+                }
+            }
+        }
+
+        return collect($series)
+            ->map(function (array $row): array {
+                $row['variable'] = array_map(fn (float $value): float => round($value, 2), $row['variable']);
+                $row['fixed'] = array_map(fn (float $value): float => round($value, 2), $row['fixed']);
+                $row['total'] = round(array_sum($row['variable']) + array_sum($row['fixed']), 2);
+
+                return $row;
+            })
+            ->filter(fn (array $row): bool => $row['total'] != 0.0)
+            ->sortByDesc('total')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Shops ranked by what was spent there on consumption (consumed lines
+     * only, within the scope), with the number of shopping trips.
+     *
+     * @return Collection<int, object>
+     */
+    public function consumptionVendors(
+        int $userId,
+        ?string $startDate = null,
+        ?string $endDate = null,
+        ?int $categoryId = null,
+        int $limit = 10,
+        ?ConsumptionScope $scope = null,
+    ): Collection {
+        $query = $this->consumedLines($userId, $scope ?? ConsumptionScope::default())
+            ->whereNotNull('receipts.vendor')
+            ->where('receipts.vendor', '!=', '')
+            ->groupBy('receipts.vendor')
+            ->selectRaw('receipts.vendor as vendor')
+            ->selectRaw('COUNT(DISTINCT receipts.id) as receipt_count')
+            ->selectRaw('SUM(receipt_items.total) as total_spent')
+            ->orderByDesc('total_spent')
+            ->limit($limit);
+
+        $this->applyReceiptDateRange($query, $startDate, $endDate);
+        $this->applyCategoryFilter($query, $categoryId);
+
+        return $query->toBase()->get()->map(function (object $row): object {
+            $row->receipt_count = (int) $row->receipt_count;
+            $row->total_spent = round((float) $row->total_spent, 2);
+
+            return $row;
+        });
     }
 
     /**
@@ -353,11 +443,7 @@ class ConsumptionService
             $query->where('receipts.expense_type', ExpenseType::Personal->value);
         }
 
-        $excluded = collect($scope->excludedCategoryIds)
-            ->flatMap(fn (int $id): array => $this->resolveCategoryIds($id) ?? [])
-            ->unique()
-            ->values()
-            ->all();
+        $excluded = $this->expandCategoryIds($scope->excludedCategoryIds);
 
         if ($excluded === []) {
             return;
@@ -496,6 +582,21 @@ class ConsumptionService
         if ($ids !== null) {
             $query->whereIn('receipt_items.category_id', $ids);
         }
+    }
+
+    /**
+     * Expand category ids into themselves plus their subcategories.
+     *
+     * @param  array<int, int>  $categoryIds
+     * @return array<int, int>
+     */
+    private function expandCategoryIds(array $categoryIds): array
+    {
+        return collect($categoryIds)
+            ->flatMap(fn (int $id): array => $this->resolveCategoryIds($id) ?? [])
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

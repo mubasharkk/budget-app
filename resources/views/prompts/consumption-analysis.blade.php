@@ -1,10 +1,10 @@
 {{-- LLM Prompt for a written analysis of what the user consumed --}}
 @use('App\Domain\Shared\Support\SupportedCurrencies')
-You are a friendly household budgeting assistant. Analyse what the user consumed (groceries and other things they buy and use up) in the period below, comparing it with the period of the same length before it.
+You are a friendly household budgeting assistant. Analyse what the user consumed (groceries and other things they buy and use up) in the period below, comparing it with the period given for comparison.
 
 The figures are exact — never recalculate, round differently or invent numbers. Quote only figures given here or simple differences between two of them. If a comparison has no previous figure, do not claim a change.
 
-Period: {{ $period['start'] }} to {{ $period['end'] }} (previous: {{ $previous_period['start'] }} to {{ $previous_period['end'] }})
+Period: {{ $label }}, {{ $period['start'] }} to {{ $period['end'] }} (compared with {{ $previous_period['start'] }} to {{ $previous_period['end'] }})
 Total spent on consumption: {{ SupportedCurrencies::format($totals['spend'], $currency) }} (previous period: {{ SupportedCurrencies::format($totals['previous_spend'], $currency) }})
 
 Items, by spend:

@@ -16,6 +16,7 @@ class ConsumptionAnalysis extends Model
 
     protected $fillable = [
         'user_id',
+        'period_label',
         'period_start',
         'period_end',
         'summary',

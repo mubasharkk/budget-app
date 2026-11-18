@@ -106,6 +106,42 @@ class ConsumptionInsightsTest extends TestCase
             ->assertJsonValidationErrors('excluded_category_ids.0');
     }
 
+    public function test_the_saved_scope_shapes_the_chart_and_the_shops_too(): void
+    {
+        $user = User::factory()->create();
+        $groceries = Category::factory()->create(['name' => 'Groceries']);
+        $dairy = Category::factory()->childOf($groceries)->create(['name' => 'Dairy']);
+        $household = Category::factory()->create(['name' => 'Household']);
+        $year = (int) now()->format('Y');
+
+        $rewe = Receipt::factory()->for($user)->create(['vendor' => 'REWE', 'receipt_date' => "{$year}-03-10"]);
+        ReceiptItem::factory()->for($rewe)->create(['quantity' => 1, 'unit_price' => 20, 'category_id' => $dairy->id]);
+        ReceiptItem::factory()->for($rewe)->create(['name' => 'PFAND', 'quantity' => 1, 'unit_price' => 0.25, 'line_type' => LineItemType::Deposit, 'category_id' => $groceries->id]);
+        ReceiptItem::factory()->for($rewe)->create(['quantity' => 1, 'unit_price' => 30, 'category_id' => $household->id]);
+        $office = Receipt::factory()->for($user)->create(['vendor' => 'Office shop', 'receipt_date' => "{$year}-03-11", 'expense_type' => ExpenseType::Business]);
+        ReceiptItem::factory()->for($office)->create(['quantity' => 1, 'unit_price' => 99, 'category_id' => $groceries->id]);
+
+        $this->actingAs($user)->putJson(route('insights.settings.update'), ['excluded_category_ids' => [$household->id]])
+            ->assertJsonPath('include_business', false);
+
+        $report = $this->actingAs($user)->getJson(route('dashboard.consumption', ['year' => $year]))
+            ->assertJsonPath('include_business', false)
+            ->assertJsonPath('spend_series.0.label', 'Groceries')
+            ->assertJsonPath('spend_series.0.variable.3', 20.25)
+            ->assertJsonCount(1, 'spend_series')
+            ->assertJsonPath('vendors.0.vendor', 'REWE')
+            ->assertJsonPath('vendors.0.total_spent', 20)
+            ->assertJsonCount(1, 'vendors');
+
+        $this->actingAs($user)->putJson(route('insights.settings.update'), ['excluded_category_ids' => [], 'include_business' => true]);
+
+        $this->actingAs($user)->getJson(route('dashboard.consumption', ['year' => $year]))
+            ->assertJsonPath('include_business', true)
+            ->assertJsonPath('spend_series.0.variable.3', 119.25)
+            ->assertJsonPath('spend_series.1.label', 'Household')
+            ->assertJsonPath('vendors.0.vendor', 'Office shop');
+    }
+
     public function test_the_dashboard_widget_lists_general_names_with_their_products_and_totals(): void
     {
         $user = User::factory()->create();

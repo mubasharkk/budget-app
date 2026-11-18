@@ -19,6 +19,7 @@ class InsightsSettingsRequest extends FormRequest
         return [
             'excluded_category_ids' => ['present', 'array'],
             'excluded_category_ids.*' => ['integer', 'distinct', 'exists:categories,id'],
+            'include_business' => ['sometimes', 'boolean'],
         ];
     }
 

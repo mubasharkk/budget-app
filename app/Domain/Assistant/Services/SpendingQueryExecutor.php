@@ -268,15 +268,13 @@ class SpendingQueryExecutor
     }
 
     /**
-     * The user's consumption scope: personal receipts, minus excluded categories.
+     * What counts as consumption for the user (their Insights settings).
      */
     private function consumptionScope(int $userId): ConsumptionScope
     {
         $user = User::query()->find($userId);
 
-        return new ConsumptionScope(
-            excludedCategoryIds: $user !== null ? $this->userSettingsService->excludedConsumptionCategoryIds($user) : [],
-        );
+        return $user !== null ? $this->userSettingsService->consumptionScope($user) : ConsumptionScope::default();
     }
 
     /**

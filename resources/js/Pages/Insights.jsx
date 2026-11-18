@@ -1,53 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import AssistantChat from '@/Components/AssistantChat';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
-import Checkbox from '@/Components/Checkbox';
 import ConsumedItemList from '@/Components/Insights/ConsumedItemList';
 import ConsumptionAnalysisCard from '@/Components/Insights/ConsumptionAnalysisCard';
 import ConsumptionScopePanel from '@/Components/Insights/ConsumptionScopePanel';
-import {
-    LineChart,
-    Line,
-    CartesianGrid,
-    Legend,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-} from 'recharts';
+import MonthlySpendChart from '@/Components/Insights/MonthlySpendChart';
 import { formatCurrency } from '@/utils/money';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 
-const VARIABLE_COLOR = '#10B981';
-// Palette for per-category contract lines (first is the brand fixed color).
-const CONTRACT_COLORS = [
-    '#6366F1',
-    '#F59E0B',
-    '#EC4899',
-    '#0EA5E9',
-    '#8B5CF6',
-    '#14B8A6',
-    '#EF4444',
-    '#84CC16',
-];
-
 const selectClasses =
     'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500';
-
-const toNumber = (rows, keys) =>
-    rows.map((row) => {
-        const out = { ...row };
-        keys.forEach((k) => (out[k] = Number(out[k])));
-        return out;
-    });
 
 function Panel({ title, children }) {
     return (
@@ -59,9 +28,7 @@ function Panel({ title, children }) {
 }
 
 function EmptyState({ children }) {
-    return (
-        <p className="py-12 text-center text-sm text-gray-400">{children}</p>
-    );
+    return <p className="py-12 text-center text-sm text-gray-400">{children}</p>;
 }
 
 export default function Insights() {
@@ -70,31 +37,29 @@ export default function Insights() {
     const [endDate, setEndDate] = useState('');
     const [categoryId, setCategoryId] = useState('');
     const [year, setYear] = useState(CURRENT_YEAR);
-    const [includeBusiness, setIncludeBusiness] = useState(false);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const fetchData = (overrides = {}) => {
         setLoading(true);
-        const params = { year };
-        if (startDate) params.start_date = startDate;
-        if (endDate) params.end_date = endDate;
-        if (categoryId) params.category_id = categoryId;
-        if (includeBusiness) params.include_business = 1;
-        Object.assign(params, overrides);
+        const params = {
+            year,
+            start_date: startDate || undefined,
+            end_date: endDate || undefined,
+            category_id: categoryId || undefined,
+            ...overrides,
+        };
 
         axios
-            .get('/dashboard/consumption', { params })
+            .get(route('dashboard.consumption'), { params })
             .then((res) => setData(res.data))
-            .catch((error) =>
-                console.error('Error fetching consumption data:', error),
-            )
+            .catch((error) => console.error('Error fetching consumption data:', error))
             .finally(() => setLoading(false));
     };
 
     useEffect(() => {
         axios
-            .get('/dashboard/categories')
+            .get(route('dashboard.categories'))
             .then((res) => setCategoryOptions(res.data.categories))
             .catch(() => {});
         fetchData();
@@ -104,56 +69,47 @@ export default function Insights() {
         setStartDate('');
         setEndDate('');
         setCategoryId('');
-        setYear(CURRENT_YEAR);
-        setIncludeBusiness(false);
-        // refetch with cleared params on next tick via the values directly
-        setLoading(true);
-        axios
-            .get('/dashboard/consumption', { params: { year: CURRENT_YEAR } })
-            .then((res) => setData(res.data))
-            .finally(() => setLoading(false));
+        fetchData({ start_date: undefined, end_date: undefined, category_id: undefined });
+    };
+
+    const changeYear = (nextYear) => {
+        setYear(nextYear);
+        fetchData({ year: nextYear });
     };
 
     const topByQuantity = data?.top_by_quantity ?? [];
     const topBySpend = data?.top_by_spend ?? [];
-    const vendors = data ? toNumber(data.vendors, ['receipt_count', 'total_spent']) : [];
-    const contractSeries = data?.contract_series ?? [];
-    const monthlyTrend = data
-        ? toNumber(data.monthly_trend ?? [], [
-              'total',
-              ...contractSeries.map((s) => s.key),
-          ])
-        : [];
-    const trendYear = data?.year ?? year;
-    const selectedCategoryName =
-        categoryOptions.find((c) => String(c.id) === String(categoryId))?.name ??
-        'All categories';
-    const variableTotal = monthlyTrend.reduce((sum, row) => sum + row.total, 0);
-    const contractsTotal = monthlyTrend.reduce(
-        (sum, row) =>
-            sum +
-            contractSeries.reduce((acc, s) => acc + (row[s.key] ?? 0), 0),
-        0,
-    );
-    const trendTotal = variableTotal + contractsTotal;
+    const vendors = data?.vendors ?? [];
 
     return (
         <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Consumption Insights
-                </h2>
-            }
+            header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Consumption Insights</h2>}
         >
             <Head title="Insights" />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <AssistantChat />
+                    <ConsumptionScopePanel
+                        categories={categoryOptions}
+                        excludedIds={data?.excluded_category_ids ?? []}
+                        includeBusiness={data?.include_business ?? false}
+                        onSaved={() => fetchData()}
+                    />
 
-                    {/* Filters */}
+                    {!data ? (
+                        <div className="h-96 animate-pulse rounded-lg bg-gray-200" />
+                    ) : (
+                        <MonthlySpendChart
+                            series={data.spend_series ?? []}
+                            year={data.year ?? year}
+                            years={YEAR_OPTIONS}
+                            onYearChange={changeYear}
+                        />
+                    )}
+
                     <div className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                        <h3 className="mb-3 text-sm font-medium text-gray-900">Items and shops</h3>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
                                 <InputLabel htmlFor="start" value="From" />
                                 <TextInput
@@ -161,9 +117,7 @@ export default function Insights() {
                                     type="date"
                                     className="mt-1 block w-full"
                                     value={startDate}
-                                    onChange={(e) =>
-                                        setStartDate(e.target.value)
-                                    }
+                                    onChange={(e) => setStartDate(e.target.value)}
                                 />
                             </div>
                             <div>
@@ -177,17 +131,12 @@ export default function Insights() {
                                 />
                             </div>
                             <div>
-                                <InputLabel
-                                    htmlFor="category"
-                                    value="Category"
-                                />
+                                <InputLabel htmlFor="category" value="Category" />
                                 <select
                                     id="category"
                                     className={selectClasses}
                                     value={categoryId}
-                                    onChange={(e) =>
-                                        setCategoryId(e.target.value)
-                                    }
+                                    onChange={(e) => setCategoryId(e.target.value)}
                                 >
                                     <option value="">All categories</option>
                                     {categoryOptions.map((c) => (
@@ -197,153 +146,24 @@ export default function Insights() {
                                     ))}
                                 </select>
                             </div>
-                            <div>
-                                <InputLabel htmlFor="year" value="Trend year" />
-                                <select
-                                    id="year"
-                                    className={selectClasses}
-                                    value={year}
-                                    onChange={(e) => {
-                                        const nextYear = Number(e.target.value);
-                                        setYear(nextYear);
-                                        fetchData({ year: nextYear });
-                                    }}
-                                >
-                                    {YEAR_OPTIONS.map((y) => (
-                                        <option key={y} value={y}>
-                                            {y}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="flex items-end">
-                                <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
-                                    <Checkbox
-                                        checked={includeBusiness}
-                                        onChange={(e) => {
-                                            setIncludeBusiness(e.target.checked);
-                                            fetchData({
-                                                include_business: e.target.checked ? 1 : undefined,
-                                            });
-                                        }}
-                                    />
-                                    Include business purchases
-                                </label>
-                            </div>
                             <div className="flex items-end gap-2">
-                                <PrimaryButton
-                                    type="button"
-                                    onClick={fetchData}
-                                >
+                                <PrimaryButton type="button" onClick={() => fetchData()}>
                                     Apply
                                 </PrimaryButton>
-                                <SecondaryButton
-                                    type="button"
-                                    onClick={clearFilters}
-                                >
+                                <SecondaryButton type="button" onClick={clearFilters}>
                                     Clear
                                 </SecondaryButton>
                             </div>
                         </div>
                     </div>
 
-                    <ConsumptionAnalysisCard startDate={startDate} endDate={endDate} />
-
-                    <ConsumptionScopePanel
-                        categories={categoryOptions}
-                        excludedIds={data?.excluded_category_ids ?? []}
-                        onSaved={() => fetchData()}
-                    />
-
                     {loading ? (
                         <div className="h-72 animate-pulse rounded-lg bg-gray-200" />
                     ) : (
-                        <>
-                        <Panel
-                            title={`Monthly spend — ${selectedCategoryName} (${trendYear})`}
-                        >
-                            {trendTotal === 0 ? (
-                                <EmptyState>
-                                    No spending recorded in {trendYear}.
-                                </EmptyState>
-                            ) : (
-                                <>
-                                    <div className="mb-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
-                                        <span>
-                                            Variable:{' '}
-                                            <span className="font-semibold text-gray-900">
-                                                {formatCurrency(variableTotal)}
-                                            </span>
-                                        </span>
-                                        <span>
-                                            Contracts:{' '}
-                                            <span className="font-semibold text-gray-900">
-                                                {formatCurrency(contractsTotal)}
-                                            </span>
-                                        </span>
-                                        <span>
-                                            Total {trendYear}:{' '}
-                                            <span className="font-semibold text-gray-900">
-                                                {formatCurrency(trendTotal)}
-                                            </span>
-                                        </span>
-                                    </div>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <LineChart data={monthlyTrend}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="label"
-                                                tick={{ fontSize: 12 }}
-                                            />
-                                            <YAxis
-                                                tick={{ fontSize: 12 }}
-                                                tickFormatter={(v) =>
-                                                    formatCurrency(v)
-                                                }
-                                                width={80}
-                                            />
-                                            <Tooltip
-                                                formatter={(value) =>
-                                                    formatCurrency(value)
-                                                }
-                                            />
-                                            <Legend />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="total"
-                                                name="Variable (receipts)"
-                                                stroke={VARIABLE_COLOR}
-                                                strokeWidth={2}
-                                                dot={{ r: 3 }}
-                                            />
-                                            {contractSeries.map((s, i) => (
-                                                <Line
-                                                    key={s.key}
-                                                    type="monotone"
-                                                    dataKey={s.key}
-                                                    name={s.label}
-                                                    stroke={
-                                                        CONTRACT_COLORS[
-                                                            i %
-                                                                CONTRACT_COLORS.length
-                                                        ]
-                                                    }
-                                                    strokeWidth={2}
-                                                    dot={{ r: 3 }}
-                                                />
-                                            ))}
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </>
-                            )}
-                        </Panel>
-
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                             <Panel title="Most consumed">
                                 {topByQuantity.length === 0 ? (
-                                    <EmptyState>
-                                        No items in this range.
-                                    </EmptyState>
+                                    <EmptyState>No items in this range.</EmptyState>
                                 ) : (
                                     <ConsumedItemList items={topByQuantity} />
                                 )}
@@ -351,45 +171,33 @@ export default function Insights() {
 
                             <Panel title="Top spend (by item)">
                                 {topBySpend.length === 0 ? (
-                                    <EmptyState>
-                                        No items in this range.
-                                    </EmptyState>
+                                    <EmptyState>No items in this range.</EmptyState>
                                 ) : (
                                     <ConsumedItemList items={topBySpend} />
                                 )}
                             </Panel>
 
-                            <Panel title="Vendor leaderboard">
+                            <Panel title="Where you shop for it">
                                 {vendors.length === 0 ? (
-                                    <EmptyState>No vendors yet.</EmptyState>
+                                    <EmptyState>No shops in this range.</EmptyState>
                                 ) : (
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="text-left text-gray-500">
-                                                <th className="pb-2 font-medium">
-                                                    Vendor
-                                                </th>
-                                                <th className="pb-2 text-right font-medium">
-                                                    Receipts
-                                                </th>
-                                                <th className="pb-2 text-right font-medium">
-                                                    Total spent
-                                                </th>
+                                                <th className="pb-2 font-medium">Shop</th>
+                                                <th className="pb-2 text-right font-medium">Trips</th>
+                                                <th className="pb-2 text-right font-medium">Spent on consumption</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
                                             {vendors.map((v) => (
                                                 <tr key={v.vendor}>
-                                                    <td className="py-2 text-gray-900">
-                                                        {v.vendor}
-                                                    </td>
-                                                    <td className="py-2 text-right text-gray-600">
+                                                    <td className="py-2 text-gray-900">{v.vendor}</td>
+                                                    <td className="py-2 text-right tabular-nums text-gray-600">
                                                         {v.receipt_count}
                                                     </td>
-                                                    <td className="py-2 text-right font-medium text-gray-900">
-                                                        {formatCurrency(
-                                                            v.total_spent,
-                                                        )}
+                                                    <td className="py-2 text-right font-medium tabular-nums text-gray-900">
+                                                        {formatCurrency(v.total_spent)}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -398,8 +206,9 @@ export default function Insights() {
                                 )}
                             </Panel>
                         </div>
-                        </>
                     )}
+
+                    <ConsumptionAnalysisCard />
                 </div>
             </div>
         </AuthenticatedLayout>

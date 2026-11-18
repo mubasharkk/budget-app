@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Domain\Analytics\Data\ConsumptionReportFilters;
-use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Analytics\Services\ConsumedItemsWidgetService;
 use App\Domain\Analytics\Services\ConsumptionService;
 use App\Domain\Analytics\Services\DashboardService;
@@ -102,10 +101,7 @@ class DashboardController extends Controller
         return response()->json($this->consumedItemsWidgetService->summary(
             $request->user()->id,
             ConsumptionReportFilters::fromArray($request->query()),
-            new ConsumptionScope(
-                includeBusiness: $request->boolean('include_business'),
-                excludedCategoryIds: $this->userSettingsService->excludedConsumptionCategoryIds($request->user()),
-            ),
+            $this->userSettingsService->consumptionScope($request->user()),
         ));
     }
 
@@ -145,24 +141,20 @@ class DashboardController extends Controller
         return response()->json($this->consumptionService->report(
             $request->user()->id,
             ConsumptionReportFilters::fromArray($request->query()),
-            new ConsumptionScope(
-                includeBusiness: $request->boolean('include_business'),
-                excludedCategoryIds: $this->userSettingsService->excludedConsumptionCategoryIds($request->user()),
-            ),
+            $this->userSettingsService->consumptionScope($request->user()),
         ));
     }
 
     /**
-     * Save which categories do not count as consumption on the Insights page.
+     * Save what counts as consumption: excluded categories and business receipts.
      */
     public function updateInsightsSettings(InsightsSettingsRequest $request): JsonResponse
     {
-        return response()->json([
-            'excluded_category_ids' => $this->userSettingsService->updateExcludedConsumptionCategoryIds(
-                $request->user(),
-                $request->validated('excluded_category_ids'),
-            ),
-        ]);
+        return response()->json($this->userSettingsService->updateConsumptionSettings(
+            $request->user(),
+            $request->validated('excluded_category_ids'),
+            $request->boolean('include_business'),
+        ));
     }
 
     /**

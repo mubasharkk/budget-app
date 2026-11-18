@@ -77,6 +77,35 @@ class ConsumptionAnalysisTest extends TestCase
             ->assertJsonCount(0, 'analyses');
     }
 
+    public function test_a_preset_period_is_analysed_against_its_comparison_and_labelled(): void
+    {
+        $user = User::factory()->create();
+        ReceiptItem::factory()->for(Receipt::factory()->for($user)->create(['receipt_date' => '2026-11-05']))->create();
+
+        $this->mock(LlmService::class, function ($mock): void {
+            $mock->shouldReceive('analyseConsumption')
+                ->once()
+                ->withArgs(fn (array $payload): bool => $payload['label'] === 'This month'
+                    && $payload['period'] === ['start' => '2026-11-01', 'end' => '2026-11-18']
+                    && $payload['previous_period'] === ['start' => '2026-10-01', 'end' => '2026-10-18'])
+                ->andReturn(['success' => true, 'data' => ['summary' => 'A quiet month.', 'findings' => [], 'tips' => []]]);
+        });
+
+        $this->actingAs($user)->postJson(route('insights.analyses.store'), ['period' => 'this_month'])
+            ->assertCreated()
+            ->assertJsonPath('analysis.period_label', 'This month');
+
+        $this->actingAs($user)->getJson(route('insights.analyses.index'))
+            ->assertJsonPath('analyses.0.period_label', 'This month')
+            ->assertJsonPath('default_period', 'last_3_months')
+            ->assertJsonPath('periods.0', ['value' => 'this_month', 'label' => 'This month']);
+
+        $this->actingAs($user)->postJson(route('insights.analyses.store'), ['period' => 'forever'])
+            ->assertJsonValidationErrors('period');
+        $this->actingAs($user)->postJson(route('insights.analyses.store'), ['period' => 'last_month', 'start_date' => '2026-11-01', 'end_date' => '2026-11-02'])
+            ->assertJsonValidationErrors('start_date');
+    }
+
     public function test_an_empty_period_or_a_failed_ai_call_saves_nothing(): void
     {
         $user = User::factory()->create();

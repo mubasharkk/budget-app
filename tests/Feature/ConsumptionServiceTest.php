@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Analytics\Services\ConsumptionService;
 use App\Models\Category;
 use App\Models\Contract;
@@ -120,6 +121,31 @@ class ConsumptionServiceTest extends TestCase
         $single = (new ConsumptionService)->monthlyContractSeries($user->id, 2026, $utilities->id);
         $this->assertCount(1, $single);
         $this->assertSame('contracts', $single[0]['key']);
+    }
+
+    public function test_monthly_category_series_rolls_subcategories_into_parents_and_keeps_contracts_apart(): void
+    {
+        $user = User::factory()->create();
+        $home = Category::factory()->create(['name' => 'Home']);
+        $energy = Category::factory()->childOf($home)->create(['name' => 'Energy']);
+
+        $receipt = Receipt::factory()->for($user)->create(['receipt_date' => '2026-02-10']);
+        ReceiptItem::factory()->for($receipt)->create(['quantity' => 1, 'unit_price' => 12, 'category_id' => $energy->id]);
+        ReceiptItem::factory()->for($receipt)->create(['quantity' => 1, 'unit_price' => 5]);
+        Contract::factory()->for($user)->create([
+            'amount' => 80, 'billing_cycle' => 'monthly', 'start_date' => '2026-02-01', 'end_date' => '2026-03-31', 'category_id' => $energy->id,
+        ]);
+        Contract::factory()->for($user)->create([
+            'amount' => 500, 'billing_cycle' => 'monthly', 'start_date' => '2026-01-01', 'category_id' => $home->id, 'expense_type' => 'business',
+        ]);
+
+        $series = collect((new ConsumptionService)->monthlyCategorySeries($user->id, 2026, ConsumptionScope::default()))->keyBy('label');
+
+        $this->assertSame(['Home', 'Uncategorised'], $series->keys()->all());
+        $this->assertSame(12.0, $series['Home']['variable'][2]);
+        $this->assertSame([0.0, 80.0, 80.0, 0.0], array_slice($series['Home']['fixed'], 0, 4));
+        $this->assertSame(172.0, $series['Home']['total']);
+        $this->assertSame(5.0, $series['Uncategorised']['total']);
     }
 
     public function test_top_items_rank_differently_by_quantity_and_spend(): void
