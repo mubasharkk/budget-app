@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/overview', [DashboardController::class, 'overview'])->name('dashboard.overview');
     Route::get('/dashboard/trend', [DashboardController::class, 'trend'])->name('dashboard.trend');
     Route::get('/dashboard/consumption', [DashboardController::class, 'consumption'])->name('dashboard.consumption');
+    Route::get('/dashboard/items-consumed', [DashboardController::class, 'itemsConsumed'])->name('dashboard.items-consumed');
     Route::get('/dashboard/budgets', [DashboardController::class, 'budgets'])->name('dashboard.budgets');
     Route::get('/dashboard/snapshot', [DashboardController::class, 'snapshot'])->name('dashboard.snapshot');
 

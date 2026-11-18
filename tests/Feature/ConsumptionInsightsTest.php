@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Analytics\Services\ConsumptionService;
+use App\Domain\Identity\Services\UserSettingsService;
 use App\Domain\Shared\Services\LlmService;
 use App\Enums\ExpenseType;
 use App\Enums\LineItemType;
@@ -15,6 +16,7 @@ use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -102,6 +104,50 @@ class ConsumptionInsightsTest extends TestCase
         $this->actingAs($user)
             ->putJson(route('insights.settings.update'), ['excluded_category_ids' => [999]])
             ->assertJsonValidationErrors('excluded_category_ids.0');
+    }
+
+    public function test_the_dashboard_widget_lists_general_names_with_their_products_and_totals(): void
+    {
+        $user = User::factory()->create();
+        $household = Category::factory()->create();
+        app(UserSettingsService::class)->updateExcludedConsumptionCategoryIds($user, [$household->id]);
+        $milk = ConsumableGroup::factory()->for($user)->create(['name' => 'Milk', 'unit' => 'l']);
+        $litre = Product::factory()->for($user)->create(['name' => 'Milk 1L', 'unit' => 'l', 'size' => '1', 'consumable_group_id' => $milk->id]);
+        $uht = Product::factory()->for($user)->create(['name' => 'UHT Milk 1.5L', 'unit' => 'l', 'size' => '1.5', 'consumable_group_id' => $milk->id]);
+
+        Carbon::setTestNow('2026-11-18 10:00:00');
+        $receipt = Receipt::factory()->for($user)->create(['receipt_date' => '2026-11-10']);
+        ReceiptItem::factory()->for($receipt)->create(['quantity' => 2, 'unit_price' => 1, 'product_id' => $litre->id]);
+        $sameStretchLastMonth = Receipt::factory()->for($user)->create(['receipt_date' => '2026-10-15']);
+        ReceiptItem::factory()->for($sameStretchLastMonth)->create(['quantity' => 2, 'unit_price' => 1, 'product_id' => $litre->id]);
+        $laterLastMonth = Receipt::factory()->for($user)->create(['receipt_date' => '2026-10-25']);
+        ReceiptItem::factory()->for($laterLastMonth)->create(['quantity' => 10, 'unit_price' => 1, 'product_id' => $litre->id]);
+        ReceiptItem::factory()->for($receipt)->create(['quantity' => 1, 'unit_price' => 1.5, 'product_id' => $uht->id]);
+        ReceiptItem::factory()->for($receipt)->create(['name' => 'Brezel', 'quantity' => 1, 'unit_price' => 0.5]);
+        ReceiptItem::factory()->for($receipt)->create(['name' => 'Detergent', 'category_id' => $household->id]);
+
+        $this->actingAs($user)->getJson(route('dashboard.items-consumed', ['period' => 'month', 'limit' => 10]))
+            ->assertOk()
+            ->assertJsonPath('totals.spend', 4)
+            ->assertJsonPath('totals.purchases', 3)
+            ->assertJsonPath('totals.labels', 2)
+            ->assertJsonPath('items.0.label', 'Milk')
+            ->assertJsonPath('items.0.url', route('insights.groups.show', $milk))
+            ->assertJsonPath('items.0.amount_label', '3.5 l')
+            ->assertJsonPath('items.0.purchases', 2)
+            ->assertJsonPath('items.0.share_percent', 87.5)
+            ->assertJsonPath('items.0.change_percent', 75)
+            ->assertJsonPath('totals.previous_spend', 2)
+            ->assertJsonPath('totals.change_percent', 100)
+            ->assertJsonPath('items.1.is_new', true)
+            ->assertJsonPath('items.1.label', 'Brezel')
+            ->assertJsonPath('items.1.url', null)
+            ->assertJsonPath('items.1.amount_label', null)
+            ->assertJsonPath('items.1.products', []);
+
+        $products = $this->actingAs($user)->getJson(route('dashboard.items-consumed', ['period' => 'month']))->json('items.0.products');
+        $this->assertEqualsCanonicalizing(['Milk 1L', 'UHT Milk 1.5L'], $products);
+        Carbon::setTestNow();
     }
 
     public function test_backfill_labels_lines_queues_matching_and_names_products(): void

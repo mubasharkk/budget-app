@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Domain\Analytics\Data\ConsumptionReportFilters;
 use App\Domain\Analytics\Data\ConsumptionScope;
+use App\Domain\Analytics\Services\ConsumedItemsWidgetService;
 use App\Domain\Analytics\Services\ConsumptionService;
 use App\Domain\Analytics\Services\DashboardService;
 use App\Domain\Analytics\Services\DashboardSnapshotService;
@@ -38,6 +39,7 @@ class DashboardController extends Controller
         private TransactionLedgerService $transactionLedgerService,
         private ContractBillingService $contractBillingService,
         private TaskService $taskService,
+        private ConsumedItemsWidgetService $consumedItemsWidgetService,
     ) {}
 
     public function index(Request $request): Response
@@ -88,6 +90,22 @@ class DashboardController extends Controller
         return response()->json($this->contractBillingService->upcomingBills(
             $request->user()->id,
             in_array($days, [7, 14, 30], true) ? $days : 30,
+        ));
+    }
+
+    /**
+     * What the user consumed in the period, grouped by general name, for the
+     * "Items consumed" widget.
+     */
+    public function itemsConsumed(Request $request): JsonResponse
+    {
+        return response()->json($this->consumedItemsWidgetService->summary(
+            $request->user()->id,
+            ConsumptionReportFilters::fromArray($request->query()),
+            new ConsumptionScope(
+                includeBusiness: $request->boolean('include_business'),
+                excludedCategoryIds: $this->userSettingsService->excludedConsumptionCategoryIds($request->user()),
+            ),
         ));
     }
 

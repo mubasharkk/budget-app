@@ -17,8 +17,13 @@ const selectClasses =
 function Skeleton() {
     return (
         <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+                {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-16 animate-pulse rounded-lg bg-gray-100" />
+                ))}
+            </div>
             {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 animate-pulse rounded bg-gray-100" />
+                <div key={i} className="h-12 animate-pulse rounded bg-gray-100" />
             ))}
         </div>
     );
@@ -30,12 +35,117 @@ function formatPeriodRange(start, end) {
     }
 
     const fmt = (value) =>
-        new Date(value).toLocaleDateString('de-DE', {
+        new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
             month: 'short',
             day: 'numeric',
         });
 
     return `${fmt(start)} – ${fmt(end)}`;
+}
+
+/**
+ * Spending up is shown in red and down in green: for consumption, less is better.
+ */
+function ChangeBadge({ change, isNew }) {
+    if (isNew) {
+        return (
+            <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700">
+                New
+            </span>
+        );
+    }
+
+    if (change === null || change === undefined) {
+        return null;
+    }
+
+    if (Math.abs(change) < 1) {
+        return <span className="text-xs text-gray-400">±0%</span>;
+    }
+
+    const up = change > 0;
+
+    return (
+        <span
+            className={`text-xs font-medium tabular-nums ${up ? 'text-red-600' : 'text-green-600'}`}
+            title="Compared with the same stretch of the previous period"
+        >
+            {up ? '▲' : '▼'} {Math.abs(change).toLocaleString(undefined, { maximumFractionDigits: 0 })}%
+        </span>
+    );
+}
+
+function SummaryTile({ label, children, hint }) {
+    return (
+        <div className="rounded-lg bg-gray-50 px-4 py-3">
+            <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
+            <div className="mt-1 flex items-baseline gap-2 text-lg font-semibold tabular-nums text-gray-900">
+                {children}
+            </div>
+            {hint && <div className="text-xs text-gray-500">{hint}</div>}
+        </div>
+    );
+}
+
+function ItemRow({ item, rank }) {
+    const label = item.url ? (
+        <Link href={item.url} className="hover:text-indigo-700 hover:underline">
+            {item.label}
+        </Link>
+    ) : (
+        item.label
+    );
+
+    const meta = [
+        item.amount_label,
+        `bought ${item.purchases}×`,
+        item.category,
+    ].filter(Boolean);
+
+    return (
+        <li className="py-3">
+            <div className="flex items-start gap-3">
+                <span className="w-5 shrink-0 pt-0.5 text-right text-xs tabular-nums text-gray-400">{rank}</span>
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className="truncate text-sm font-medium text-gray-900">{label}</div>
+                            <div
+                                className="truncate text-xs text-gray-500"
+                                title={
+                                    item.unmeasured_count > 0
+                                        ? `${item.unmeasured_count} purchases without a known size`
+                                        : undefined
+                                }
+                            >
+                                {meta.join(' · ')}
+                            </div>
+                            {item.products.length > 0 && (
+                                <div className="truncate text-xs text-gray-400" title={item.products.join(', ')}>
+                                    {item.products.join(', ')}
+                                </div>
+                            )}
+                        </div>
+                        <div className="shrink-0 text-right">
+                            <div className="text-sm font-semibold tabular-nums text-gray-900">
+                                {formatCurrency(item.spend)}
+                            </div>
+                            <ChangeBadge change={item.change_percent} isNew={item.is_new} />
+                        </div>
+                    </div>
+                    <div
+                        className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100"
+                        title={`${item.share_percent}% of what you spent on consumption`}
+                    >
+                        <div
+                            className="h-full rounded-full bg-emerald-500"
+                            style={{ width: `${Math.max(item.share_percent, 1)}%` }}
+                        />
+                    </div>
+                </div>
+            </div>
+        </li>
+    );
 }
 
 export default function ConsumedItemsWidget() {
@@ -64,15 +174,13 @@ export default function ConsumedItemsWidget() {
         }
 
         axios
-            .get('/dashboard/consumption', { params })
+            .get(route('dashboard.items-consumed'), { params })
             .then((res) => {
                 if (!cancelled) {
                     setData(res.data);
                 }
             })
-            .catch((error) =>
-                console.error('Error fetching consumed items:', error),
-            )
+            .catch((error) => console.error('Error fetching consumed items:', error))
             .finally(() => {
                 if (!cancelled) {
                     setLoading(false);
@@ -84,25 +192,17 @@ export default function ConsumedItemsWidget() {
         };
     }, [period, limit, categoryId, metric]);
 
-    const items = (data?.items ?? []).map((row) => ({
-        ...row,
-        total_quantity: Number(row.total_quantity),
-        total_spend: Number(row.total_spend),
-        purchase_count: Number(row.purchase_count),
-    }));
-
-    const periodLabel =
-        PERIODS.find((p) => p.key === period)?.label ?? 'Month';
+    const items = data?.items ?? [];
+    const totals = data?.totals;
+    const periodLabel = (PERIODS.find((p) => p.key === period)?.label ?? 'Month').toLowerCase();
 
     return (
         <div className="p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                        Items consumed
-                    </h3>
+                    <h3 className="text-lg font-medium text-gray-900">Items consumed</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                        Top purchases for the selected {periodLabel.toLowerCase()}
+                        What you used up this {periodLabel}, grouped by product
                         {data?.start && data?.end && (
                             <span className="ml-1 text-gray-400">
                                 ({formatPeriodRange(data.start, data.end)})
@@ -126,9 +226,7 @@ export default function ConsumedItemsWidget() {
                             type="button"
                             onClick={() => setPeriod(p.key)}
                             className={`rounded px-3 py-1 text-sm font-medium transition ${
-                                period === p.key
-                                    ? 'bg-gray-800 text-white'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                period === p.key ? 'bg-gray-800 text-white' : 'text-gray-600 hover:text-gray-900'
                             }`}
                         >
                             {p.label}
@@ -137,23 +235,17 @@ export default function ConsumedItemsWidget() {
                 </div>
 
                 <div>
-                    <label
-                        htmlFor="consumed-limit"
-                        className="sr-only"
-                    >
-                        Show
+                    <label htmlFor="consumed-metric" className="sr-only">
+                        Sort by
                     </label>
                     <select
-                        id="consumed-limit"
+                        id="consumed-metric"
                         className={selectClasses}
-                        value={limit}
-                        onChange={(e) => setLimit(Number(e.target.value))}
+                        value={metric}
+                        onChange={(e) => setMetric(e.target.value)}
                     >
-                        {LIMITS.map((value) => (
-                            <option key={value} value={value}>
-                                Top {value}
-                            </option>
-                        ))}
+                        <option value="quantity">Most bought</option>
+                        <option value="spend">Most spent on</option>
                     </select>
                 </div>
 
@@ -177,17 +269,20 @@ export default function ConsumedItemsWidget() {
                 </div>
 
                 <div>
-                    <label htmlFor="consumed-metric" className="sr-only">
-                        Sort by
+                    <label htmlFor="consumed-limit" className="sr-only">
+                        Show
                     </label>
                     <select
-                        id="consumed-metric"
+                        id="consumed-limit"
                         className={selectClasses}
-                        value={metric}
-                        onChange={(e) => setMetric(e.target.value)}
+                        value={limit}
+                        onChange={(e) => setLimit(Number(e.target.value))}
                     >
-                        <option value="quantity">By quantity</option>
-                        <option value="spend">By spend</option>
+                        {LIMITS.map((value) => (
+                            <option key={value} value={value}>
+                                Top {value}
+                            </option>
+                        ))}
                     </select>
                 </div>
             </div>
@@ -197,55 +292,42 @@ export default function ConsumedItemsWidget() {
                     <Skeleton />
                 ) : items.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-gray-200 py-12 text-center text-sm text-gray-500">
-                        No receipt items found for this period
-                        {categoryId ? ' and category' : ''}. Upload receipts to
-                        see what you consume most.
+                        Nothing consumed this {periodLabel}
+                        {categoryId ? ' in this category' : ''}. Upload receipts to see what you use up most.
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
-                            <thead>
-                                <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                                    <th className="px-3 py-2">#</th>
-                                    <th className="px-3 py-2">Item</th>
-                                    <th className="px-3 py-2">Category</th>
-                                    <th className="px-3 py-2 text-right">
-                                        Qty
-                                    </th>
-                                    <th className="px-3 py-2 text-right">
-                                        Spend
-                                    </th>
-                                    <th className="px-3 py-2 text-right">
-                                        Purchases
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50 text-sm text-gray-700">
-                                {items.map((item, index) => (
-                                    <tr key={`${item.item_name}-${index}`}>
-                                        <td className="px-3 py-3 text-gray-400">
-                                            {index + 1}
-                                        </td>
-                                        <td className="px-3 py-3 font-medium text-gray-900">
-                                            {item.item_name}
-                                        </td>
-                                        <td className="px-3 py-3 text-gray-500">
-                                            {item.category_name ?? '—'}
-                                        </td>
-                                        <td className="px-3 py-3 text-right tabular-nums">
-                                            {item.total_quantity}
-                                        </td>
-                                        <td className="px-3 py-3 text-right tabular-nums">
-                                            {formatCurrency(item.total_spend)}
-                                        </td>
-                                        <td className="px-3 py-3 text-right tabular-nums text-gray-500">
-                                            {item.purchase_count}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <SummaryTile
+                                label="Spent"
+                                hint={
+                                    totals.previous_spend !== null
+                                        ? `${formatCurrency(totals.previous_spend)} by this point last ${periodLabel}`
+                                        : undefined
+                                }
+                            >
+                                {formatCurrency(totals.spend)}
+                                <ChangeBadge change={totals.change_percent} />
+                            </SummaryTile>
+                            <SummaryTile label="Products">{totals.labels}</SummaryTile>
+                            <SummaryTile label="Purchases">{totals.purchases}</SummaryTile>
+                        </div>
+
+                        <ul className="mt-3 divide-y divide-gray-100">
+                            {items.map((item, index) => (
+                                <ItemRow key={item.key} item={item} rank={index + 1} />
+                            ))}
+                        </ul>
+
+                        {totals.labels > items.length && (
+                            <p className="mt-3 text-center text-xs text-gray-400">
+                                Showing {items.length} of {totals.labels} products ·{' '}
+                                <Link href={route('insights')} className="text-indigo-600 hover:text-indigo-800">
+                                    see all on Insights
+                                </Link>
+                            </p>
+                        )}
+                    </>
                 )}
             </div>
         </div>
