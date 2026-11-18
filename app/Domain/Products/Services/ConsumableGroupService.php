@@ -4,9 +4,12 @@ namespace App\Domain\Products\Services;
 
 use App\Domain\Products\Support\ProductQuantity;
 use App\Domain\Shared\Services\LlmService;
+use App\Enums\LineItemType;
 use App\Models\Category;
 use App\Models\ConsumableGroup;
 use App\Models\Product;
+use App\Models\ReceiptItem;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -82,6 +85,78 @@ class ConsumableGroupService
         if ($group !== null) {
             $product->update(['consumable_group_id' => $group->id]);
         }
+    }
+
+    /**
+     * Rename a general name and set its unit. Renaming to another existing
+     * general name merges into that one, which is returned.
+     */
+    public function rename(ConsumableGroup $group, string $name, ?string $unit): ConsumableGroup
+    {
+        $name = Str::ucfirst(Str::squish($name));
+        $existing = ConsumableGroup::query()
+            ->where('user_id', $group->user_id)
+            ->whereKeyNot($group->id)
+            ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
+            ->first();
+
+        if ($existing !== null) {
+            return $this->merge($group, $existing);
+        }
+
+        $group->update(['name' => $name, 'unit' => ProductQuantity::baseUnit($unit)]);
+
+        return $group;
+    }
+
+    /**
+     * Move every product of $source into $target and delete $source.
+     */
+    public function merge(ConsumableGroup $source, ConsumableGroup $target): ConsumableGroup
+    {
+        DB::transaction(function () use ($source, $target): void {
+            $source->products()->update(['consumable_group_id' => $target->id]);
+
+            if ($target->unit === null && $source->unit !== null) {
+                $target->update(['unit' => $source->unit]);
+            }
+
+            $source->delete();
+        });
+
+        return $target;
+    }
+
+    /**
+     * Give a product another general name (created if new), deleting the old
+     * general name once no product uses it.
+     */
+    public function moveProduct(Product $product, string $name): ConsumableGroup
+    {
+        return DB::transaction(function () use ($product, $name): ConsumableGroup {
+            $previous = $product->consumableGroup;
+            $group = $this->resolve($product->user_id, $name, $previous?->unit ?? $product->unit);
+
+            $product->update(['consumable_group_id' => $group->id]);
+
+            if ($previous !== null && ! $previous->is($group) && ! $previous->products()->exists()) {
+                $previous->delete();
+            }
+
+            return $group;
+        });
+    }
+
+    /**
+     * Count a product line as consumption again, or leave it out.
+     */
+    public function setCounts(ReceiptItem $item, bool $counts): void
+    {
+        if (! in_array($item->line_type, [LineItemType::Product, LineItemType::Excluded], true)) {
+            return;
+        }
+
+        $item->update(['line_type' => $counts ? LineItemType::Product : LineItemType::Excluded]);
     }
 
     /**

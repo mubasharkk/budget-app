@@ -30,7 +30,7 @@ const NAV_GROUPS = [
     {
         label: 'Explore',
         items: [
-            { label: 'Insights', route: 'insights', match: 'insights' },
+            { label: 'Insights', route: 'insights', match: 'insights*' },
             { label: 'Deals', route: 'deals', match: ['deals', 'products.show'] },
             { label: 'Assistant', route: 'agent', match: 'agent' },
         ],

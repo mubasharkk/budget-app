@@ -322,11 +322,11 @@ class ConsumptionService
 
     /**
      * The user's consumed lines (product lines on non-duplicate receipts in
-     * the scope) with their product and general name.
+     * the scope) joined to their receipt, category, product and general name.
      *
      * @return Builder<ReceiptItem>
      */
-    private function consumedLines(int $userId, ConsumptionScope $scope): Builder
+    public function consumedLines(int $userId, ConsumptionScope $scope): Builder
     {
         $query = ReceiptItem::query()
             ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))

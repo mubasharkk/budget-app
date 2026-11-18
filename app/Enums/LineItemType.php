@@ -4,7 +4,8 @@ namespace App\Enums;
 
 /**
  * What a receipt line is. Only products count as consumption; deposits, bags,
- * discounts and fees are money on the receipt but nothing that is consumed.
+ * discounts and fees are money on the receipt but nothing that is consumed,
+ * and the user can leave out single lines (Excluded).
  */
 enum LineItemType: string
 {
@@ -14,6 +15,11 @@ enum LineItemType: string
     case Bag = 'bag';
     case Discount = 'discount';
     case Fee = 'fee';
+
+    /**
+     * A product line the user chose not to count as consumption.
+     */
+    case Excluded = 'excluded';
 
     public function isConsumption(): bool
     {

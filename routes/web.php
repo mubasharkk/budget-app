@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\ConsumableGroupController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\DealController;
@@ -47,6 +48,11 @@ Route::middleware('auth')->group(function () {
     // Consumption insights page
     Route::get('/insights', [DashboardController::class, 'insights'])->name('insights');
     Route::put('/insights/settings', [DashboardController::class, 'updateInsightsSettings'])->name('insights.settings.update');
+    Route::get('/insights/groups/{consumableGroup}', [ConsumableGroupController::class, 'show'])->name('insights.groups.show');
+    Route::patch('/insights/groups/{consumableGroup}', [ConsumableGroupController::class, 'update'])->name('insights.groups.update');
+    Route::post('/insights/groups/{consumableGroup}/merge', [ConsumableGroupController::class, 'merge'])->name('insights.groups.merge');
+    Route::patch('/products/{product}/consumable-group', [ConsumableGroupController::class, 'moveProduct'])->name('products.consumable-group.update');
+    Route::patch('/receipt-items/{receiptItem}/consumption', [ConsumableGroupController::class, 'setLineCounts'])->name('receipt-items.consumption.update');
     Route::get('/deals', [DealController::class, 'index'])->name('deals');
     Route::get('/deals/for-you', [DealController::class, 'forYou'])->name('deals.for-you');
 

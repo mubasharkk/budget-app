@@ -72,7 +72,11 @@ class ProductMatchingService
             }
 
             $product = $this->resolveProduct($userId, $match, $item);
-            $item->update(['line_type' => $lineType, 'product_id' => $product->id]);
+            $item->update([
+                // A line the user left out stays out when it is matched again.
+                'line_type' => $item->line_type === LineItemType::Excluded ? LineItemType::Excluded : $lineType,
+                'product_id' => $product->id,
+            ]);
             $this->consumableGroupService->assign($product, $match['group'] ?? null, $match['group_unit'] ?? null);
 
             $this->recordPriceObservation($product, $item, $receipt);
