@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
+import ProviderLogo from '@/Components/ProviderLogo';
 import {
     PlusIcon,
     PencilSquareIcon,
@@ -216,54 +217,61 @@ export default function Index({ contracts, summary }) {
                                                 key={contract.id}
                                                 className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
                                             >
-                                                <div className="min-w-0">
-                                                    <Link
-                                                        href={route(
-                                                            'contracts.show',
-                                                            contract.id,
-                                                        )}
-                                                        className="font-medium text-gray-900 hover:underline"
-                                                    >
-                                                        {contract.name}
-                                                    </Link>
-                                                    <div className="mt-0.5 text-sm text-gray-500">
-                                                        {contract.provider
-                                                            ?.name ??
-                                                            'No provider'}{' '}
-                                                        ·{' '}
-                                                        {contract.billing_cycle}
-                                                    </div>
-                                                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                        <span
-                                                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadge[contract.status] ?? 'bg-gray-100 text-gray-700'}`}
-                                                        >
-                                                            {contract.status}
-                                                        </span>
-                                                        <span
-                                                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${isOverdue(contract.next_billing_date) && contract.status === 'active' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'}`}
-                                                        >
-                                                            Next:{' '}
-                                                            {formatDate(
-                                                                contract.next_billing_date,
+                                                <div className="flex min-w-0 items-start gap-4">
+                                                    <ProviderLogo
+                                                        logo={contract.provider?.logo}
+                                                        name={contract.provider?.name ?? contract.name}
+                                                        className="h-11 w-11"
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <Link
+                                                            href={route(
+                                                                'contracts.show',
+                                                                contract.id,
                                                             )}
-                                                        </span>
-                                                        {contract.is_paid_this_month && (
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                                                                <CheckCircleIconSolid className="h-3.5 w-3.5" />
-                                                                Paid
+                                                            className="font-medium text-gray-900 hover:underline"
+                                                        >
+                                                            {contract.name}
+                                                        </Link>
+                                                        <div className="mt-0.5 text-sm text-gray-500">
+                                                            {contract.provider
+                                                                ?.name ??
+                                                                'No provider'}{' '}
+                                                            ·{' '}
+                                                            {contract.billing_cycle}
+                                                        </div>
+                                                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                            <span
+                                                                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadge[contract.status] ?? 'bg-gray-100 text-gray-700'}`}
+                                                            >
+                                                                {contract.status}
                                                             </span>
-                                                        )}
-                                                        {contract.status ===
-                                                            'active' &&
-                                                            !contract.is_paid_this_month &&
-                                                            isThisMonth(
-                                                                contract.next_billing_date,
-                                                            ) && (
-                                                                <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-                                                                    Due this
-                                                                    month
+                                                            <span
+                                                                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${isOverdue(contract.next_billing_date) && contract.status === 'active' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'}`}
+                                                            >
+                                                                Next:{' '}
+                                                                {formatDate(
+                                                                    contract.next_billing_date,
+                                                                )}
+                                                            </span>
+                                                            {contract.is_paid_this_month && (
+                                                                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                                                    <CheckCircleIconSolid className="h-3.5 w-3.5" />
+                                                                    Paid
                                                                 </span>
                                                             )}
+                                                            {contract.status ===
+                                                                'active' &&
+                                                                !contract.is_paid_this_month &&
+                                                                isThisMonth(
+                                                                    contract.next_billing_date,
+                                                                ) && (
+                                                                    <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                                                                        Due this
+                                                                        month
+                                                                    </span>
+                                                                )}
+                                                        </div>
                                                     </div>
                                                 </div>
 
