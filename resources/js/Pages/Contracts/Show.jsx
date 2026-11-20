@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import LinkedTasks from '@/Components/Tasks/LinkedTasks';
 import PrimaryButton from '@/Components/PrimaryButton';
+import ProviderLogo from '@/Components/ProviderLogo';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/utils/money';
@@ -22,10 +23,22 @@ export default function Show({ contract, tasks, priorities, repeatOptions, linkT
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        {contract.name}
-                    </h2>
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <ProviderLogo
+                            logo={contract.provider?.logo}
+                            name={contract.provider?.name ?? contract.name}
+                            className="h-10 w-10"
+                        />
+                        <div className="min-w-0">
+                            <h2 className="truncate text-xl font-semibold leading-tight text-gray-800">
+                                {contract.name}
+                            </h2>
+                            {contract.provider && (
+                                <p className="truncate text-sm text-gray-500">{contract.provider.name}</p>
+                            )}
+                        </div>
+                    </div>
                     <div className="flex items-center gap-2">
                         {contract.status === 'active' && (
                             <SecondaryButton
@@ -66,7 +79,20 @@ export default function Show({ contract, tasks, priorities, repeatOptions, linkT
                             />
                             <Row
                                 label="Provider"
-                                value={contract.provider?.name ?? '—'}
+                                value={
+                                    contract.provider ? (
+                                        <span className="inline-flex items-center gap-2">
+                                            <ProviderLogo
+                                                logo={contract.provider.logo}
+                                                name={contract.provider.name}
+                                                className="h-6 w-6"
+                                            />
+                                            {contract.provider.name}
+                                        </span>
+                                    ) : (
+                                        '—'
+                                    )
+                                }
                             />
                             <Row
                                 label="Category"
