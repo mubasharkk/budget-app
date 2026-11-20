@@ -58,20 +58,24 @@ class TaskService
     }
 
     /**
-     * Open tasks and what is left to pay, in total and past its deadline.
+     * Open tasks and what is left to pay, in total and past its deadline, and
+     * what has already been spent on finished tasks.
      *
-     * @return array{open_count: int, open_amount: float, overdue_count: int, overdue_amount: float}
+     * @return array{open_count: int, open_amount: float, overdue_count: int, overdue_amount: float, done_count: int, done_amount: float}
      */
     public function summary(int $userId): array
     {
         $open = Task::query()->where('user_id', $userId)->open();
         $overdue = (clone $open)->whereDate('due_date', '<', Carbon::today());
+        $done = Task::query()->where('user_id', $userId)->done();
 
         return [
             'open_count' => (clone $open)->count(),
             'open_amount' => round((float) (clone $open)->sum('amount'), 2),
             'overdue_count' => (clone $overdue)->count(),
             'overdue_amount' => round((float) $overdue->sum('amount'), 2),
+            'done_count' => (clone $done)->count(),
+            'done_amount' => round((float) $done->sum('amount'), 2),
         ];
     }
 

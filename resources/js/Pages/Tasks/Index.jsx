@@ -68,6 +68,11 @@ export default function Index({ board, summary, priorities, repeatOptions, linkT
                                 title={title}
                                 tone={tone}
                                 tasks={board[key]}
+                                total={
+                                    key === 'done'
+                                        ? { label: 'Spent so far', amount: summary.done_amount }
+                                        : null
+                                }
                                 onEdit={openForm}
                             />
                         ))

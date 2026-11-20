@@ -62,7 +62,9 @@ class TaskTest extends TestCase
         Task::factory()->for($user)->dueOn('2026-11-01')->create(['amount' => 120.50, 'priority' => TaskPriority::High]);
         Task::factory()->for($user)->dueOn('2026-11-20')->create(['amount' => 30]);
         Task::factory()->for($user)->dueOn('2026-11-05')->completed()->create(['amount' => 999]);
+        Task::factory()->for($user)->completed()->create(['amount' => 0.5]);
         Task::factory()->dueOn('2026-11-01')->create(['amount' => 500]);
+        Task::factory()->completed()->create(['amount' => 500]);
 
         $this->actingAs($user)->get(route('tasks.index'))
             ->assertInertia(fn ($page) => $page
@@ -70,6 +72,8 @@ class TaskTest extends TestCase
                 ->where('summary.open_amount', 150.5)
                 ->where('summary.overdue_count', 1)
                 ->where('summary.overdue_amount', 120.5)
+                ->where('summary.done_count', 2)
+                ->where('summary.done_amount', 999.5)
                 ->where('board.high.0.priority', 'high')
                 ->where('board.high.0.amount', '120.50')
             );

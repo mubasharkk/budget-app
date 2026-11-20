@@ -13,11 +13,12 @@ function Stat({ label, value, detail, tone = 'text-gray-900' }) {
 const countLabel = (count) => `${count} ${count === 1 ? 'task' : 'tasks'}`;
 
 /**
- * Open tasks and the amounts still to pay, overall and past their deadline.
+ * Open tasks and the amounts still to pay, overall and past their deadline,
+ * and what finished tasks have cost so far.
  */
 export default function TaskSummary({ summary }) {
     return (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Stat
                 label="Still to pay"
                 value={formatCurrency(summary.open_amount)}
@@ -28,6 +29,12 @@ export default function TaskSummary({ summary }) {
                 value={formatCurrency(summary.overdue_amount)}
                 detail={countLabel(summary.overdue_count)}
                 tone={summary.overdue_count > 0 ? 'text-red-700' : 'text-gray-900'}
+            />
+            <Stat
+                label="Already spent"
+                value={formatCurrency(summary.done_amount)}
+                detail={`on ${countLabel(summary.done_count)} done`}
+                tone="text-green-700"
             />
         </div>
     );
