@@ -4,7 +4,6 @@ namespace App\Domain\Analytics\Services;
 
 use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Products\Support\ProductQuantity;
-use App\Enums\ExpenseType;
 use App\Enums\LineItemType;
 use App\Models\ConsumableGroup;
 use App\Models\ReceiptItem;
@@ -211,16 +210,19 @@ class ConsumableGroupInsightsService
      */
     private function recentPurchases(ConsumableGroup $group, ConsumptionScope $scope): array
     {
-        return ReceiptItem::query()
+        $query = ReceiptItem::query()
             ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
             ->join('products', 'receipt_items.product_id', '=', 'products.id')
             ->where('receipts.user_id', $group->user_id)
             ->where('products.consumable_group_id', $group->id)
             ->whereIn('receipt_items.line_type', [LineItemType::Product->value, LineItemType::Excluded->value])
-            ->when(! $scope->includeBusiness, fn ($query) => $query->where('receipts.expense_type', ExpenseType::Personal->value))
             ->orderByDesc('receipts.receipt_date')
             ->orderByDesc('receipt_items.id')
-            ->limit(self::RECENT_PURCHASES)
+            ->limit(self::RECENT_PURCHASES);
+
+        $this->consumptionService->applyScope($query, $scope);
+
+        return $query
             ->get([
                 'receipt_items.id', 'receipt_items.name', 'receipt_items.quantity', 'receipt_items.total',
                 'receipt_items.line_type', 'receipt_items.receipt_id', 'receipts.receipt_date', 'receipts.vendor',

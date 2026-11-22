@@ -3,6 +3,7 @@
 namespace App\Domain\Identity\Services;
 
 use App\Domain\Analytics\Data\ConsumptionScope;
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\DashboardSection;
 use App\Models\User;
 
@@ -82,26 +83,28 @@ class UserSettingsService
     }
 
     /**
-     * What counts as consumption for the user: their excluded categories and
-     * whether business receipts count.
+     * What counts as consumption for the user: their excluded categories,
+     * whether business receipts count, and their currency.
      */
     public function consumptionScope(User $user): ConsumptionScope
     {
         return new ConsumptionScope(
             includeBusiness: $this->consumptionIncludesBusiness($user),
             excludedCategoryIds: $this->excludedConsumptionCategoryIds($user),
+            currency: $user->default_currency ?? SupportedCurrencies::FALLBACK,
         );
     }
 
     /**
      * Save what counts as consumption under settings.insights, leaving any
-     * other settings untouched.
+     * other settings untouched. A null $includeBusiness keeps the saved choice.
      *
      * @param  array<int, mixed>  $excludedCategoryIds
      * @return array{excluded_category_ids: array<int, int>, include_business: bool}
      */
-    public function updateConsumptionSettings(User $user, array $excludedCategoryIds, bool $includeBusiness): array
+    public function updateConsumptionSettings(User $user, array $excludedCategoryIds, ?bool $includeBusiness = null): array
     {
+        $includeBusiness ??= $this->consumptionIncludesBusiness($user);
         $excludedCategoryIds = $this->normaliseIds($excludedCategoryIds);
 
         $settings = $user->settings ?? [];

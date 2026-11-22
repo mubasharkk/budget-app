@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Analytics\Services\ConsumableGroupInsightsService;
+use App\Domain\Identity\Services\UserSettingsService;
 use App\Domain\Products\Services\ConsumableGroupService;
 use App\Http\Requests\ConsumableGroupRequest;
 use App\Http\Requests\MergeConsumableGroupRequest;
@@ -12,6 +13,7 @@ use App\Models\ConsumableGroup;
 use App\Models\Product;
 use App\Models\ReceiptItem;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,13 +26,17 @@ class ConsumableGroupController extends Controller
     public function __construct(
         private ConsumableGroupInsightsService $insightsService,
         private ConsumableGroupService $groupService,
+        private UserSettingsService $userSettingsService,
     ) {}
 
-    public function show(ConsumableGroup $consumableGroup): Response
+    public function show(Request $request, ConsumableGroup $consumableGroup): Response
     {
         $this->authorize('view', $consumableGroup);
 
-        return Inertia::render('Insights/Group', $this->insightsService->detail($consumableGroup));
+        return Inertia::render('Insights/Group', $this->insightsService->detail(
+            $consumableGroup,
+            $this->userSettingsService->consumptionScope($request->user()),
+        ));
     }
 
     public function update(ConsumableGroupRequest $request, ConsumableGroup $consumableGroup): RedirectResponse

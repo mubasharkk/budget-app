@@ -4,6 +4,7 @@ namespace App\Domain\Analytics\Services;
 
 use App\Domain\Analytics\Data\ConsumptionReportFilters;
 use App\Domain\Analytics\Data\ConsumptionScope;
+use App\Domain\Products\Support\ProductQuantity;
 use App\Domain\Shared\Support\PeriodRange;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -45,6 +46,9 @@ class ConsumedItemsWidgetService
                 'purchases' => (int) $all->sum('purchase_count'),
                 'labels' => $all->count(),
             ],
+            'other_currencies' => $this->consumptionService->otherCurrencies(
+                $userId, $filters->startDate, $filters->endDate, $filters->categoryId, $scope,
+            ),
             'items' => $this->rows($all->take($filters->limit), $spend, $previous),
         ];
     }
@@ -69,7 +73,7 @@ class ConsumedItemsWidgetService
                 'products' => $products,
                 'amount' => $item->amount,
                 'unit' => $item->unit,
-                'amount_label' => $item->amount !== null ? $this->formatAmount($item->amount, $item->unit) : null,
+                'amount_label' => $item->amount !== null ? ProductQuantity::label($item->amount, $item->unit) : null,
                 'unmeasured_count' => $item->unmeasured_count,
                 'spend' => $item->total_spend,
                 'share_percent' => $totalSpend > 0 ? round($item->total_spend / $totalSpend * 100, 1) : 0.0,
@@ -122,15 +126,5 @@ class ConsumedItemsWidgetService
         return $previous !== null && $previous > 0
             ? round(($current - $previous) / $previous * 100, 1)
             : null;
-    }
-
-    /**
-     * "3.5 l", "1.23 kg", "12 pcs".
-     */
-    private function formatAmount(float $amount, ?string $unit): string
-    {
-        $number = rtrim(rtrim(number_format($amount, 2, '.', ''), '0'), '.');
-
-        return trim($number.' '.$unit);
     }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from '@inertiajs/react';
-import { formatCurrency } from '@/utils/money';
+import { formatCurrency, formatCurrencyIn } from '@/utils/money';
 
 const PERIODS = [
     { key: 'week', label: 'Week' },
@@ -286,6 +286,13 @@ export default function ConsumedItemsWidget() {
                     </select>
                 </div>
             </div>
+
+            {data?.other_currencies?.length > 0 && (
+                <p className="mt-3 text-xs text-amber-800">
+                    Not counted, in another currency:{' '}
+                    {data.other_currencies.map((row) => formatCurrencyIn(row.spend, row.currency)).join(', ')}
+                </p>
+            )}
 
             <div className="mt-5">
                 {loading ? (

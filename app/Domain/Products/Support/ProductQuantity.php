@@ -98,6 +98,16 @@ final class ProductQuantity
     }
 
     /**
+     * "3.5 l", "1.23 kg", "12 pcs".
+     */
+    public static function label(float $amount, ?string $unit): string
+    {
+        $number = rtrim(rtrim(number_format($amount, 2, '.', ''), '0'), '.');
+
+        return trim($number.' '.$unit);
+    }
+
+    /**
      * "500g" → [500, 'g'], "1,5" → [1.5, null], "6x0.33l" → [1.98, 'l'].
      *
      * @return array{0: float, 1: ?string}|null

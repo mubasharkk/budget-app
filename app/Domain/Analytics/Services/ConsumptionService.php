@@ -11,6 +11,8 @@ use App\Models\Category;
 use App\Models\Contract;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
+use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -51,56 +53,75 @@ class ConsumptionService
     }
 
     /**
-     * Spend per month of the year in each parent category, receipts and
-     * contracts kept apart, within the scope (business receipts and contracts
-     * only when included; excluded categories left out). Every receipt line
-     * counts, since deposits and discounts are real money. Largest first.
+     * The year's months up to the current one, per parent category, keyed by
+     * month number. Largest first.
      *
      * @return array<int, array{key: string, label: string, variable: array<int, float>, fixed: array<int, float>, total: float}>
      */
     public function monthlyCategorySeries(int $userId, int $year, ConsumptionScope $scope): array
     {
-        $parents = Category::query()->get(['id', 'name', 'parent_id'])->keyBy('id');
-        $parentOf = function (?int $categoryId) use ($parents): ?Category {
-            $category = $categoryId !== null ? $parents->get($categoryId) : null;
+        return collect($this->monthlySeries($userId, CarbonImmutable::create($year, 1, 1), 12, $scope))
+            ->map(fn (array $row): array => [
+                ...$row,
+                'variable' => array_combine(range(1, 12), $row['variable']),
+                'fixed' => array_combine(range(1, 12), $row['fixed']),
+            ])
+            ->all();
+    }
 
-            return $category?->parent_id !== null ? $parents->get($category->parent_id) : $category;
-        };
+    /**
+     * Spend in each parent category over consecutive months, oldest first:
+     * consumed lines as `variable`, contracts' monthly equivalent as `fixed`.
+     * Months still to come are left at zero. Largest first.
+     *
+     * @return array<int, array{key: string, label: string, variable: array<int, float>, fixed: array<int, float>, total: float}>
+     */
+    public function monthlySeries(int $userId, CarbonImmutable $firstMonth, int $months, ConsumptionScope $scope, ?int $categoryId = null): array
+    {
+        $firstMonth = $firstMonth->startOfMonth();
+        $today = CarbonImmutable::today();
+        $monthStarts = array_map(fn (int $offset): CarbonImmutable => $firstMonth->addMonths($offset), range(0, $months - 1));
+        $position = array_flip(array_map(fn (CarbonImmutable $month): string => $month->format('Y-m'), $monthStarts));
+        $parentOf = $this->parentCategoryResolver();
 
         $series = [];
-        $add = function (?Category $category, string $kind, int $month, float $amount) use (&$series): void {
+        $add = function (?Category $category, string $kind, int $index, float $amount) use (&$series, $months): void {
             $key = $category !== null ? 'cat_'.$category->id : 'uncategorised';
             $series[$key] ??= [
                 'key' => $key,
                 'label' => $category?->name ?? 'Uncategorised',
-                'variable' => array_fill(1, 12, 0.0),
-                'fixed' => array_fill(1, 12, 0.0),
+                'variable' => array_fill(0, $months, 0.0),
+                'fixed' => array_fill(0, $months, 0.0),
             ];
-            $series[$key][$kind][$month] += $amount;
+            $series[$key][$kind][$index] += $amount;
         };
 
-        $lines = ReceiptItem::query()
-            ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
-            ->where('receipts.user_id', $userId)
-            ->whereBetween('receipts.receipt_date', [sprintf('%04d-01-01 00:00:00', $year), sprintf('%04d-12-31 23:59:59', $year)])
-            ->select(['receipt_items.total', 'receipt_items.category_id', 'receipts.receipt_date']);
-        $this->applyScope($lines, $scope);
+        $lines = $this->consumedLines($userId, $scope)->select(['receipt_items.total', 'receipt_items.category_id', 'receipts.receipt_date']);
+        $lastDay = end($monthStarts)->endOfMonth()->min($today);
+        $this->applyReceiptDateRange($lines, $firstMonth->toDateString(), $lastDay->toDateString());
+        $this->applyCategoryFilter($lines, $categoryId);
 
         foreach ($lines->toBase()->get() as $line) {
-            $add($parentOf($line->category_id), 'variable', (int) Carbon::parse($line->receipt_date)->format('n'), (float) $line->total);
+            $index = $position[Carbon::parse($line->receipt_date)->format('Y-m')];
+            $add($parentOf($line->category_id), 'variable', $index, (float) $line->total);
         }
 
         $excluded = $this->expandCategoryIds($scope->excludedCategoryIds);
-        $contracts = $this->contractsForTrend($userId, null)
+        $contracts = $this->contractsForTrend($userId, $categoryId)
             ->filter(fn (Contract $contract): bool => ($scope->includeBusiness || $contract->expense_type === ExpenseType::Personal)
-                && ! in_array($contract->category_id, $excluded, true));
+                && ! in_array($contract->category_id, $excluded, true)
+                && ($scope->currency === null || ($contract->currency ?? $scope->currency) === $scope->currency));
 
         foreach ($contracts as $contract) {
-            for ($month = 1; $month <= 12; $month++) {
-                $amount = $this->contractTotalForMonth(collect([$contract]), Carbon::create($year, $month, 1)->startOfMonth());
+            foreach ($monthStarts as $index => $month) {
+                if ($month->gt($today)) {
+                    break;
+                }
+
+                $amount = $this->contractTotalForMonth(collect([$contract]), Carbon::instance($month));
 
                 if ($amount > 0) {
-                    $add($parentOf($contract->category_id), 'fixed', $month, $amount);
+                    $add($parentOf($contract->category_id), 'fixed', $index, $amount);
                 }
             }
         }
@@ -116,6 +137,69 @@ class ConsumptionService
             ->filter(fn (array $row): bool => $row['total'] != 0.0)
             ->sortByDesc('total')
             ->values()
+            ->all();
+    }
+
+    /**
+     * The user's biggest parent categories over all time and whatever the
+     * scope, so a category keeps its chart colour when filters change.
+     *
+     * @return array<string, int> series key => colour slot
+     */
+    public function categoryColourSlots(int $userId, int $slots): array
+    {
+        $parentOf = $this->parentCategoryResolver();
+        $totals = [];
+
+        $rows = $this->consumedLines($userId, new ConsumptionScope(includeBusiness: true))
+            ->whereNotNull('receipt_items.category_id')
+            ->groupBy('receipt_items.category_id')
+            ->selectRaw('receipt_items.category_id, SUM(receipt_items.total) as spend')
+            ->toBase()
+            ->get();
+
+        foreach ($rows as $row) {
+            if (($parent = $parentOf($row->category_id)) !== null) {
+                $totals[$parent->id] = ($totals[$parent->id] ?? 0) + (float) $row->spend;
+            }
+        }
+
+        return collect($totals)->sortDesc()->take($slots)->keys()->sort()->values()
+            ->mapWithKeys(fn (int $id, int $slot): array => ['cat_'.$id => $slot])
+            ->all();
+    }
+
+    /**
+     * The day the user's records of consumption begin.
+     */
+    public function firstConsumedOn(int $userId, ConsumptionScope $scope): ?CarbonImmutable
+    {
+        $first = $this->consumedLines($userId, $scope)->toBase()->min('receipts.receipt_date');
+
+        return $first !== null ? CarbonImmutable::parse($first)->startOfDay() : null;
+    }
+
+    /**
+     * What was bought in scope but in another currency, so left out of totals.
+     *
+     * @return array<int, array{currency: string, spend: float, purchases: int}>
+     */
+    public function otherCurrencies(int $userId, ?string $startDate, ?string $endDate, ?int $categoryId, ConsumptionScope $scope): array
+    {
+        if ($scope->currency === null) {
+            return [];
+        }
+
+        $query = $this->consumedLines($userId, $scope->inAnyCurrency())
+            ->where('receipts.currency', '!=', $scope->currency)
+            ->groupBy('receipts.currency')
+            ->selectRaw('receipts.currency, SUM(receipt_items.total) as spend, COUNT(*) as purchases');
+
+        $this->applyReceiptDateRange($query, $startDate, $endDate);
+        $this->applyCategoryFilter($query, $categoryId);
+
+        return $query->toBase()->get()
+            ->map(fn (object $row): array => ['currency' => $row->currency, 'spend' => round((float) $row->spend, 2), 'purchases' => (int) $row->purchases])
             ->all();
     }
 
@@ -231,7 +315,7 @@ class ConsumptionService
                 $agg = ReceiptItem::query()
                     ->join('receipts', fn ($join) => $join->on('receipt_items.receipt_id', '=', 'receipts.id')->whereNull('receipts.duplicate_of_id'))
                     ->where('receipts.user_id', $userId)
-                    ->whereIn('receipt_items.category_id', $ids)
+                    ->where(fn (Builder $query) => $this->whereInCategories($query, $ids))
                     ->selectRaw('COALESCE(SUM(receipt_items.total), 0) as total_spend')
                     ->selectRaw('COUNT(*) as item_count')
                     ->first();
@@ -391,7 +475,9 @@ class ConsumptionService
     }
 
     /**
-     * Sum of normalized monthly cost for contracts whose billing window covers the month.
+     * Sum of normalized monthly cost for contracts whose billing window covers
+     * the month. A stopped contract without an end date has no known stop, so it
+     * counts up to its last payment only.
      *
      * @param  Collection<int, Contract>  $contracts
      */
@@ -405,7 +491,17 @@ class ConsumptionService
                     return false;
                 }
 
-                return ! ($contract->end_date && $contract->end_date->lt($monthStart));
+                $endsOn = $contract->end_date;
+
+                if ($endsOn === null && ! $contract->status->isBillable()) {
+                    $endsOn = $contract->last_paid_at;
+
+                    if ($endsOn === null) {
+                        return false;
+                    }
+                }
+
+                return ! ($endsOn && $endsOn->lt($monthStart));
             })
             ->sum(fn (Contract $contract): float => $contract->projectedMonthlyAmount()), 2);
     }
@@ -434,13 +530,17 @@ class ConsumptionService
     }
 
     /**
-     * Personal receipts only unless business ones are included, and none of
-     * the excluded categories (or their subcategories).
+     * Personal receipts only unless business ones are included, none of the
+     * excluded categories (or their subcategories), and only the scope's currency.
      */
-    private function applyScope(Builder $query, ConsumptionScope $scope): void
+    public function applyScope(Builder $query, ConsumptionScope $scope): void
     {
         if (! $scope->includeBusiness) {
             $query->where('receipts.expense_type', ExpenseType::Personal->value);
+        }
+
+        if ($scope->currency !== null) {
+            $query->where(fn (Builder $query) => $query->whereNull('receipts.currency')->orWhere('receipts.currency', $scope->currency));
         }
 
         $excluded = $this->expandCategoryIds($scope->excludedCategoryIds);
@@ -580,8 +680,32 @@ class ConsumptionService
         $ids = $this->resolveCategoryIds($categoryId);
 
         if ($ids !== null) {
-            $query->whereIn('receipt_items.category_id', $ids);
+            $query->where(fn (Builder $query) => $this->whereInCategories($query, $ids));
         }
+    }
+
+    /**
+     * A line stores its parent in category_id and its child in subcategory_id.
+     *
+     * @param  array<int, int>  $ids
+     */
+    private function whereInCategories(Builder $query, array $ids): void
+    {
+        $query->whereIn('receipt_items.category_id', $ids)->orWhereIn('receipt_items.subcategory_id', $ids);
+    }
+
+    /**
+     * @return Closure(?int): ?Category
+     */
+    private function parentCategoryResolver(): Closure
+    {
+        $categories = Category::query()->get(['id', 'name', 'parent_id'])->keyBy('id');
+
+        return function (?int $categoryId) use ($categories): ?Category {
+            $category = $categoryId !== null ? $categories->get($categoryId) : null;
+
+            return $category?->parent_id !== null ? $categories->get($category->parent_id) : $category;
+        };
     }
 
     /**

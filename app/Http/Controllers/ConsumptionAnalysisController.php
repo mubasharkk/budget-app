@@ -28,11 +28,11 @@ class ConsumptionAnalysisController extends Controller
     public function store(ConsumptionAnalysisRequest $request): JsonResponse
     {
         try {
-            $analysis = $this->analysisService->analyse($request->user(), $request->window());
+            $analysis = $this->analysisService->analyse($request->user(), $request->window(), $request->categoryId());
         } catch (ConsumptionAnalysisFailed $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        return response()->json(['analysis' => $analysis->only(['id', 'period_label', 'period_start', 'period_end', 'summary', 'findings', 'tips', 'created_at'])], 201);
+        return response()->json(['analysis' => $this->analysisService->present($analysis)], 201);
     }
 }

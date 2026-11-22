@@ -33,7 +33,7 @@ class ConsumptionAnalysisService
     ) {}
 
     /**
-     * @return Collection<int, ConsumptionAnalysis>
+     * @return Collection<int, array<string, mixed>>
      */
     public function recent(User $user): Collection
     {
@@ -42,7 +42,25 @@ class ConsumptionAnalysisService
             ->latest()
             ->latest('id')
             ->limit(self::HISTORY)
-            ->get(['id', 'period_label', 'period_start', 'period_end', 'summary', 'findings', 'tips', 'created_at']);
+            ->get()
+            ->toBase()
+            ->map(fn (ConsumptionAnalysis $analysis): array => $this->present($analysis));
+    }
+
+    /**
+     * An analysis for the page, with the spend it was written from so the page
+     * can tell when the figures have changed since.
+     *
+     * @return array<string, mixed>
+     */
+    public function present(ConsumptionAnalysis $analysis): array
+    {
+        return [
+            ...$analysis->only(['id', 'period_label', 'summary', 'findings', 'tips', 'created_at']),
+            'period_start' => $analysis->period_start->toDateString(),
+            'period_end' => $analysis->period_end->toDateString(),
+            'spend' => data_get($analysis->payload, 'totals.spend'),
+        ];
     }
 
     /**
@@ -52,9 +70,9 @@ class ConsumptionAnalysisService
      *
      * @throws ConsumptionAnalysisFailed
      */
-    public function analyse(User $user, array $window): ConsumptionAnalysis
+    public function analyse(User $user, array $window, ?int $categoryId = null): ConsumptionAnalysis
     {
-        $payload = $this->payload($user, $window);
+        $payload = $this->payload($user, $window, $categoryId);
 
         if ($payload['items'] === []) {
             throw ConsumptionAnalysisFailed::nothingConsumed();
@@ -89,13 +107,13 @@ class ConsumptionAnalysisService
      * @param  array{label: string, start: CarbonImmutable, end: CarbonImmutable, previous_start: CarbonImmutable, previous_end: CarbonImmutable}  $window
      * @return array{currency: string, label: string, period: array{start: string, end: string}, previous_period: array{start: string, end: string}, totals: array{spend: float, previous_spend: float}, items: array<int, array<string, mixed>>}
      */
-    public function payload(User $user, array $window): array
+    public function payload(User $user, array $window, ?int $categoryId = null): array
     {
         $scope = $this->userSettingsService->consumptionScope($user);
         ['start' => $start, 'end' => $end, 'previous_start' => $previousStart, 'previous_end' => $previousEnd] = $window;
 
         $all = fn (CarbonImmutable $from, CarbonImmutable $to): Collection => $this->consumptionService
-            ->topItems($user->id, 'spend', $from->toDateString(), $to->toDateString(), null, PHP_INT_MAX, $scope);
+            ->topItems($user->id, 'spend', $from->toDateString(), $to->toDateString(), $categoryId, PHP_INT_MAX, $scope);
 
         $current = $all($start, $end);
         $previous = $all($previousStart, $previousEnd)->keyBy('key');

@@ -153,7 +153,7 @@ class DashboardController extends Controller
         return response()->json($this->userSettingsService->updateConsumptionSettings(
             $request->user(),
             $request->validated('excluded_category_ids'),
-            $request->boolean('include_business'),
+            $request->has('include_business') ? $request->boolean('include_business') : null,
         ));
     }
 

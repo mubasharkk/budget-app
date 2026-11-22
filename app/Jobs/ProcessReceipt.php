@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -134,7 +135,8 @@ class ProcessReceipt implements ShouldQueue
     }
 
     /**
-     * Find or create a top-level category by name.
+     * Find or create a top-level category by name. A name that only exists as
+     * a subcategory stands for that subcategory's parent.
      */
     private function findOrCreateCategory(string $categoryName): ?int
     {
@@ -142,24 +144,26 @@ class ProcessReceipt implements ShouldQueue
             return null;
         }
 
-        $category = Category::where('name', $categoryName)
-            ->orWhere('slug', Str::slug($categoryName))
-            ->whereNull('parent_id')
-            ->first();
+        $matches = fn (): Builder => Category::query()->where(fn (Builder $query) => $query
+            ->where('name', $categoryName)
+            ->orWhere('slug', Str::slug($categoryName)));
 
-        if (! $category) {
-            $category = Category::create([
-                'name' => $categoryName,
-                'slug' => Str::slug($categoryName),
-                'parent_id' => null,
-            ]);
+        $category = $matches()->whereNull('parent_id')->first() ?? $matches()->first();
+
+        if ($category !== null) {
+            return $category->parent_id ?? $category->id;
         }
 
-        return $category->id;
+        return Category::create([
+            'name' => $categoryName,
+            'slug' => Str::slug($categoryName),
+            'parent_id' => null,
+        ])->id;
     }
 
     /**
-     * Find or create a subcategory under the given parent category.
+     * Find or create a subcategory under the given parent category. Slugs are
+     * unique across parents, so a shared name gets a suffixed slug.
      */
     private function findOrCreateSubcategory(?string $subcategoryName, ?int $categoryId): ?int
     {
@@ -167,20 +171,26 @@ class ProcessReceipt implements ShouldQueue
             return null;
         }
 
-        $subcategory = Category::where('name', $subcategoryName)
-            ->orWhere('slug', Str::slug($subcategoryName))
+        $slug = Str::slug($subcategoryName);
+        $slugUnderParent = $slug.'-'.$categoryId;
+        $subcategory = Category::query()
             ->where('parent_id', $categoryId)
+            ->where(fn (Builder $query) => $query->where('name', $subcategoryName)->orWhereIn('slug', [$slug, $slugUnderParent]))
             ->first();
 
-        if (! $subcategory) {
-            $subcategory = Category::create([
-                'name' => $subcategoryName,
-                'slug' => Str::slug($subcategoryName),
-                'parent_id' => $categoryId,
-            ]);
+        if ($subcategory !== null) {
+            return $subcategory->id;
         }
 
-        return $subcategory->id;
+        if (Category::query()->where('slug', $slug)->exists()) {
+            $slug = $slugUnderParent;
+        }
+
+        return Category::create([
+            'name' => $subcategoryName,
+            'slug' => $slug,
+            'parent_id' => $categoryId,
+        ])->id;
     }
 
     /**

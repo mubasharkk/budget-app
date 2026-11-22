@@ -1,85 +1,92 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import ConsumedItemList from '@/Components/Insights/ConsumedItemList';
+import ChangeBreakdown from '@/Components/Insights/ChangeBreakdown';
+import ConsumedItemsTable from '@/Components/Insights/ConsumedItemsTable';
 import ConsumptionAnalysisCard from '@/Components/Insights/ConsumptionAnalysisCard';
 import ConsumptionScopePanel from '@/Components/Insights/ConsumptionScopePanel';
+import InsightsFilters from '@/Components/Insights/InsightsFilters';
+import InsightsHeadline from '@/Components/Insights/InsightsHeadline';
 import MonthlySpendChart from '@/Components/Insights/MonthlySpendChart';
-import { formatCurrency } from '@/utils/money';
+import ShopBreakdown from '@/Components/Insights/ShopBreakdown';
+import { formatDay } from '@/Components/Insights/insightFormat';
+import { formatCurrencyIn } from '@/utils/money';
 
-const CURRENT_YEAR = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
+const DEFAULT_FILTERS = { period: 'this_month' };
+const FILTERS_KEY = 'insights.filters';
 
-const selectClasses =
-    'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500';
-
-function Panel({ title, children }) {
-    return (
-        <div className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
-            <h3 className="mb-4 text-base font-medium text-gray-900">{title}</h3>
-            {children}
-        </div>
-    );
-}
-
-function EmptyState({ children }) {
-    return <p className="py-12 text-center text-sm text-gray-400">{children}</p>;
-}
+/** The last filters, so coming back from a product's page keeps the period. */
+const rememberedFilters = () => {
+    try {
+        return JSON.parse(sessionStorage.getItem(FILTERS_KEY)) ?? DEFAULT_FILTERS;
+    } catch {
+        return DEFAULT_FILTERS;
+    }
+};
 
 export default function Insights() {
-    const [categoryOptions, setCategoryOptions] = useState([]);
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [categoryId, setCategoryId] = useState('');
-    const [year, setYear] = useState(CURRENT_YEAR);
-    const [data, setData] = useState(null);
+    const [categories, setCategories] = useState([]);
+    const [filters, setFilters] = useState(rememberedFilters);
+    const [loaded, setLoaded] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [failure, setFailure] = useState(null);
+    const latestRequest = useRef(0);
 
-    const fetchData = (overrides = {}) => {
+    const load = (params = filters) => {
+        const request = ++latestRequest.current;
+        const isLatest = () => request === latestRequest.current;
         setLoading(true);
-        const params = {
-            year,
-            start_date: startDate || undefined,
-            end_date: endDate || undefined,
-            category_id: categoryId || undefined,
-            ...overrides,
-        };
+        setFailure(null);
 
         axios
-            .get(route('dashboard.consumption'), { params })
-            .then((res) => setData(res.data))
-            .catch((error) => console.error('Error fetching consumption data:', error))
-            .finally(() => setLoading(false));
+            .get(route('insights.overview'), { params })
+            .then((res) => {
+                if (!isLatest()) {
+                    return;
+                }
+                setLoaded({ data: res.data, filters: params });
+                try {
+                    sessionStorage.setItem(FILTERS_KEY, JSON.stringify(params));
+                } catch {
+                    // Storage can be blocked; the period is then just not remembered.
+                }
+            })
+            .catch((error) => {
+                if (!isLatest()) {
+                    return;
+                }
+                if (error.response?.status === 422 && !loaded) {
+                    setFilters(DEFAULT_FILTERS);
+                    load(DEFAULT_FILTERS);
+                } else {
+                    setFailure(error.response?.data?.message ?? 'Your insights could not be loaded.');
+                }
+            })
+            .finally(() => isLatest() && setLoading(false));
     };
 
     useEffect(() => {
         axios
             .get(route('dashboard.categories'))
-            .then((res) => setCategoryOptions(res.data.categories))
+            .then((res) => setCategories(res.data.categories))
             .catch(() => {});
-        fetchData();
+        load();
     }, []);
 
-    const clearFilters = () => {
-        setStartDate('');
-        setEndDate('');
-        setCategoryId('');
-        fetchData({ start_date: undefined, end_date: undefined, category_id: undefined });
+    const changeFilters = (next) => {
+        setFilters(next);
+        load(next);
     };
 
-    const changeYear = (nextYear) => {
-        setYear(nextYear);
-        fetchData({ year: nextYear });
-    };
+    const selectMonth = (month) =>
+        changeFilters({
+            ...(filters.category_id ? { category_id: filters.category_id } : {}),
+            ...(month.is_current ? { period: 'this_month' } : { start_date: month.start, end_date: month.end }),
+        });
 
-    const topByQuantity = data?.top_by_quantity ?? [];
-    const topBySpend = data?.top_by_spend ?? [];
-    const vendors = data?.vendors ?? [];
+    const data = loaded?.data;
 
     return (
         <AuthenticatedLayout
@@ -87,128 +94,89 @@ export default function Insights() {
         >
             <Head title="Insights" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <ConsumptionScopePanel
-                        categories={categoryOptions}
-                        excludedIds={data?.excluded_category_ids ?? []}
-                        includeBusiness={data?.include_business ?? false}
-                        onSaved={() => fetchData()}
-                    />
-
-                    {!data ? (
-                        <div className="h-96 animate-pulse rounded-lg bg-gray-200" />
-                    ) : (
-                        <MonthlySpendChart
-                            series={data.spend_series ?? []}
-                            year={data.year ?? year}
-                            years={YEAR_OPTIONS}
-                            onYearChange={changeYear}
-                        />
-                    )}
-
-                    <div className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
-                        <h3 className="mb-3 text-sm font-medium text-gray-900">Items and shops</h3>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <div>
-                                <InputLabel htmlFor="start" value="From" />
-                                <TextInput
-                                    id="start"
-                                    type="date"
-                                    className="mt-1 block w-full"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <InputLabel htmlFor="end" value="To" />
-                                <TextInput
-                                    id="end"
-                                    type="date"
-                                    className="mt-1 block w-full"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <InputLabel htmlFor="category" value="Category" />
-                                <select
-                                    id="category"
-                                    className={selectClasses}
-                                    value={categoryId}
-                                    onChange={(e) => setCategoryId(e.target.value)}
-                                >
-                                    <option value="">All categories</option>
-                                    {categoryOptions.map((c) => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="flex items-end gap-2">
-                                <PrimaryButton type="button" onClick={() => fetchData()}>
-                                    Apply
-                                </PrimaryButton>
-                                <SecondaryButton type="button" onClick={clearFilters}>
-                                    Clear
-                                </SecondaryButton>
-                            </div>
-                        </div>
-                    </div>
-
-                    {loading ? (
-                        <div className="h-72 animate-pulse rounded-lg bg-gray-200" />
-                    ) : (
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            <Panel title="Most consumed">
-                                {topByQuantity.length === 0 ? (
-                                    <EmptyState>No items in this range.</EmptyState>
-                                ) : (
-                                    <ConsumedItemList items={topByQuantity} />
-                                )}
-                            </Panel>
-
-                            <Panel title="Top spend (by item)">
-                                {topBySpend.length === 0 ? (
-                                    <EmptyState>No items in this range.</EmptyState>
-                                ) : (
-                                    <ConsumedItemList items={topBySpend} />
-                                )}
-                            </Panel>
-
-                            <Panel title="Where you shop for it">
-                                {vendors.length === 0 ? (
-                                    <EmptyState>No shops in this range.</EmptyState>
-                                ) : (
-                                    <table className="min-w-full text-sm">
-                                        <thead>
-                                            <tr className="text-left text-gray-500">
-                                                <th className="pb-2 font-medium">Shop</th>
-                                                <th className="pb-2 text-right font-medium">Trips</th>
-                                                <th className="pb-2 text-right font-medium">Spent on consumption</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {vendors.map((v) => (
-                                                <tr key={v.vendor}>
-                                                    <td className="py-2 text-gray-900">{v.vendor}</td>
-                                                    <td className="py-2 text-right tabular-nums text-gray-600">
-                                                        {v.receipt_count}
-                                                    </td>
-                                                    <td className="py-2 text-right font-medium tabular-nums text-gray-900">
-                                                        {formatCurrency(v.total_spent)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </Panel>
+            <div className="py-8">
+                <div className="mx-auto max-w-7xl space-y-5 sm:px-6 lg:px-8">
+                    {failure && (
+                        <div className="flex items-center justify-between gap-3 rounded-md bg-red-50 p-4 text-sm text-red-800" role="alert">
+                            {failure}
+                            <SecondaryButton type="button" onClick={() => load()}>
+                                Try again
+                            </SecondaryButton>
                         </div>
                     )}
 
-                    <ConsumptionAnalysisCard />
+                    {!data && loading && (
+                        <div className="space-y-5" aria-label="Loading insights">
+                            <div className="h-20 animate-pulse rounded-lg bg-gray-200" />
+                            <div className="h-28 animate-pulse rounded-lg bg-gray-200" />
+                            <div className="h-96 animate-pulse rounded-lg bg-gray-200" />
+                        </div>
+                    )}
+
+                    {data && (
+                        <>
+                            <ConsumptionScopePanel
+                                categories={categories}
+                                excludedIds={data.scope.excluded_category_ids}
+                                includeBusiness={data.scope.include_business}
+                                onSaved={() => load()}
+                            />
+
+                            <InsightsFilters
+                                filters={filters}
+                                periods={data.periods}
+                                categories={categories}
+                                appliedWindow={data.window}
+                                onChange={changeFilters}
+                            />
+
+                            <div className={`space-y-5 transition-opacity ${loading ? 'opacity-50' : ''}`} aria-busy={loading}>
+                                {data.other_currencies.length > 0 && (
+                                    <p className="bg-amber-50 p-3 text-sm text-amber-900 sm:rounded-md">
+                                        Not counted below, because it is in another currency:{' '}
+                                        <strong>
+                                            {data.other_currencies
+                                                .map((row) => formatCurrencyIn(row.spend, row.currency))
+                                                .join(', ')}
+                                        </strong>
+                                        . If a receipt has the wrong currency, correct it on the receipt.
+                                    </p>
+                                )}
+
+                                {data.records_start && (
+                                    <p className="bg-amber-50 p-3 text-sm text-amber-900 sm:rounded-md">
+                                        Your records start on <strong>{formatDay(data.records_start, true)}</strong>, partway
+                                        through the earlier period, so the change looks bigger than it really is.
+                                    </p>
+                                )}
+
+                                <InsightsHeadline totals={data.totals} />
+                                <MonthlySpendChart chart={data.chart} onSelectMonth={selectMonth} />
+                                <ChangeBreakdown changes={data.changes} change={data.totals.change} />
+
+                                <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
+                                    <div className="min-w-0 lg:col-span-2">
+                                        <ConsumedItemsTable items={data.items} />
+                                    </div>
+                                    <ShopBreakdown shops={data.shops} />
+                                </div>
+
+                                {data.coverage && (
+                                    <p className="px-4 text-xs text-gray-600 sm:px-0">
+                                        How complete this is: {data.coverage.named_percent}% of this spend is grouped under a
+                                        general name and {data.coverage.measured_percent}% has a known pack size for per-unit
+                                        prices.
+                                    </p>
+                                )}
+
+                                <ConsumptionAnalysisCard
+                                    filters={loaded.filters}
+                                    appliedWindow={data.window}
+                                    spend={data.totals.spend}
+                                />
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>

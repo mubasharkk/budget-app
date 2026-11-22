@@ -2,10 +2,6 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { SparklesIcon } from '@heroicons/react/24/outline';
 import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-
-const CUSTOM = 'custom';
-const today = () => new Date().toLocaleDateString('en-CA');
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 const formatDate = (value) => dateFormat.format(new Date(`${String(value).slice(0, 10)}T00:00:00`));
@@ -14,43 +10,40 @@ const periodLabel = (analysis) =>
     analysis.period_label ? `${analysis.period_label} (${dateRange(analysis)})` : dateRange(analysis);
 
 /**
- * An AI-written analysis of a chosen period (this month, last 3 months, …, or
- * custom dates), worked out from the exact figures. Past analyses are kept
- * and can be reopened.
+ * An AI-written summary of exactly the period and category the page shows.
+ * Past summaries are kept and can be reopened.
  */
-export default function ConsumptionAnalysisCard() {
+export default function ConsumptionAnalysisCard({ filters, appliedWindow, spend }) {
     const [analyses, setAnalyses] = useState([]);
-    const [periods, setPeriods] = useState([]);
-    const [period, setPeriod] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState(today());
     const [selectedId, setSelectedId] = useState(null);
     const [running, setRunning] = useState(false);
     const [error, setError] = useState(null);
-    const selected = analyses.find((analysis) => analysis.id === selectedId) ?? analyses[0];
-    const isCustom = period === CUSTOM;
-    const canAnalyse = !running && period !== '' && (!isCustom || (startDate && endDate));
-    const chosenLabel = isCustom ? 'your dates' : (periods.find((p) => p.value === period)?.label ?? '').toLowerCase();
+
+    const isShown = (analysis) =>
+        analysis.period_label === appliedWindow.label &&
+        analysis.period_start === appliedWindow.start &&
+        analysis.period_end === appliedWindow.end;
+    const forPage = analyses.find(isShown);
+    const selected = analyses.find((analysis) => analysis.id === selectedId) ?? forPage;
+    const isOutdated = selected && isShown(selected) && selected.spend !== null && Math.abs(selected.spend - spend) >= 0.01;
+
+    useEffect(() => {
+        setSelectedId(null);
+        setError(null);
+    }, [appliedWindow.label, appliedWindow.start, appliedWindow.end]);
 
     useEffect(() => {
         axios
             .get(route('insights.analyses.index'))
-            .then((res) => {
-                setAnalyses(res.data.analyses);
-                setPeriods(res.data.periods);
-                setPeriod(res.data.default_period);
-            })
-            .catch(() => {});
+            .then((res) => setAnalyses(res.data.analyses))
+            .catch(() => setError('Earlier summaries could not be loaded.'));
     }, []);
 
     const analyse = () => {
         setRunning(true);
         setError(null);
         axios
-            .post(
-                route('insights.analyses.store'),
-                isCustom ? { start_date: startDate, end_date: endDate } : { period },
-            )
+            .post(route('insights.analyses.store'), filters)
             .then((res) => {
                 setAnalyses((current) => [res.data.analysis, ...current]);
                 setSelectedId(res.data.analysis.id);
@@ -66,76 +59,42 @@ export default function ConsumptionAnalysisCard() {
     };
 
     return (
-        <section className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
+        <section className="overflow-hidden bg-white p-4 shadow-sm sm:p-6 sm:rounded-lg">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h3 className="flex items-center gap-2 text-base font-medium text-gray-900">
                         <SparklesIcon className="h-5 w-5 text-indigo-500" />
-                        AI analysis
+                        AI summary
                     </h3>
-                    <p className="text-sm text-gray-500">
-                        Compares {chosenLabel || 'a period'} with the period before, from your exact figures.
+                    <p className="text-sm text-gray-600">
+                        Puts the figures above for {appliedWindow.label} into words, with tips.
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <select
-                        value={period}
-                        onChange={(e) => setPeriod(e.target.value)}
-                        className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        aria-label="Period to analyse"
-                    >
-                        {periods.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                        <option value={CUSTOM}>Custom dates…</option>
-                    </select>
-                    {isCustom && (
-                        <>
-                            <TextInput
-                                type="date"
-                                value={startDate}
-                                max={endDate || today()}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                aria-label="From"
-                                className="text-sm"
-                            />
-                            <TextInput
-                                type="date"
-                                value={endDate}
-                                min={startDate || undefined}
-                                max={today()}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                aria-label="To"
-                                className="text-sm"
-                            />
-                        </>
-                    )}
-                    <PrimaryButton type="button" onClick={analyse} disabled={!canAnalyse}>
-                        {running ? 'Analysing…' : 'Analyse'}
-                    </PrimaryButton>
-                </div>
+                <PrimaryButton type="button" onClick={analyse} disabled={running || spend === 0}>
+                    {running ? 'Writing…' : forPage ? 'Write again' : 'Write summary'}
+                </PrimaryButton>
             </div>
 
-            {analyses.length > 1 && (
-                <div className="mt-4 flex items-center gap-2">
-                    <label htmlFor="earlier-analyses" className="text-sm text-gray-500">
-                        Earlier analyses
-                    </label>
-                    <select
-                        id="earlier-analyses"
-                        value={selected?.id ?? ''}
-                        onChange={(e) => setSelectedId(Number(e.target.value))}
-                        className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    >
-                        {analyses.map((analysis) => (
-                            <option key={analysis.id} value={analysis.id}>
-                                {periodLabel(analysis)} · made {formatDate(analysis.created_at)}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+            {analyses.length > 0 && (
+                <select
+                    value={selected?.id ?? ''}
+                    onChange={(e) => setSelectedId(Number(e.target.value))}
+                    className="mt-4 max-w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    aria-label="Earlier summaries"
+                >
+                    {!selected && <option value="">Earlier summaries…</option>}
+                    {analyses.map((analysis) => (
+                        <option key={analysis.id} value={analysis.id}>
+                            {periodLabel(analysis)} · made {formatDate(analysis.created_at)}
+                        </option>
+                    ))}
+                </select>
+            )}
+
+            {isOutdated && !running && (
+                <p className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+                    Your figures have changed since this was written. Write it again to bring it up to date.
+                </p>
             )}
 
             {error && <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -149,8 +108,8 @@ export default function ConsumptionAnalysisCard() {
             )}
 
             {!running && !selected && !error && (
-                <p className="mt-4 text-sm text-gray-400">
-                    No analysis yet. Press Analyse to get a written report on what you consume.
+                <p className="mt-4 text-sm text-gray-600">
+                    No summary for this period yet.
                 </p>
             )}
 

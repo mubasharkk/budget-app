@@ -8,6 +8,7 @@ use App\Http\Controllers\ContractController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\IncomeController;
+use App\Http\Controllers\InsightsOverviewController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderController;
@@ -49,6 +50,7 @@ Route::middleware('auth')->group(function () {
 
     // Consumption insights page
     Route::get('/insights', [DashboardController::class, 'insights'])->name('insights');
+    Route::get('/insights/overview', [InsightsOverviewController::class, 'show'])->name('insights.overview');
     Route::put('/insights/settings', [DashboardController::class, 'updateInsightsSettings'])->name('insights.settings.update');
     Route::get('/insights/analyses', [ConsumptionAnalysisController::class, 'index'])->name('insights.analyses.index');
     Route::post('/insights/analyses', [ConsumptionAnalysisController::class, 'store'])->middleware('throttle:5,1')->name('insights.analyses.store');

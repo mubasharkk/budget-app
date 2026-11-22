@@ -16,10 +16,12 @@ export default function ConsumptionScopePanel({ categories, excludedIds, include
     const [excluded, setExcluded] = useState(excludedIds);
     const [business, setBusiness] = useState(includeBusiness);
     const [saving, setSaving] = useState(false);
+    const [failed, setFailed] = useState(false);
     const parents = categories.filter((category) => category.type === 'parent');
     const excludedNames = parents.filter((category) => excludedIds.includes(category.id)).map((category) => category.name);
 
-    useEffect(() => setExcluded(excludedIds), [excludedIds]);
+    // By value: every reload brings a new array, which must not undo unsaved edits.
+    useEffect(() => setExcluded(excludedIds), [excludedIds.join(',')]);
     useEffect(() => setBusiness(includeBusiness), [includeBusiness]);
 
     const toggle = (id) =>
@@ -35,6 +37,7 @@ export default function ConsumptionScopePanel({ categories, excludedIds, include
 
     const save = () => {
         setSaving(true);
+        setFailed(false);
         axios
             .put(route('insights.settings.update'), {
                 excluded_category_ids: excluded,
@@ -44,6 +47,7 @@ export default function ConsumptionScopePanel({ categories, excludedIds, include
                 setOpen(false);
                 onSaved();
             })
+            .catch(() => setFailed(true))
             .finally(() => setSaving(false));
     };
 
@@ -98,6 +102,8 @@ export default function ConsumptionScopePanel({ categories, excludedIds, include
                             </div>
                         )}
                     </div>
+
+                    {failed && <p className="text-sm text-red-700">That could not be saved. Please try again.</p>}
 
                     <div className="flex gap-2">
                         <PrimaryButton type="button" onClick={save} disabled={saving}>

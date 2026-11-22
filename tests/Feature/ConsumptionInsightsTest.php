@@ -112,7 +112,8 @@ class ConsumptionInsightsTest extends TestCase
         $groceries = Category::factory()->create(['name' => 'Groceries']);
         $dairy = Category::factory()->childOf($groceries)->create(['name' => 'Dairy']);
         $household = Category::factory()->create(['name' => 'Household']);
-        $year = (int) now()->format('Y');
+        $this->travelTo('2026-11-18');
+        $year = 2026;
 
         $rewe = Receipt::factory()->for($user)->create(['vendor' => 'REWE', 'receipt_date' => "{$year}-03-10"]);
         ReceiptItem::factory()->for($rewe)->create(['quantity' => 1, 'unit_price' => 20, 'category_id' => $dairy->id]);
@@ -127,7 +128,7 @@ class ConsumptionInsightsTest extends TestCase
         $report = $this->actingAs($user)->getJson(route('dashboard.consumption', ['year' => $year]))
             ->assertJsonPath('include_business', false)
             ->assertJsonPath('spend_series.0.label', 'Groceries')
-            ->assertJsonPath('spend_series.0.variable.3', 20.25)
+            ->assertJsonPath('spend_series.0.variable.3', 20)
             ->assertJsonCount(1, 'spend_series')
             ->assertJsonPath('vendors.0.vendor', 'REWE')
             ->assertJsonPath('vendors.0.total_spent', 20)
@@ -137,7 +138,7 @@ class ConsumptionInsightsTest extends TestCase
 
         $this->actingAs($user)->getJson(route('dashboard.consumption', ['year' => $year]))
             ->assertJsonPath('include_business', true)
-            ->assertJsonPath('spend_series.0.variable.3', 119.25)
+            ->assertJsonPath('spend_series.0.variable.3', 119)
             ->assertJsonPath('spend_series.1.label', 'Household')
             ->assertJsonPath('vendors.0.vendor', 'Office shop');
     }

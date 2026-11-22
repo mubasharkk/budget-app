@@ -6,6 +6,7 @@ use App\Domain\Assistant\Services\AnomalyDetectionService;
 use App\Domain\Assistant\Services\RecommendationService;
 use App\Domain\Budgets\Services\BudgetService;
 use App\Domain\Contracts\Services\RenewalReminderService;
+use App\Domain\Identity\Services\UserSettingsService;
 use App\Domain\Incomes\Services\IncomeService;
 use App\Domain\Products\Services\PriceIntelligenceService;
 use App\Domain\Shared\Support\PeriodRange;
@@ -28,6 +29,7 @@ class DashboardSnapshotService
         private AnomalyDetectionService $anomalyDetectionService,
         private RecommendationService $recommendationService,
         private IncomeService $incomeService,
+        private UserSettingsService $userSettingsService,
     ) {}
 
     /**
@@ -49,7 +51,11 @@ class DashboardSnapshotService
             $end->toDateString(),
             5,
         );
-        $topItem = $this->consumptionService->topItems($userId, 'spend', $start->toDateString(), $end->toDateString(), null, 1)->first();
+        $user = User::query()->find($userId);
+        $consumptionScope = $user !== null ? $this->userSettingsService->consumptionScope($user) : null;
+        $topItem = $this->consumptionService
+            ->topItems($userId, 'spend', $start->toDateString(), $end->toDateString(), null, 1, $consumptionScope)
+            ->first();
         $renewals = $this->renewalReminderService->upcoming($userId, 14);
         $anomalies = $this->anomalyDetectionService->detect($userId, $start, $end);
         $recommendations = $this->recommendationService->recommendations($userId, $start->toDateString(), $end->toDateString(), 3);
