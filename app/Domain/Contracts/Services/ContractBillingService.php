@@ -58,7 +58,7 @@ class ContractBillingService
         $until = $today->addDays($days);
 
         $bills = Contract::query()
-            ->with('provider:id,name')
+            ->with('provider:id,name,logo')
             ->where('user_id', $userId)
             ->where('status', ContractStatus::Active)
             ->whereDate('next_billing_date', '>=', $today)
@@ -70,6 +70,7 @@ class ContractBillingService
                 'contract_id' => $contract->id,
                 'name' => $contract->name,
                 'provider' => $contract->provider?->name,
+                'provider_logo' => $contract->provider?->logo,
                 'amount' => (float) $contract->amount,
                 'billing_cycle' => $contract->billing_cycle->value,
                 'due_date' => $contract->next_billing_date->toDateString(),

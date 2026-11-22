@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Contract;
+use App\Models\Provider;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +25,8 @@ class UpcomingBillsTest extends TestCase
         $user = User::factory()->create();
 
         Contract::factory()->for($user)->create(['name' => 'Rent', 'amount' => 900, 'next_billing_date' => '2026-06-30']);
-        Contract::factory()->for($user)->create(['name' => 'Netflix', 'amount' => 12.99, 'next_billing_date' => '2026-06-10']);
+        $provider = Provider::factory()->for($user)->create(['name' => 'Netflix Inc', 'logo' => 'https://example.com/netflix.png']);
+        Contract::factory()->for($user)->for($provider)->create(['name' => 'Netflix', 'amount' => 12.99, 'next_billing_date' => '2026-06-10']);
         Contract::factory()->for($user)->create(['name' => 'Gym', 'amount' => 30, 'next_billing_date' => '2026-06-17']);
         Contract::factory()->for($user)->create(['name' => 'Insurance', 'amount' => 200, 'next_billing_date' => '2026-08-01']);
         Contract::factory()->for($user)->create(['name' => 'Already billed', 'amount' => 50, 'next_billing_date' => '2026-06-09']);
@@ -40,6 +42,7 @@ class UpcomingBillsTest extends TestCase
             ->assertJsonPath('due_this_week.count', 2)
             ->assertJsonPath('due_this_week.total', 42.99)
             ->assertJsonPath('bills.0.days_until_due', 0)
+            ->assertJsonPath('bills.0.provider_logo', 'https://example.com/netflix.png')
             ->assertJsonPath('bills.1.days_until_due', 7);
 
         $this->assertSame(['Netflix', 'Gym', 'Rent'], array_column($response->json('bills'), 'name'));

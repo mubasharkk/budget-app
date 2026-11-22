@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import axios from 'axios';
+import ProviderLogo from '@/Components/ProviderLogo';
 import { formatCurrency } from '@/utils/money';
 
 const WINDOWS = [7, 14, 30];
@@ -156,6 +157,10 @@ export default function UpcomingBillsWidget() {
                                     )}
                                     className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
                                 >
+                                    <ProviderLogo
+                                        logo={bill.provider_logo}
+                                        name={bill.provider ?? bill.name}
+                                    />
                                     <div className="min-w-0 flex-1">
                                         <div className="truncate text-sm font-medium text-gray-900">
                                             {bill.name}
