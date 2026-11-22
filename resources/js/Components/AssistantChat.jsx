@@ -1,49 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { MentionsInput, Mention } from 'react-mentions';
+import MentionInput from '@/Components/MentionInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { formatCurrency } from '@/utils/money';
-
-const mentionsInputStyle = {
-    control: { fontSize: 14, fontWeight: 'normal' },
-    '&singleLine': {
-        display: 'block',
-        highlighter: {
-            padding: '8px 12px',
-            border: '1px solid transparent',
-        },
-        input: {
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: 6,
-            outline: 'none',
-        },
-    },
-    suggestions: {
-        zIndex: 50,
-        list: {
-            backgroundColor: 'white',
-            border: '1px solid #e5e7eb',
-            borderRadius: 6,
-            fontSize: 14,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-            overflow: 'hidden',
-            maxHeight: 240,
-            overflowY: 'auto',
-        },
-        item: {
-            padding: '6px 12px',
-            '&focused': { backgroundColor: '#eef2ff' },
-        },
-    },
-};
-
-const mentionStyle = {
-    backgroundColor: '#e0e7ff',
-    borderRadius: 4,
-    padding: '1px 0',
-};
 
 const parseMentions = (mentions) =>
     mentions
@@ -204,18 +164,12 @@ function ResultBlock({ data }) {
 export default function AssistantChat() {
     const [messages, setMessages] = useState([]);
     const [value, setValue] = useState('');
-    const [plainText, setPlainText] = useState('');
-    const [mentionState, setMentionState] = useState([]);
+    const [mentions, setMentions] = useState([]);
     const [categories, setCategories] = useState([]);
     const [contracts, setContracts] = useState([]);
     const [asking, setAsking] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [portalHost, setPortalHost] = useState(null);
     const endRef = useRef(null);
-
-    useEffect(() => {
-        setPortalHost(document.body);
-    }, []);
 
     useEffect(() => {
         axios
@@ -233,16 +187,10 @@ export default function AssistantChat() {
             .catch(() => {});
     }, []);
 
-    const fetchReceipts = (query, callback) => {
-        if (!query) {
-            callback([]);
-            return;
-        }
+    const searchReceipts = (query) =>
         axios
             .get(route('agent.mentionables'), { params: { q: query } })
-            .then((res) => callback(res.data.receipts))
-            .catch(() => callback([]));
-    };
+            .then((res) => res.data.receipts);
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -250,24 +198,23 @@ export default function AssistantChat() {
 
     const send = (e) => {
         e.preventDefault();
-        const q = plainText.trim();
+        const q = value.trim();
         if (!q || asking) {
             return;
         }
 
-        const mentions = parseMentions(mentionState);
+        const mentioned = parseMentions(mentions);
 
         setMessages((m) => [
             ...m,
             { id: `tmp-${Date.now()}`, role: 'user', content: q },
         ]);
         setValue('');
-        setPlainText('');
-        setMentionState([]);
+        setMentions([]);
         setAsking(true);
 
         axios
-            .post(route('agent.ask'), { question: q, mentions })
+            .post(route('agent.ask'), { question: q, mentions: mentioned })
             .then((res) =>
                 setMessages((m) => [
                     ...m,
@@ -369,53 +316,20 @@ export default function AssistantChat() {
                 className="flex items-start gap-3 border-t border-gray-100 px-6 py-4"
             >
                 <div className="flex-1">
-                    <MentionsInput
+                    <MentionInput
                         value={value}
-                        onChange={(e, newValue, newPlainText, mentions) => {
-                            setValue(newValue);
-                            setPlainText(newPlainText);
-                            setMentionState(mentions);
+                        mentions={mentions}
+                        onChange={(text, picked) => {
+                            setValue(text);
+                            setMentions(picked);
                         }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                send(e);
-                            }
-                        }}
-                        singleLine
-                        allowSuggestionsAboveCursor
-                        suggestionsPortalHost={portalHost}
+                        options={[...categories, ...contracts]}
+                        search={searchReceipts}
+                        label="Ask about your spending"
                         placeholder="Ask about your spending… use @ to mention a category"
-                        style={mentionsInputStyle}
-                        a11ySuggestionsListLabel="Suggested categories"
-                    >
-                        <Mention
-                            trigger="@"
-                            data={categories}
-                            markup="@[__display__](__id__)"
-                            displayTransform={(id, display) => `@${display}`}
-                            appendSpaceOnAdd
-                            style={mentionStyle}
-                        />
-                        <Mention
-                            trigger="@"
-                            data={contracts}
-                            markup="@[__display__](__id__)"
-                            displayTransform={(id, display) => `@${display}`}
-                            appendSpaceOnAdd
-                            style={{ ...mentionStyle, backgroundColor: '#fce7f3' }}
-                        />
-                        <Mention
-                            trigger="@"
-                            data={fetchReceipts}
-                            markup="@[__display__](__id__)"
-                            displayTransform={(id, display) => `@${display}`}
-                            appendSpaceOnAdd
-                            style={{ ...mentionStyle, backgroundColor: '#dcfce7' }}
-                        />
-                    </MentionsInput>
+                    />
                 </div>
-                <PrimaryButton disabled={asking || !plainText.trim()}>
+                <PrimaryButton disabled={asking || !value.trim()}>
                     Ask
                 </PrimaryButton>
             </form>

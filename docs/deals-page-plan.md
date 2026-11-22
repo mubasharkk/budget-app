@@ -96,7 +96,7 @@ Unique index on **`(source, external_id, region)`** for idempotent upserts.
 - **Assistant `deals_search` intent** — add to `SpendingQueryExecutor` + the
   `spending-question` / `spending-answer` prompts so the chat answers
   "any deals on coffee near me?". A `@Retailer` mention drops in as a 4th
-  `<Mention>` source in `AssistantChat`, reusing the existing mention pipeline.
+  `MentionInput` source in `AssistantChat`, reusing the existing mention pipeline.
 
 ## 7. Phasing
 
