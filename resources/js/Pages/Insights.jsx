@@ -7,10 +7,13 @@ import ChangeBreakdown from '@/Components/Insights/ChangeBreakdown';
 import ConsumedItemsTable from '@/Components/Insights/ConsumedItemsTable';
 import ConsumptionAnalysisCard from '@/Components/Insights/ConsumptionAnalysisCard';
 import ConsumptionScopePanel from '@/Components/Insights/ConsumptionScopePanel';
+import DataQualityPanel from '@/Components/Insights/DataQualityPanel';
 import InsightsFilters from '@/Components/Insights/InsightsFilters';
 import InsightsHeadline from '@/Components/Insights/InsightsHeadline';
+import InsightsNextSteps from '@/Components/Insights/InsightsNextSteps';
 import MonthlySpendChart from '@/Components/Insights/MonthlySpendChart';
 import ShopBreakdown from '@/Components/Insights/ShopBreakdown';
+import useNextSteps from '@/Components/Insights/useNextSteps';
 import { formatDay } from '@/Components/Insights/insightFormat';
 import { formatCurrencyIn } from '@/utils/money';
 
@@ -33,6 +36,7 @@ export default function Insights() {
     const [loading, setLoading] = useState(true);
     const [failure, setFailure] = useState(null);
     const latestRequest = useRef(0);
+    const nextSteps = useNextSteps(filters.category_id);
 
     const load = (params = filters) => {
         const request = ++latestRequest.current;
@@ -80,6 +84,11 @@ export default function Insights() {
         load(next);
     };
 
+    const reloadAll = () => {
+        load();
+        nextSteps.reload();
+    };
+
     const selectMonth = (month) =>
         changeFilters({
             ...(filters.category_id ? { category_id: filters.category_id } : {}),
@@ -119,7 +128,7 @@ export default function Insights() {
                                 categories={categories}
                                 excludedIds={data.scope.excluded_category_ids}
                                 includeBusiness={data.scope.include_business}
-                                onSaved={() => load()}
+                                onSaved={reloadAll}
                             />
 
                             <InsightsFilters
@@ -153,6 +162,7 @@ export default function Insights() {
                                 <InsightsHeadline totals={data.totals} />
                                 <MonthlySpendChart chart={data.chart} onSelectMonth={selectMonth} />
                                 <ChangeBreakdown changes={data.changes} change={data.totals.change} />
+                                <InsightsNextSteps {...nextSteps} onRetry={nextSteps.reload} />
 
                                 <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
                                     <div className="min-w-0 lg:col-span-2">
@@ -161,13 +171,11 @@ export default function Insights() {
                                     <ShopBreakdown shops={data.shops} />
                                 </div>
 
-                                {data.coverage && (
-                                    <p className="px-4 text-xs text-gray-600 sm:px-0">
-                                        How complete this is: {data.coverage.named_percent}% of this spend is grouped under a
-                                        general name and {data.coverage.measured_percent}% has a known pack size for per-unit
-                                        prices.
-                                    </p>
-                                )}
+                                <DataQualityPanel
+                                    coverage={data.coverage}
+                                    gaps={nextSteps.data?.data_quality}
+                                    onFixed={reloadAll}
+                                />
 
                                 <ConsumptionAnalysisCard
                                     filters={loaded.filters}

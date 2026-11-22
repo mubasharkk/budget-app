@@ -187,10 +187,14 @@ class ConsumableGroupInsightsService
                 $productLines = $byProduct->get($product->id, collect());
                 $measured = $productLines->filter(fn (object $line): bool => $line->amount !== null && $line->unit === $unit);
 
+                $perItem = ProductQuantity::perUnit($product->unit, $product->size);
+
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
                     'brand' => $product->brand,
+                    'pack_size' => filled($product->size) && $perItem !== null ? round($perItem['amount'], 6) : null,
+                    'pack_unit' => $perItem['unit'] ?? null,
                     'pack' => trim(($product->size ?? '').' '.($product->unit ?? '')) ?: null,
                     'purchases' => $productLines->count(),
                     'amount' => $measured->isEmpty() ? null : round($measured->sum('amount'), 3),

@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Deal;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use WeakMap;
 
 /**
  * Decides whether an offer is for something the user already buys.
@@ -30,9 +31,26 @@ class ProductDealMatcher
     private const MIN_WORD_LENGTH = 3;
 
     /**
+     * Words an offer may add without becoming a different thing.
+     */
+    private const DESCRIPTIVE_WORDS = [
+        'deutsche', 'deutscher', 'deutsches', 'haltbare', 'haltbar', 'gemahlen',
+        'lose', 'versch', 'verschiedene', 'sorte', 'sorten', 'oder', 'aktion',
+    ];
+
+    private const ORGANIC_WORDS = ['bio', 'organic'];
+
+    /**
      * @var array<int, int>|null category id => top-level category id
      */
     private ?array $topLevelCategoryIds = null;
+
+    /**
+     * Keyed by the model itself: reading its id for every product and offer is too slow.
+     *
+     * @var WeakMap<Deal, array<int, string>>|null the words of each offer's title and brand
+     */
+    private ?WeakMap $offerWords = null;
 
     /**
      * The offers among $deals that are for the product.
@@ -62,6 +80,66 @@ class ProductDealMatcher
         }
 
         return false;
+    }
+
+    /**
+     * The stricter match, for when money is claimed: every meaningful word of
+     * one of the names must be a whole word of the offer, so "Eis" matches
+     * neither "Reis" nor "Fleisch" and "Milch" does not match "Buttermilch".
+     * Beyond those and its brand the offer may only add descriptive words, so
+     * "Tomaten" does not match "Tomaten Ketchup"; organic only matches organic.
+     *
+     * @param  array<int, string>  $names
+     * @param  Collection<int, Deal>  $deals
+     * @return Collection<int, Deal>
+     */
+    public function matchingWholeWords(array $names, ?int $categoryId, Collection $deals): Collection
+    {
+        $wanted = array_filter(array_map(fn (string $name): array => $this->meaningfulWords($name), $names));
+
+        if ($wanted === []) {
+            return collect();
+        }
+
+        $this->offerWords ??= new WeakMap;
+        $organic = $this->isOrganic(explode(' ', $this->words(implode(' ', $names))));
+
+        return $deals->filter(function (Deal $deal) use ($wanted, $categoryId, $organic): bool {
+            $offered = $this->offerWords[$deal] ??= explode(' ', $this->words($deal->title.' '.$deal->brand));
+
+            if ($organic && ! $this->isOrganic($offered)) {
+                return false;
+            }
+
+            foreach ($wanted as $words) {
+                if (array_diff($words, $offered) === [] && $this->addsOnlyDescription($words, $deal)) {
+                    return $this->sameTopLevelCategory($categoryId, $deal->category_id);
+                }
+            }
+
+            return false;
+        })->values();
+    }
+
+    /**
+     * @param  array<int, string>  $words  of the product
+     */
+    private function addsOnlyDescription(array $words, Deal $deal): bool
+    {
+        return array_diff(
+            $this->meaningfulWords($deal->title),
+            $words,
+            $this->meaningfulWords((string) $deal->brand),
+            self::DESCRIPTIVE_WORDS,
+        ) === [];
+    }
+
+    /**
+     * @param  array<int, string>  $words
+     */
+    private function isOrganic(array $words): bool
+    {
+        return array_intersect($words, self::ORGANIC_WORDS) !== [];
     }
 
     /**

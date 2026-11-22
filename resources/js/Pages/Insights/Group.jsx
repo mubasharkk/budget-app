@@ -7,6 +7,7 @@ import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import EditPackSize from '@/Components/Insights/EditPackSize';
 import { formatAmount } from '@/Components/Insights/consumedAmount';
 import { formatCurrency } from '@/utils/money';
 
@@ -310,7 +311,7 @@ export default function Group({ group, totals, monthly, vendors, products, purch
                         <Panel title="Products" action={<MergeForm group={group} otherGroups={otherGroups} />}>
                             <ul className="divide-y divide-gray-100">
                                 {products.map((product) => (
-                                    <li key={product.id} className="flex items-center justify-between gap-4 py-2.5">
+                                    <li key={product.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2.5">
                                         <div className="min-w-0">
                                             <Link
                                                 href={route('products.show', product.id)}
@@ -322,6 +323,7 @@ export default function Group({ group, totals, monthly, vendors, products, purch
                                                 {[product.brand, product.pack].filter(Boolean).join(' · ') || 'No pack size'}
                                                 {' · '}bought {product.purchases}× · {formatCurrency(product.spend)}
                                             </div>
+                                            <EditPackSize product={product} />
                                         </div>
                                         <MoveProduct product={product} groupName={group.name} otherGroups={otherGroups} />
                                     </li>

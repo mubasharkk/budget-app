@@ -8,8 +8,10 @@ use App\Http\Controllers\ContractController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\IncomeController;
+use App\Http\Controllers\InsightsNextStepsController;
 use App\Http\Controllers\InsightsOverviewController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductCorrectionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\ReceiptAttachmentController;
@@ -51,6 +53,9 @@ Route::middleware('auth')->group(function () {
     // Consumption insights page
     Route::get('/insights', [DashboardController::class, 'insights'])->name('insights');
     Route::get('/insights/overview', [InsightsOverviewController::class, 'show'])->name('insights.overview');
+    Route::get('/insights/next-steps', [InsightsNextStepsController::class, 'show'])->name('insights.next-steps');
+    Route::patch('/insights/products/{product}', [ProductCorrectionController::class, 'update'])->name('insights.products.update');
+    Route::post('/insights/unmatched-items', [ProductCorrectionController::class, 'store'])->name('insights.unmatched-items.store');
     Route::put('/insights/settings', [DashboardController::class, 'updateInsightsSettings'])->name('insights.settings.update');
     Route::get('/insights/analyses', [ConsumptionAnalysisController::class, 'index'])->name('insights.analyses.index');
     Route::post('/insights/analyses', [ConsumptionAnalysisController::class, 'store'])->middleware('throttle:5,1')->name('insights.analyses.store');

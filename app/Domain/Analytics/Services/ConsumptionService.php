@@ -2,6 +2,7 @@
 
 namespace App\Domain\Analytics\Services;
 
+use App\Domain\Analytics\Data\ConsumedLine;
 use App\Domain\Analytics\Data\ConsumptionReportFilters;
 use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Products\Support\ProductQuantity;
@@ -167,6 +168,58 @@ class ConsumptionService
         return collect($totals)->sortDesc()->take($slots)->keys()->sort()->values()
             ->mapWithKeys(fn (int $id, int $slot): array => ['cat_'.$id => $slot])
             ->all();
+    }
+
+    /**
+     * Every consumed line of the last $days days up to today, oldest first.
+     *
+     * @return Collection<int, ConsumedLine>
+     */
+    public function recentLines(int $userId, int $days, ConsumptionScope $scope, ?int $categoryId = null): Collection
+    {
+        $today = CarbonImmutable::today();
+        $query = $this->consumedLines($userId, $scope);
+
+        $this->applyReceiptDateRange($query, $today->subDays($days)->toDateString(), $today->toDateString());
+        $this->applyCategoryFilter($query, $categoryId);
+
+        return $query
+            ->orderBy('receipts.receipt_date')
+            ->orderBy('receipt_items.id')
+            ->select([
+                'receipt_items.name', 'receipt_items.quantity', 'receipt_items.total', 'receipt_items.category_id',
+                'receipt_items.product_id', 'receipts.receipt_date', 'receipts.vendor',
+                'products.name as product_name', 'products.unit as product_unit', 'products.size as product_size',
+                'consumable_groups.id as group_id', 'consumable_groups.name as group_name', 'consumable_groups.unit as group_unit',
+            ])
+            ->toBase()
+            ->get()
+            ->map(fn (object $row): ConsumedLine => new ConsumedLine(
+                key: $this->itemKey($row->group_id, $row->product_id, $row->name),
+                label: $row->group_name ?? $row->product_name ?? $row->name,
+                name: $row->name,
+                date: CarbonImmutable::parse($row->receipt_date)->startOfDay(),
+                vendor: filled($row->vendor) ? $row->vendor : null,
+                quantity: (float) $row->quantity,
+                total: (float) $row->total,
+                categoryId: $row->category_id,
+                productId: $row->product_id,
+                productName: $row->product_name,
+                productUnit: $row->product_unit,
+                productSize: $row->product_size,
+                groupId: $row->group_id,
+                groupName: $row->group_name,
+                groupUnit: $row->group_unit,
+            ));
+    }
+
+    private function itemKey(?int $groupId, ?int $productId, string $name): string
+    {
+        return match (true) {
+            $groupId !== null => 'group:'.$groupId,
+            $productId !== null => 'product:'.$productId,
+            default => 'name:'.mb_strtolower($name),
+        };
     }
 
     /**
@@ -582,11 +635,7 @@ class ConsumptionService
         $items = [];
 
         foreach ($rows as $row) {
-            $key = match (true) {
-                $row->group_id !== null => 'group:'.$row->group_id,
-                $row->product_id !== null => 'product:'.$row->product_id,
-                default => 'name:'.mb_strtolower($row->line_name),
-            };
+            $key = $this->itemKey($row->group_id, $row->product_id, $row->line_name);
 
             $item = $items[$key] ??= (object) [
                 'key' => $key,
