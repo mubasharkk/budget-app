@@ -7,8 +7,8 @@ export default function SummaryTiles({ summary }) {
             <StatTile label="Deals on things you buy" value={summary.match_count} />
             <StatTile
                 label="Possible saving"
-                value={formatCurrency(summary.possible_saving)}
-                tone="positive"
+                value={summary.possible_saving > 0 ? formatCurrency(summary.possible_saving) : '—'}
+                tone={summary.possible_saving > 0 ? 'positive' : 'default'}
             />
             <StatTile label="Best store for you" value={summary.best_retailer_label ?? '—'} />
         </div>

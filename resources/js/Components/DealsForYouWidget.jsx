@@ -33,8 +33,8 @@ function WidgetBody({ postalCode }) {
     return (
         <>
             <p className="text-sm text-gray-500">
-                {data.summary.match_count} deals · save up to{' '}
-                {formatCurrency(data.summary.possible_saving)}
+                {data.summary.match_count} {data.summary.match_count === 1 ? 'deal' : 'deals'}
+                {data.summary.possible_saving > 0 && ` · save up to ${formatCurrency(data.summary.possible_saving)}`}
             </p>
             <ul className="divide-y divide-gray-100">
                 {data.recommendations.map((recommendation) => (

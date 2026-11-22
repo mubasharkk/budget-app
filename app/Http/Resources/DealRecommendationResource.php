@@ -24,6 +24,12 @@ class DealRecommendationResource extends JsonResource
                 'last_vendor' => $this->product->lastVendor,
             ],
             'saving' => $this->saving(),
+            'saving_basis' => $this->offerSaving === null ? null : [
+                'usual_price' => $this->offerSaving->usualPrice,
+                'offer_price' => $this->offerSaving->offerPrice,
+                'unit' => $this->offerSaving->unit,
+                'amount_label' => $this->offerSaving->amountLabel,
+            ],
         ];
     }
 }

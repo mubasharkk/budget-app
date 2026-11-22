@@ -91,8 +91,10 @@ Unique index on **`(source, external_id, region)`** for idempotent upserts.
 - **"Deals on things you buy"** — match incoming deals to each user's frequent
   items via `ConsumptionService::searchItems` / `topItems`; map deal
   `category_id` to tracked categories. Surface on the deals page + dashboard.
-- **Savings estimate** — compare deal `price` against the user's historical
-  `unit_price` for that item.
+- **Savings estimate** — compare the deal's price per l, kg or piece with what
+  the user usually pays for that item, on their usual amount
+  (`ConsumptionSavingsService::findOffers()`, shared with Insights). Pack
+  prices are never compared.
 - **Assistant `deals_search` intent** — add to `SpendingQueryExecutor` + the
   `spending-question` / `spending-answer` prompts so the chat answers
   "any deals on coffee near me?". A `@Retailer` mention drops in as a 4th

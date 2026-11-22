@@ -23,11 +23,6 @@ class InsightsNextStepsService
 
     public const DUE_SOON = 8;
 
-    /**
-     * Supermarket offers are German, so only comparable for users counting in euros.
-     */
-    private const DEALS_CURRENCY = 'EUR';
-
     public function __construct(
         private ConsumptionService $consumptionService,
         private ConsumptionSavingsService $savingsService,
@@ -46,7 +41,7 @@ class InsightsNextStepsService
         $scope = $this->userSettingsService->consumptionScope($user);
         $lines = $this->consumptionService->recentLines($user->id, self::HISTORY_DAYS, $scope, $categoryId);
 
-        $canCompareOffers = $scope->currency === self::DEALS_CURRENCY && $user->postal_code !== null;
+        $canCompareOffers = $scope->currency === ConsumptionSavingsService::OFFERS_CURRENCY && $user->postal_code !== null;
         $deals = $canCompareOffers ? $this->dealCatalogService->currentDeals($user->postal_code) : collect();
 
         $priceFrom = $today->subDays(ConsumptionSavingsService::PRICE_DAYS);
@@ -63,7 +58,7 @@ class InsightsNextStepsService
         return [
             'savings' => [
                 'offers_status' => match (true) {
-                    $scope->currency !== self::DEALS_CURRENCY => 'other_currency',
+                    $scope->currency !== ConsumptionSavingsService::OFFERS_CURRENCY => 'other_currency',
                     $user->postal_code === null => 'no_postal_code',
                     $deals->isEmpty() => 'no_offers',
                     default => 'compared',

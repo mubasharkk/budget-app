@@ -13,15 +13,14 @@ readonly class DealRecommendation
     public function __construct(
         public Deal $deal,
         public PurchasedProduct $product,
+        public ?OfferSaving $offerSaving = null,
     ) {}
 
     /**
-     * Saving per pack compared with the last price paid; null when the offer isn't cheaper.
+     * Null unless the offer compares like for like, never a difference of pack prices.
      */
     public function saving(): ?float
     {
-        $saving = round($this->product->lastPaidPrice - (float) $this->deal->price, 2);
-
-        return $saving > 0 ? $saving : null;
+        return $this->offerSaving?->saving;
     }
 }

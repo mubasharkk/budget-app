@@ -16,6 +16,7 @@ use App\Http\Resources\DealComparisonResource;
 use App\Http\Resources\DealGroupResource;
 use App\Http\Resources\DealRecommendationResource;
 use App\Http\Resources\DealSummaryResource;
+use App\Models\User;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -36,7 +37,8 @@ class DealController extends Controller
      */
     public function index(DealsPageRequest $request): Response
     {
-        $userId = $request->user()->id;
+        $user = $request->user();
+        $userId = $user->id;
         $postalCode = $request->user()->postal_code;
         $filters = $request->filters();
         $offersTab = ! $request->onPricesTab();
@@ -57,7 +59,7 @@ class DealController extends Controller
             'offers' => $this->tabProp($offersTab, $forPostalCode(fn () => DealGroupResource::collection(
                 $this->dealCatalogService->browse($userId, $postalCode, $filters),
             )->resolve())),
-            'forYou' => $this->tabProp($offersTab, $forPostalCode(fn () => $this->forYouData($userId, $postalCode, DealsForYouRequest::DEFAULT_LIMIT)), deferred: true),
+            'forYou' => $this->tabProp($offersTab, $forPostalCode(fn () => $this->forYouData($user, $postalCode, DealsForYouRequest::DEFAULT_LIMIT)), deferred: true),
             'comparisons' => $this->tabProp($offersTab, $forPostalCode(fn () => DealComparisonResource::collection(
                 $this->dealComparisonService->forUser($userId, $postalCode),
             )->resolve()), deferred: true),
@@ -80,7 +82,7 @@ class DealController extends Controller
         return response()->json([
             'postal_code' => $postalCode,
             'synced_at' => $this->dealCatalogService->lastSyncedAt($postalCode),
-            ...$this->forYouData($request->user()->id, $postalCode, $request->limit()),
+            ...$this->forYouData($request->user(), $postalCode, $request->limit()),
         ]);
     }
 
@@ -100,9 +102,9 @@ class DealController extends Controller
     /**
      * @return array{summary: array<string, mixed>, recommendations: array<int, mixed>}
      */
-    private function forYouData(int $userId, string $postalCode, int $limit): array
+    private function forYouData(User $user, string $postalCode, int $limit): array
     {
-        $recommendations = $this->dealRecommendationService->forUser($userId, $postalCode);
+        $recommendations = $this->dealRecommendationService->forUser($user, $postalCode);
 
         return [
             'summary' => (new DealSummaryResource(DealSummary::fromRecommendations($recommendations)))->resolve(),

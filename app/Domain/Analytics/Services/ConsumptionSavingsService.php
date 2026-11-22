@@ -21,6 +21,11 @@ class ConsumptionSavingsService
     public const PRICE_DAYS = 90;
 
     /**
+     * Supermarket offers are German, so only comparable for users counting in euros.
+     */
+    public const OFFERS_CURRENCY = 'EUR';
+
+    /**
      * Purchases needed before a price counts as the usual one.
      */
     public const MIN_PURCHASES = 2;
@@ -44,6 +49,45 @@ class ConsumptionSavingsService
      */
     public function find(Collection $lines, Collection $deals): array
     {
+        $products = $this->comparableProducts($lines);
+
+        return $this->bestPerThing($this->offerCandidates($products, $deals)->concat(
+            $products->flatMap(fn (Collection $purchases): array => $this->shopSavings($purchases)),
+        ));
+    }
+
+    /**
+     * The best offer per thing the user buys, biggest saving first, each offer
+     * once. The one definition of "you save" for an offer.
+     *
+     * @param  Collection<int, ConsumedLine>  $lines
+     * @param  Collection<int, Deal>  $deals  current offers in the user's currency and area
+     * @return array<int, array<string, mixed>>
+     */
+    public function findOffers(Collection $lines, Collection $deals): array
+    {
+        return $this->bestPerThing($this->offerCandidates($this->comparableProducts($lines), $deals));
+    }
+
+    /**
+     * @param  Collection<int, ConsumedLine>  $lines
+     * @return Collection<int, Collection<int, ConsumedLine>> product id => its purchases
+     */
+    private function comparableProducts(Collection $lines): Collection
+    {
+        return $lines
+            ->filter(fn (ConsumedLine $line): bool => $line->productId !== null && $line->total > 0 && $line->quantity > 0)
+            ->groupBy(fn (ConsumedLine $line): int => $line->productId)
+            ->filter(fn (Collection $purchases): bool => $purchases->count() >= self::MIN_PURCHASES && $this->hasTrustworthyQuantities($purchases));
+    }
+
+    /**
+     * @param  Collection<int, Collection<int, ConsumedLine>>  $products
+     * @param  Collection<int, Deal>  $deals
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function offerCandidates(Collection $products, Collection $deals): Collection
+    {
         // Read once: casting every offer again for every product is too slow.
         $comparableDeals = $deals
             ->map(fn (Deal $deal): array => [
@@ -55,20 +99,19 @@ class ConsumptionSavingsService
             ->toBase()
             ->groupBy('unit');
 
-        $candidates = $lines
-            ->filter(fn (ConsumedLine $line): bool => $line->productId !== null && $line->total > 0 && $line->quantity > 0)
-            ->groupBy(fn (ConsumedLine $line): int => $line->productId)
-            ->filter(fn (Collection $purchases): bool => $purchases->count() >= self::MIN_PURCHASES && $this->hasTrustworthyQuantities($purchases))
-            ->flatMap(fn (Collection $purchases): array => [
-                ...$this->offerSavings($purchases, $comparableDeals),
-                ...$this->shopSavings($purchases),
-            ])
-            ->sortByDesc('saving');
+        return $products->toBase()->flatMap(fn (Collection $purchases): array => $this->offerSavings($purchases, $comparableDeals));
+    }
 
+    /**
+     * @param  Collection<int, array<string, mixed>>  $candidates
+     * @return array<int, array<string, mixed>>
+     */
+    private function bestPerThing(Collection $candidates): array
+    {
         $found = [];
         $usedDeals = [];
 
-        foreach ($candidates as $candidate) {
+        foreach ($candidates->sortByDesc('saving') as $candidate) {
             $dealId = $candidate['offer']['id'] ?? null;
 
             if (isset($found[$candidate['key']]) || ($dealId !== null && isset($usedDeals[$dealId]))) {
@@ -187,6 +230,7 @@ class ConsumptionSavingsService
     {
         return [
             'key' => $product->key,
+            'product_id' => $product->productId,
             'label' => $product->label,
             'product_name' => $product->productName,
             'kind' => $kind,
