@@ -77,5 +77,7 @@ export function formatCurrencyIn(amount, currency, locale) {
     return new Intl.NumberFormat(locale ?? localeForCurrency(code), {
         style: 'currency',
         currency: code,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
     }).format(Number(amount));
 }

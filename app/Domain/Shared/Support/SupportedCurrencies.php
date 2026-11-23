@@ -41,13 +41,14 @@ final class SupportedCurrencies
     }
 
     /**
-     * Format an amount in the currency's own country pattern.
+     * Format an amount in the currency's own country pattern, always with two decimals as
+     * stored: newer ICU versions drop them for some currencies (e.g. PKR).
      */
     public static function format(float|int|string|null $amount, ?string $code = null): string
     {
         $code = $code ?: self::FALLBACK;
 
-        return (string) Number::currency((float) $amount, in: $code, locale: self::locale($code));
+        return (string) Number::currency((float) $amount, in: $code, locale: self::locale($code), precision: 2);
     }
 
     /**
