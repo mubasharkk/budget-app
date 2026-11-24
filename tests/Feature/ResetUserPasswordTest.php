@@ -16,7 +16,7 @@ class ResetUserPasswordTest extends TestCase
         $user = User::factory()->create(['email' => 'anna@example.com']);
 
         $this->artisan('user:reset-password', ['user' => 'anna@example.com', '--password' => 'new-secret-123'])
-            ->expectsOutput('Password reset for anna@example.com.')
+            ->expectsOutput('Password reset for anna@example.com. They are signed out everywhere and their API tokens are revoked.')
             ->assertSuccessful();
         $this->assertTrue(Hash::check('new-secret-123', $user->fresh()->password));
 
@@ -25,6 +25,18 @@ class ResetUserPasswordTest extends TestCase
             ->expectsQuestion('Repeat the new password', 'other-secret-456')
             ->assertSuccessful();
         $this->assertTrue(Hash::check('other-secret-456', $user->fresh()->password));
+    }
+
+    public function test_it_signs_the_user_out_of_open_sessions_and_revokes_api_tokens(): void
+    {
+        $user = User::factory()->create(['email' => 'anna@example.com']);
+        $user->createToken('phone');
+        $this->actingAs($user)->get(route('dashboard'))->assertOk();
+
+        $this->artisan('user:reset-password', ['user' => 'anna@example.com', '--password' => 'new-secret-123'])->assertSuccessful();
+
+        $this->actingAs($user->fresh())->get(route('dashboard'))->assertRedirect(route('login'));
+        $this->assertSame(0, $user->tokens()->count());
     }
 
     public function test_it_refuses_unknown_users_mismatches_and_short_passwords(): void

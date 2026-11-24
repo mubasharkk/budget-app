@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Identity\Services\PasswordResetService;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
@@ -11,7 +12,7 @@ use Illuminate\Validation\Rules\Password;
 /**
  * Sets a new password for a user, found by email or id. Without --password it
  * asks for one (hidden), or makes a random one with --generate. Signs the user
- * out of "remember me" sessions.
+ * out everywhere and revokes their API tokens.
  */
 class ResetUserPassword extends Command
 {
@@ -22,7 +23,7 @@ class ResetUserPassword extends Command
 
     protected $description = 'Reset a user\'s password';
 
-    public function handle(): int
+    public function handle(PasswordResetService $passwordResetService): int
     {
         $identifier = (string) $this->argument('user');
         $user = User::query()
@@ -56,12 +57,9 @@ class ResetUserPassword extends Command
             return self::FAILURE;
         }
 
-        $user->forceFill([
-            'password' => $password,
-            'remember_token' => Str::random(60),
-        ])->save();
+        $passwordResetService->reset($user, $password);
 
-        $this->info("Password reset for {$user->email}.");
+        $this->info("Password reset for {$user->email}. They are signed out everywhere and their API tokens are revoked.");
 
         if ($this->option('generate')) {
             $this->line("New password: {$password}");

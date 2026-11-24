@@ -42,7 +42,7 @@ class RecommendationServiceTest extends TestCase
             'unit_price' => 2.00,
             'observed_at' => '2026-06-10',
         ]);
-        PriceObservation::factory()->for($product)->create([
+        PriceObservation::factory()->for($product)->bought()->create([
             'vendor' => 'ALDI',
             'unit_price' => 1.20,
             'observed_at' => '2026-06-05',

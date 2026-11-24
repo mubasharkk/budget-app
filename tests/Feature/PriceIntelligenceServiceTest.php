@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Products\Services\PriceIntelligenceService;
+use App\Enums\ExpenseType;
 use App\Models\PriceObservation;
 use App\Models\Product;
 use App\Models\Receipt;
@@ -66,7 +67,7 @@ class PriceIntelligenceServiceTest extends TestCase
         $user = User::factory()->create();
         $this->seedMilkPrices($user);
 
-        $opportunities = (new PriceIntelligenceService)->savingsOpportunities($user->id);
+        $opportunities = app(PriceIntelligenceService::class)->savingsOpportunities($user->id);
 
         $this->assertCount(1, $opportunities);
         $this->assertSame('Milk 1L', $opportunities->first()->product_name);
@@ -76,12 +77,34 @@ class PriceIntelligenceServiceTest extends TestCase
         $this->assertSame(0.60, (float) $opportunities->first()->potential_savings); // (1.50 - 1.20) * 2
     }
 
+    public function test_prices_from_other_currencies_business_receipts_and_duplicates_are_not_compared(): void
+    {
+        $user = User::factory()->create(['default_currency' => 'EUR']);
+        $product = $this->seedMilkPrices($user);
+        $cheaperElsewhere = function (string $vendor, float $price, array $receipt) use ($product): void {
+            $observation = PriceObservation::factory()->for($product)->bought()->create(['vendor' => $vendor, 'unit_price' => $price, 'observed_at' => '2026-06-01']);
+            $observation->receiptItem->receipt->update($receipt);
+        };
+        $cheaperElsewhere('Walmart', 0.50, ['currency' => 'USD']);
+        $cheaperElsewhere('METRO', 0.60, ['expense_type' => ExpenseType::Business]);
+        $cheaperElsewhere('LIDL', 0.70, ['duplicate_of_id' => Receipt::factory()->for($user)->create()->id]);
+
+        $service = app(PriceIntelligenceService::class);
+        $opportunity = $service->savingsOpportunities($user->id)->sole();
+
+        $this->assertSame(1.20, (float) $opportunity->cheapest_price);
+        $this->assertSame('ALDI', $opportunity->cheapest_vendor);
+        $this->assertSame('ALDI', $service->cheapestVendors($user->id)->sole()->cheapest_vendor);
+        $this->assertSame(1.20, (float) $service->cheapestVendors($user->id)->sole()->cheapest_price);
+        $this->assertSame(['METRO', 'ALDI', 'REWE'], $service->productDetail($user->id, $product)['by_vendor']->pluck('vendor')->all());
+    }
+
     public function test_cheapest_vendors_returns_lowest_price_per_product(): void
     {
         $user = User::factory()->create();
         $product = $this->seedMilkPrices($user);
 
-        $cheapest = (new PriceIntelligenceService)->cheapestVendors($user->id);
+        $cheapest = app(PriceIntelligenceService::class)->cheapestVendors($user->id);
 
         $this->assertCount(1, $cheapest);
         $this->assertSame($product->id, $cheapest->first()->product_id);
@@ -95,16 +118,16 @@ class PriceIntelligenceServiceTest extends TestCase
         $user = User::factory()->create();
         $product = Product::factory()->for($user)->create(['name' => 'Bread']);
 
-        PriceObservation::factory()->for($product)->create([
+        PriceObservation::factory()->for($product)->bought()->create([
             'unit_price' => 2.00,
             'observed_at' => '2026-06-01',
         ]);
-        PriceObservation::factory()->for($product)->create([
+        PriceObservation::factory()->for($product)->bought()->create([
             'unit_price' => 2.50,
             'observed_at' => '2026-06-15',
         ]);
 
-        $trends = (new PriceIntelligenceService)->priceTrends($user->id);
+        $trends = app(PriceIntelligenceService::class)->priceTrends($user->id);
 
         $this->assertCount(1, $trends);
         $this->assertSame('rising', $trends->first()->direction);
@@ -116,7 +139,7 @@ class PriceIntelligenceServiceTest extends TestCase
         $user = User::factory()->create();
         $product = $this->seedMilkPrices($user);
 
-        $detail = (new PriceIntelligenceService)->productDetail($user->id, $product);
+        $detail = app(PriceIntelligenceService::class)->productDetail($user->id, $product);
 
         $this->assertSame($product->id, $detail['product']->id);
         $this->assertCount(2, $detail['price_history']);
