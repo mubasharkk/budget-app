@@ -129,7 +129,7 @@ function MergeForm({ group, otherGroups }) {
     );
 }
 
-function MoveProduct({ product, groupName, otherGroups }) {
+function MoveProduct({ product, groupName }) {
     const [name, setName] = useState('');
     const listId = `groups-for-${product.id}`;
 
@@ -153,8 +153,8 @@ function MoveProduct({ product, groupName, otherGroups }) {
                 className="w-32 rounded-md border-gray-300 py-1 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
             <datalist id={listId}>
-                {otherGroups.map((other) => (
-                    <option key={other.id} value={other.name} />
+                {product.move_suggestions.map((name) => (
+                    <option key={name} value={name} />
                 ))}
             </datalist>
             <button
@@ -325,7 +325,7 @@ export default function Group({ group, totals, monthly, vendors, products, purch
                                             </div>
                                             <EditPackSize product={product} />
                                         </div>
-                                        <MoveProduct product={product} groupName={group.name} otherGroups={otherGroups} />
+                                        <MoveProduct product={product} groupName={group.name} />
                                     </li>
                                 ))}
                             </ul>

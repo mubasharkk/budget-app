@@ -6,6 +6,7 @@ use App\Domain\Products\Services\ProductMatchingService;
 use App\Domain\Shared\Services\LlmService;
 use App\Enums\LineItemType;
 use App\Jobs\MatchReceiptItems;
+use App\Models\Category;
 use App\Models\ConsumableGroup;
 use App\Models\Product;
 use App\Models\Receipt;
@@ -92,6 +93,35 @@ class ConsumableGroupTest extends TestCase
         $this->actingAs($user)->post(route('insights.groups.merge', $farmMilk->fresh()->consumableGroup), ['into' => $someoneElses->id])
             ->assertSessionHasErrors('into');
         $this->actingAs($user)->patch(route('insights.groups.update', $someoneElses), ['name' => 'Mine'])->assertForbidden();
+    }
+
+    public function test_merge_and_move_choices_stay_within_the_same_top_level_category(): void
+    {
+        $user = User::factory()->create();
+        $groceries = Category::factory()->create();
+        $dairy = Category::factory()->create(['parent_id' => $groceries->id]);
+        $household = Category::factory()->create();
+        $group = fn (string $name, ?Category $category) => tap(
+            ConsumableGroup::factory()->for($user)->create(['name' => $name]),
+            fn (ConsumableGroup $group) => Product::factory()->for($user)->create(['consumable_group_id' => $group->id, 'category_id' => $category?->id]),
+        );
+        $toiletPaper = $group('Toilet paper', $household);
+        $group('Dish soap', $household);
+        $group('Milk', $dairy);
+        $group('Bread', $groceries);
+        $group('Batteries', null);
+        $misfiled = Product::factory()->for($user)->create(['name' => 'Cheese', 'consumable_group_id' => $toiletPaper->id, 'category_id' => $dairy->id]);
+
+        $this->actingAs($user)->get(route('insights.groups.show', $toiletPaper))
+            ->assertInertia(fn ($page) => $page
+                ->where('other_groups', fn ($groups) => collect($groups)->pluck('name')->all() === ['Batteries', 'Bread', 'Dish soap', 'Milk'])
+                ->where('products', fn ($products) => collect($products)->firstWhere('id', $misfiled->id)['move_suggestions'] === ['Batteries', 'Bread', 'Milk'])
+            );
+
+        $this->actingAs($user)->get(route('insights.groups.show', ConsumableGroup::query()->where('name', 'Dish soap')->sole()))
+            ->assertInertia(fn ($page) => $page
+                ->where('other_groups', fn ($groups) => collect($groups)->pluck('name')->all() === ['Batteries', 'Toilet paper'])
+            );
     }
 
     public function test_a_line_left_out_stops_counting_and_stays_out_when_matched_again(): void

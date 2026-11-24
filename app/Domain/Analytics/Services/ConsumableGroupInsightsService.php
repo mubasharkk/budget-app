@@ -5,7 +5,9 @@ namespace App\Domain\Analytics\Services;
 use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Products\Support\ProductQuantity;
 use App\Enums\LineItemType;
+use App\Models\Category;
 use App\Models\ConsumableGroup;
+use App\Models\Product;
 use App\Models\ReceiptItem;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -26,6 +28,16 @@ class ConsumableGroupInsightsService
      * How many recent purchases the page lists.
      */
     public const RECENT_PURCHASES = 25;
+
+    /**
+     * @var array<int, array<int, array<int, int>>> per user: group id => top-level category ids
+     */
+    private array $topCategoriesByGroup = [];
+
+    /**
+     * @var array<int, int|null>|null category id => parent id
+     */
+    private ?array $parentIds = null;
 
     public function __construct(private ConsumptionService $consumptionService) {}
 
@@ -55,13 +67,7 @@ class ConsumableGroupInsightsService
             'vendors' => $this->vendors($lines, $measured),
             'products' => $this->products($group, $lines, $unit),
             'purchases' => $this->recentPurchases($group, $scope ?? ConsumptionScope::default()),
-            'other_groups' => ConsumableGroup::query()
-                ->where('user_id', $group->user_id)
-                ->whereKeyNot($group->id)
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn (ConsumableGroup $other): array => ['id' => $other->id, 'name' => $other->name])
-                ->all(),
+            'other_groups' => $this->groupsInCategories($group, $this->topCategoriesOf($group)),
         ];
     }
 
@@ -182,8 +188,8 @@ class ConsumableGroupInsightsService
 
         return $group->products()
             ->orderBy('name')
-            ->get(['id', 'name', 'brand', 'unit', 'size'])
-            ->map(function ($product) use ($byProduct, $unit): array {
+            ->get(['id', 'name', 'brand', 'unit', 'size', 'category_id'])
+            ->map(function ($product) use ($byProduct, $unit, $group): array {
                 $productLines = $byProduct->get($product->id, collect());
                 $measured = $productLines->filter(fn (object $line): bool => $line->amount !== null && $line->unit === $unit);
 
@@ -199,6 +205,10 @@ class ConsumableGroupInsightsService
                     'purchases' => $productLines->count(),
                     'amount' => $measured->isEmpty() ? null : round($measured->sum('amount'), 3),
                     'spend' => round($productLines->sum('total'), 2),
+                    'move_suggestions' => array_column($this->groupsInCategories(
+                        $group,
+                        $product->category_id === null ? [] : [$this->topCategoryOf($product->category_id)],
+                    ), 'name'),
                 ];
             })
             ->sortByDesc('spend')
@@ -244,5 +254,68 @@ class ConsumableGroupInsightsService
                 'receipt_id' => $item->receipt_id,
             ])
             ->all();
+    }
+
+    /**
+     * The user's other general names that share one of $categoryIds (top-level),
+     * plus those with no known category; all of them when $categoryIds is empty.
+     * Keeps a "Toilet paper" page from offering "Milk" and "Bananas".
+     *
+     * @param  array<int, int>  $categoryIds
+     * @return array<int, array{id: int, name: string}>
+     */
+    private function groupsInCategories(ConsumableGroup $group, array $categoryIds): array
+    {
+        $categoriesByGroup = $this->topCategoriesByGroup($group->user_id);
+
+        return ConsumableGroup::query()
+            ->where('user_id', $group->user_id)
+            ->whereKeyNot($group->id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->filter(function (ConsumableGroup $other) use ($categoriesByGroup, $categoryIds): bool {
+                $otherCategories = $categoriesByGroup[$other->id] ?? [];
+
+                return $categoryIds === [] || $otherCategories === [] || array_intersect($categoryIds, $otherCategories) !== [];
+            })
+            ->map(fn (ConsumableGroup $other): array => ['id' => $other->id, 'name' => $other->name])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function topCategoriesOf(ConsumableGroup $group): array
+    {
+        return $this->topCategoriesByGroup($group->user_id)[$group->id] ?? [];
+    }
+
+    /**
+     * Top-level categories of each of the user's general names, from their products.
+     *
+     * @return array<int, array<int, int>>
+     */
+    private function topCategoriesByGroup(int $userId): array
+    {
+        return $this->topCategoriesByGroup[$userId] ??= Product::query()
+            ->where('user_id', $userId)
+            ->whereNotNull('consumable_group_id')
+            ->whereNotNull('category_id')
+            ->get(['consumable_group_id', 'category_id'])
+            ->groupBy('consumable_group_id')
+            ->map(fn (Collection $products): array => $products
+                ->map(fn (Product $product): int => $this->topCategoryOf($product->category_id))
+                ->unique()
+                ->values()
+                ->all())
+            ->all();
+    }
+
+    private function topCategoryOf(int $categoryId): int
+    {
+        $this->parentIds ??= Category::query()->pluck('parent_id', 'id')->all();
+
+        return $this->parentIds[$categoryId] ?? $categoryId;
     }
 }
