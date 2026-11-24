@@ -20,7 +20,6 @@ class DealComparisonResource extends JsonResource
                 'name' => $this->product->name,
                 'purchase_count' => $this->product->purchaseCount,
             ],
-            'compared_by' => $this->comparesUnitPrices ? 'unit_price' : 'price',
             'price_gap' => $this->priceGap(),
             'offers' => DealResource::collection($this->deals)->resolve($request),
         ];

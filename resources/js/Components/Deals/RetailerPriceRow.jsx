@@ -4,11 +4,12 @@ import { formatCurrency } from '@/utils/money';
 import { formatUnitPrice } from '@/utils/deals';
 
 /**
- * One retailer's offer in a comparison; the compared price is the prominent one.
+ * One retailer's offer in a comparison: the price per unit is what is compared, so it
+ * is the prominent one, with the pack price below.
  */
-export default function RetailerPriceRow({ offer, cheapest, byUnitPrice }) {
-    const main = byUnitPrice ? formatUnitPrice(offer) : formatCurrency(offer.price);
-    const secondary = byUnitPrice ? formatCurrency(offer.price) : formatUnitPrice(offer);
+export default function RetailerPriceRow({ offer, cheapest }) {
+    const main = formatUnitPrice(offer);
+    const secondary = formatCurrency(offer.price);
 
     return (
         <li

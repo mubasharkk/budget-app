@@ -3,23 +3,25 @@
 namespace App\Domain\Deals\Data;
 
 use App\Domain\Products\Data\PurchasedProduct;
+use App\Domain\Products\Support\ProductQuantity;
 use App\Models\Deal;
 use Illuminate\Support\Collection;
 
 /**
  * One product the user buys, on offer at several retailers: the cheapest offer per
- * retailer, cheapest first. Offers are compared by unit price when they all share
- * a unit (pack sizes differ), otherwise by pack price.
+ * retailer, cheapest first. Offers are only ever compared by price per kg, litre or
+ * piece, never by pack price, since packs differ in size. Offers without a unit
+ * price are left out; when offers come in different units, the unit most retailers
+ * share is compared.
  */
 readonly class DealComparison
 {
     /**
-     * @param  Collection<int, Deal>  $deals  one per retailer, cheapest first
+     * @param  Collection<int, Deal>  $deals  one per retailer, cheapest per unit first
      */
     private function __construct(
         public PurchasedProduct $product,
         public Collection $deals,
-        public bool $comparesUnitPrices,
     ) {}
 
     /**
@@ -27,16 +29,20 @@ readonly class DealComparison
      */
     public static function of(PurchasedProduct $product, Collection $deals): self
     {
-        $comparesUnitPrices = self::shareUnit($deals);
-        $value = fn (Deal $deal): float => (float) ($comparesUnitPrices ? $deal->unit_price : $deal->price);
+        $unitPrice = fn (Deal $deal): float => (float) $deal->unit_price;
 
         $cheapestPerRetailer = $deals
-            ->groupBy(fn (Deal $deal): string => $deal->retailer->value)
-            ->map(fn (Collection $offers): Deal => $offers->sortBy($value)->first())
-            ->sortBy($value)
-            ->values();
+            ->filter(fn (Deal $deal): bool => $unitPrice($deal) > 0 && ProductQuantity::baseUnit($deal->unit_price_unit) !== null)
+            ->groupBy(fn (Deal $deal): string => ProductQuantity::baseUnit($deal->unit_price_unit))
+            ->map(fn (Collection $offers): Collection => $offers
+                ->groupBy(fn (Deal $deal): string => $deal->retailer->value)
+                ->map(fn (Collection $retailerOffers): Deal => $retailerOffers->sortBy($unitPrice)->first())
+                ->sortBy($unitPrice)
+                ->values())
+            ->sortByDesc(fn (Collection $offers): int => $offers->count())
+            ->first() ?? collect();
 
-        return new self($product, $cheapestPerRetailer, $comparesUnitPrices);
+        return new self($product, $cheapestPerRetailer);
     }
 
     public function retailerCount(): int
@@ -45,21 +51,14 @@ readonly class DealComparison
     }
 
     /**
-     * How much more the dearest retailer charges than the cheapest, in the compared price.
+     * How much more per unit the dearest retailer charges than the cheapest.
      */
     public function priceGap(): float
     {
-        $value = fn (Deal $deal): float => (float) ($this->comparesUnitPrices ? $deal->unit_price : $deal->price);
+        if ($this->deals->isEmpty()) {
+            return 0.0;
+        }
 
-        return round($value($this->deals->last()) - $value($this->deals->first()), 2);
-    }
-
-    /**
-     * @param  Collection<int, Deal>  $deals
-     */
-    private static function shareUnit(Collection $deals): bool
-    {
-        return $deals->every(fn (Deal $deal): bool => $deal->unit_price !== null)
-            && $deals->pluck('unit_price_unit')->unique()->count() === 1;
+        return round((float) $this->deals->last()->unit_price - (float) $this->deals->first()->unit_price, 2);
     }
 }

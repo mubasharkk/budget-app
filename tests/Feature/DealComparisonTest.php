@@ -61,22 +61,42 @@ class DealComparisonTest extends TestCase
 
         $comparison = $this->comparisons()->sole();
 
-        $this->assertTrue($comparison->comparesUnitPrices);
         $this->assertSame([$aldi->id, $lidl->id], $comparison->deals->pluck('id')->all());
         $this->assertSame(1.01, $comparison->priceGap());
     }
 
-    public function test_offers_without_a_shared_unit_are_compared_by_pack_price(): void
+    public function test_a_smaller_pack_with_a_lower_pack_price_is_not_called_cheapest(): void
     {
         $this->buys('Kaffee');
-        $kaufland = $this->offer('Kaffee Crema', Retailer::Kaufland, 5.99, 11.98, 'kg');
-        $lidl = $this->offer('Kaffee Pads', Retailer::Lidl, 3.49);
+        $kaufland = $this->offer('Kaffee Crema 1kg', Retailer::Kaufland, 11.98, 11.98, 'kg');
+        $lidl = $this->offer('Kaffee Crema 250g', Retailer::Lidl, 3.49, 13.96, 'kg');
 
         $comparison = $this->comparisons()->sole();
 
-        $this->assertFalse($comparison->comparesUnitPrices);
-        $this->assertSame([$lidl->id, $kaufland->id], $comparison->deals->pluck('id')->all());
-        $this->assertSame(2.5, $comparison->priceGap());
+        $this->assertSame([$kaufland->id, $lidl->id], $comparison->deals->pluck('id')->all());
+        $this->assertSame(1.98, $comparison->priceGap());
+    }
+
+    public function test_offers_without_a_unit_price_are_never_compared(): void
+    {
+        $this->buys('Kaffee');
+        $this->offer('Kaffee Crema', Retailer::Kaufland, 5.99, 11.98, 'kg');
+        $this->offer('Kaffee Pads', Retailer::Lidl, 3.49);
+
+        $this->assertCount(0, $this->comparisons());
+    }
+
+    public function test_offers_in_different_units_are_compared_only_within_the_unit_most_retailers_share(): void
+    {
+        $this->buys('Kaffee');
+        $aldi = $this->offer('Kaffee 500g', Retailer::Aldi, 4.49, 8.98, 'kg');
+        $lidl = $this->offer('Kaffee Crema 1kg', Retailer::Lidl, 9.99, 9.99, 'kg');
+        $this->offer('Kaffee Kapseln 10 Stück', Retailer::Kaufland, 2.99, 0.30, 'Stück');
+
+        $comparison = $this->comparisons()->sole();
+
+        $this->assertSame([$aldi->id, $lidl->id], $comparison->deals->pluck('id')->all());
+        $this->assertSame(1.01, $comparison->priceGap());
     }
 
     public function test_products_offered_by_a_single_retailer_are_not_compared(): void
@@ -92,10 +112,10 @@ class DealComparisonTest extends TestCase
     {
         $this->buys('Milch', times: 5);
         $this->buys('Kaffee');
-        $this->offer('Vollmilch', Retailer::Aldi, 0.99);
-        $this->offer('Frische Milch', Retailer::Lidl, 1.09);
-        $this->offer('Kaffee Crema', Retailer::Aldi, 4.99);
-        $this->offer('Kaffee Gold', Retailer::Kaufland, 7.99);
+        $this->offer('Vollmilch', Retailer::Aldi, 0.99, 0.99, 'l');
+        $this->offer('Frische Milch', Retailer::Lidl, 1.09, 1.09, 'l');
+        $this->offer('Kaffee Crema', Retailer::Aldi, 4.99, 9.98, 'kg');
+        $this->offer('Kaffee Gold', Retailer::Kaufland, 7.99, 15.98, 'kg');
 
         $this->assertSame(['Kaffee', 'Milch'], $this->comparisons()->map(fn (DealComparison $comparison) => $comparison->product->name)->all());
     }

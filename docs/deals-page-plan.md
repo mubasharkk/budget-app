@@ -126,7 +126,8 @@ runs, `useSyncPolling` reloads the offer props every 15 s (`usePoll`).
 
 Sections: `ForYouSection` (offers on things you buy, with savings),
 `CompareSection` (`DealComparisonService`: one product at ≥2 retailers, cheapest
-first, by unit price when units match), `BrowseSection` (category groups, filters,
+first, only ever by price per kg/l/piece: offers without one are left out, and
+mixed units are compared within the unit most retailers share), `BrowseSection` (category groups, filters,
 "Show all" expands one group in place). The dashboard widget keeps the JSON
 endpoint `deals.for-you`.
 
