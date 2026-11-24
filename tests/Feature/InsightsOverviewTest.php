@@ -75,6 +75,18 @@ class InsightsOverviewTest extends TestCase
         $this->assertEquals(15.5, collect($overview['chart']['series'])->sum(fn (array $row): float => $row['variable'][11]));
     }
 
+    public function test_contracts_in_another_currency_are_reported_rather_than_silently_left_out(): void
+    {
+        Contract::factory()->for($this->user)->create(['amount' => 15, 'currency' => 'USD', 'billing_cycle' => 'monthly']);
+        Contract::factory()->for($this->user)->create(['amount' => 9, 'currency' => 'USD', 'billing_cycle' => 'monthly']);
+        Contract::factory()->for($this->user)->cancelled()->create(['amount' => 50, 'currency' => 'USD']);
+        Contract::factory()->for($this->user)->create(['amount' => 20, 'currency' => 'EUR']);
+
+        $this->actingAs($this->user)->getJson(route('insights.overview'))
+            ->assertOk()
+            ->assertJsonPath('other_currency_contracts', [['currency' => 'USD', 'monthly' => 24, 'contracts' => 2]]);
+    }
+
     public function test_the_forecast_works_before_anything_was_bought_in_the_earlier_stretch(): void
     {
         $this->travelTo('2026-11-01 12:00:00');

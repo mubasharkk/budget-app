@@ -2,6 +2,7 @@
 
 namespace App\Domain\Analytics\Services;
 
+use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\ContractStatus;
 use App\Enums\ExpenseType;
 use App\Models\Contract;
@@ -9,13 +10,19 @@ use App\Models\Receipt;
 use App\Models\ReceiptItem;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 
+/**
+ * Spending totals in the user's currency only (there is no conversion): receipts
+ * and contracts in any other currency are left out and reported by
+ * otherCurrencies() instead.
+ */
 class ExpenseService
 {
     /**
      * Combined fixed (contracts) + variable (receipts) overview for a date range.
      *
-     * @return array{fixed: float, variable: float, total: float, by_category: array<int, array{category: string, fixed: float, variable: float, total: float}>}
+     * @return array{fixed: float, variable: float, total: float, by_category: array<int, array{category: string, fixed: float, variable: float, total: float}>, other_currencies: array<int, array{currency: string, spent: float, contracts: float}>}
      */
     public function overview(int $userId, CarbonInterface $start, CarbonInterface $end, string $period, ?ExpenseType $type = null): array
     {
@@ -30,7 +37,48 @@ class ExpenseService
             'variable' => $variableTotal,
             'total' => round($fixedTotal + $variableTotal, 2),
             'by_category' => $this->mergeByCategory($fixedByCategory, $variableByCategory),
+            'other_currencies' => $this->otherCurrencies($userId, $start, $end, $period, $type),
         ];
+    }
+
+    /**
+     * What overview() leaves out because it is in another currency: receipt
+     * spend within the range and active contracts' cost for the period, per currency.
+     *
+     * @return array<int, array{currency: string, spent: float, contracts: float}>
+     */
+    public function otherCurrencies(int $userId, CarbonInterface $start, CarbonInterface $end, string $period, ?ExpenseType $type = null): array
+    {
+        $currency = SupportedCurrencies::codeForUser($userId);
+        $totals = [];
+
+        Receipt::query()
+            ->expenses()
+            ->where('user_id', $userId)
+            ->when($type, fn ($query) => $query->where('expense_type', $type))
+            ->whereBetween('receipt_date', [$start, $end])
+            ->where('currency', '!=', $currency)
+            ->groupBy('currency')
+            ->selectRaw('currency, SUM(total_amount) as spent')
+            ->toBase()
+            ->get()
+            ->each(function (object $row) use (&$totals): void {
+                $totals[$row->currency]['spent'] = round((float) $row->spent, 2);
+            });
+
+        $this->activeContracts($userId, $type)
+            ->where('currency', '!=', $currency)
+            ->get()
+            ->each(function (Contract $contract) use (&$totals, $period): void {
+                $totals[$contract->currency]['contracts'] = round(($totals[$contract->currency]['contracts'] ?? 0) + $this->periodAmount($contract, $period), 2);
+            });
+
+        ksort($totals);
+
+        return collect($totals)
+            ->map(fn (array $amounts, string $code): array => ['currency' => $code, 'spent' => $amounts['spent'] ?? 0.0, 'contracts' => $amounts['contracts'] ?? 0.0])
+            ->values()
+            ->all();
     }
 
     /**
@@ -43,6 +91,7 @@ class ExpenseService
             ->where('user_id', $userId)
             ->when($type, fn ($query) => $query->where('expense_type', $type))
             ->whereBetween('receipt_date', [$start, $end])
+            ->where('currency', SupportedCurrencies::codeForUser($userId))
             ->sum('total_amount');
     }
 
@@ -59,6 +108,7 @@ class ExpenseService
             ->where('receipts.user_id', $userId)
             ->when($type, fn ($query) => $query->where('receipts.expense_type', $type))
             ->whereBetween('receipts.receipt_date', [$start, $end])
+            ->where('receipts.currency', SupportedCurrencies::codeForUser($userId))
             ->groupBy('categories.name')
             ->selectRaw('categories.name as name, SUM(receipt_items.total) as total')
             ->get();
@@ -80,24 +130,38 @@ class ExpenseService
      */
     public function fixedByCategory(int $userId, string $period, ?ExpenseType $type = null): array
     {
-        $contracts = Contract::query()
+        $contracts = $this->activeContracts($userId, $type)
             ->with('category:id,name')
-            ->where('user_id', $userId)
-            ->when($type, fn ($query) => $query->where('expense_type', $type))
-            ->where('status', ContractStatus::Active)
+            ->where('currency', SupportedCurrencies::codeForUser($userId))
             ->get();
 
         $result = [];
         foreach ($contracts as $contract) {
-            $amount = $period === 'week'
-                ? $contract->billing_cycle->toWeeklyAmount((float) $contract->amount)
-                : $contract->billing_cycle->toMonthlyAmount((float) $contract->amount);
+            $amount = $this->periodAmount($contract, $period);
 
             $name = $contract->category?->name ?? 'Uncategorized';
             $result[$name] = round(($result[$name] ?? 0) + $amount, 2);
         }
 
         return $result;
+    }
+
+    /**
+     * @return Builder<Contract>
+     */
+    private function activeContracts(int $userId, ?ExpenseType $type): Builder
+    {
+        return Contract::query()
+            ->where('user_id', $userId)
+            ->when($type, fn ($query) => $query->where('expense_type', $type))
+            ->where('status', ContractStatus::Active);
+    }
+
+    private function periodAmount(Contract $contract, string $period): float
+    {
+        return $period === 'week'
+            ? $contract->billing_cycle->toWeeklyAmount((float) $contract->amount)
+            : $contract->billing_cycle->toMonthlyAmount((float) $contract->amount);
     }
 
     /**

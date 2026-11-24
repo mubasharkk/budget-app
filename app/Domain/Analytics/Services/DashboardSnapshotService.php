@@ -11,8 +11,6 @@ use App\Domain\Incomes\Services\IncomeService;
 use App\Domain\Products\Services\PriceIntelligenceService;
 use App\Domain\Shared\Support\PeriodRange;
 use App\Enums\BudgetPeriod;
-use App\Enums\ContractStatus;
-use App\Models\Contract;
 use App\Models\Digest;
 use App\Models\Saving;
 use App\Models\User;
@@ -60,11 +58,7 @@ class DashboardSnapshotService
         $anomalies = $this->anomalyDetectionService->detect($userId, $start, $end);
         $recommendations = $this->recommendationService->recommendations($userId, $start->toDateString(), $end->toDateString(), 3);
 
-        $monthlyFixed = round(Contract::query()
-            ->where('user_id', $userId)
-            ->where('status', ContractStatus::Active)
-            ->get()
-            ->sum(fn (Contract $c): float => $c->projectedMonthlyAmount()), 2);
+        $monthlyFixed = round(array_sum($this->expenseService->fixedByCategory($userId, 'month')), 2);
 
         $latestDigest = Digest::query()
             ->where('user_id', $userId)
@@ -100,6 +94,9 @@ class DashboardSnapshotService
                 'delta' => $delta,
                 'top_category' => $overview['by_category'][0]['category'] ?? null,
                 'top_category_amount' => $overview['by_category'][0]['total'] ?? 0,
+                'other_currencies' => $user
+                    ? $this->incomeService->withOtherCurrencyIncome($overview['other_currencies'], $user, $start, $end)
+                    : $overview['other_currencies'],
                 'href' => route('insights'),
             ],
             'budgets' => [

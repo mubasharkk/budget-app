@@ -87,6 +87,7 @@ class ReceiptController extends Controller
             'tasks' => $this->taskService->forLinked($receipt),
             ...$this->taskService->formOptions(),
             'links' => $this->receiptLinkService->linksOf($receipt),
+            'attachOptions' => $this->receiptLinkService->attachOptions($receipt),
         ]);
     }
 
@@ -104,6 +105,7 @@ class ReceiptController extends Controller
             'tasks' => $this->taskService->forLinked($receipt),
             ...$this->taskService->formOptions(),
             'links' => $this->receiptLinkService->linksOf($receipt),
+            'attachOptions' => $this->receiptLinkService->attachOptions($receipt),
         ]);
     }
 

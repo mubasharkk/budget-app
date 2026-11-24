@@ -99,6 +99,7 @@ class InsightsOverviewService
             'other_currencies' => $this->consumptionService->otherCurrencies(
                 $user->id, $start->toDateString(), $end->toDateString(), $categoryId, $scope,
             ),
+            'other_currency_contracts' => $this->consumptionService->otherCurrencyContracts($user->id, $categoryId, $scope),
         ];
     }
 

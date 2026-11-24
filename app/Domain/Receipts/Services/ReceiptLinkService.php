@@ -104,6 +104,35 @@ class ReceiptLinkService
     }
 
     /**
+     * What else the receipt can be attached to, per link type: the user's
+     * contracts (by name) and savings entries (newest first), minus those it
+     * is already attached to.
+     *
+     * @return array<int, array{type: string, label: string, options: array<int, array{id: int, label: string}>}>
+     */
+    public function attachOptions(Receipt $receipt): array
+    {
+        $linked = collect($this->linksOf($receipt))->map(fn (array $link): string => $link['type'].':'.$link['id']);
+
+        return collect(ReceiptLinkType::cases())
+            ->map(fn (ReceiptLinkType $type): array => [
+                'type' => $type->value,
+                'label' => $type->label(),
+                'options' => $type->modelClass()::query()
+                    ->where('user_id', $receipt->user_id)
+                    ->when($type === ReceiptLinkType::Contract, fn (Builder $query) => $query->orderBy('name'))
+                    ->when($type === ReceiptLinkType::Saving, fn (Builder $query) => $query->latest('saved_on'))
+                    ->latest('id')
+                    ->get()
+                    ->reject(fn (Model $model): bool => $linked->contains($type->value.':'.$model->getKey()))
+                    ->map(fn (Model $model): array => ['id' => $model->getKey(), 'label' => $type->describe($model)])
+                    ->values()
+                    ->all(),
+            ])
+            ->all();
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function row(Receipt $receipt, string $currency): array

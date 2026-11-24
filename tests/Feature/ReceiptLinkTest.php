@@ -81,6 +81,24 @@ class ReceiptLinkTest extends TestCase
         $this->assertDatabaseCount('receipt_links', 0);
     }
 
+    public function test_the_receipt_page_offers_the_users_other_contracts_and_savings_to_attach_to(): void
+    {
+        $user = User::factory()->create();
+        $receipt = Receipt::factory()->for($user)->create();
+        $gym = Contract::factory()->for($user)->create(['name' => 'Gym']);
+        $internet = Contract::factory()->for($user)->create(['name' => 'Internet']);
+        $saving = Saving::factory()->for($user)->create(['source' => 'Refund', 'saved_on' => '2026-11-03']);
+        Contract::factory()->create(['name' => 'Someone else']);
+        $gym->receipts()->attach($receipt);
+
+        $this->actingAs($user)->get(route('receipts.show', $receipt))
+            ->assertInertia(fn ($page) => $page
+                ->where('attachOptions.0.type', 'contract')
+                ->where('attachOptions.0.options', [['id' => $internet->id, 'label' => 'Internet']])
+                ->where('attachOptions.1.type', 'saving')
+                ->where('attachOptions.1.options', [['id' => $saving->id, 'label' => 'Refund · 03.11.2026']]));
+    }
+
     public function test_only_the_users_own_receipts_and_records_can_be_attached(): void
     {
         $user = User::factory()->create();

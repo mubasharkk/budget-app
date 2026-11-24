@@ -43,6 +43,7 @@ class ExpenseOverviewService
             'start' => $start->toDateString(),
             'end' => $end->toDateString(),
             'current' => $current,
+            'other_currencies' => $this->incomeService->withOtherCurrencyIncome($current['other_currencies'], $user, $start, $end),
             'previous_total' => $previousTotal,
             'delta' => $delta,
             'delta_percent' => $previousTotal > 0 ? round(($delta / $previousTotal) * 100, 1) : null,

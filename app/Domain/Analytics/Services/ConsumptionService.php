@@ -6,6 +6,7 @@ use App\Domain\Analytics\Data\ConsumedLine;
 use App\Domain\Analytics\Data\ConsumptionReportFilters;
 use App\Domain\Analytics\Data\ConsumptionScope;
 use App\Domain\Products\Support\ProductQuantity;
+use App\Enums\ContractStatus;
 use App\Enums\ExpenseType;
 use App\Enums\LineItemType;
 use App\Models\Category;
@@ -253,6 +254,37 @@ class ConsumptionService
 
         return $query->toBase()->get()
             ->map(fn (object $row): array => ['currency' => $row->currency, 'spend' => round((float) $row->spend, 2), 'purchases' => (int) $row->purchases])
+            ->all();
+    }
+
+    /**
+     * Active contracts in scope but in another currency, which the monthly
+     * chart leaves out: their monthly cost per currency.
+     *
+     * @return array<int, array{currency: string, monthly: float, contracts: int}>
+     */
+    public function otherCurrencyContracts(int $userId, ?int $categoryId, ConsumptionScope $scope): array
+    {
+        if ($scope->currency === null) {
+            return [];
+        }
+
+        $excluded = $this->expandCategoryIds($scope->excludedCategoryIds);
+
+        return $this->contractsForTrend($userId, $categoryId)
+            ->filter(fn (Contract $contract): bool => $contract->status === ContractStatus::Active
+                && ($scope->includeBusiness || $contract->expense_type === ExpenseType::Personal)
+                && ! in_array($contract->category_id, $excluded, true)
+                && $contract->currency !== null
+                && $contract->currency !== $scope->currency)
+            ->groupBy('currency')
+            ->map(fn (Collection $contracts, string $currency): array => [
+                'currency' => $currency,
+                'monthly' => round($contracts->sum(fn (Contract $contract): float => $contract->projectedMonthlyAmount()), 2),
+                'contracts' => $contracts->count(),
+            ])
+            ->sortKeys()
+            ->values()
             ->all();
     }
 

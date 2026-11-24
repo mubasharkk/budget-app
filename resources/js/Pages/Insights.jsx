@@ -12,6 +12,7 @@ import InsightsFilters from '@/Components/Insights/InsightsFilters';
 import InsightsHeadline from '@/Components/Insights/InsightsHeadline';
 import InsightsNextSteps from '@/Components/Insights/InsightsNextSteps';
 import MonthlySpendChart from '@/Components/Insights/MonthlySpendChart';
+import OtherCurrenciesNote from '@/Components/OtherCurrenciesNote';
 import ShopBreakdown from '@/Components/Insights/ShopBreakdown';
 import useNextSteps from '@/Components/Insights/useNextSteps';
 import { formatDay } from '@/Components/Insights/insightFormat';
@@ -140,17 +141,14 @@ export default function Insights() {
                             />
 
                             <div className={`space-y-5 transition-opacity ${loading ? 'opacity-50' : ''}`} aria-busy={loading}>
-                                {data.other_currencies.length > 0 && (
-                                    <p className="bg-amber-50 p-3 text-sm text-amber-900 sm:rounded-md">
-                                        Not counted below, because it is in another currency:{' '}
-                                        <strong>
-                                            {data.other_currencies
-                                                .map((row) => formatCurrencyIn(row.spend, row.currency))
-                                                .join(', ')}
-                                        </strong>
-                                        . If a receipt has the wrong currency, correct it on the receipt.
-                                    </p>
-                                )}
+                                <OtherCurrenciesNote
+                                    amounts={[
+                                        ...data.other_currencies.map((row) => `${formatCurrencyIn(row.spend, row.currency)} bought`),
+                                        ...(data.other_currency_contracts ?? []).map(
+                                            (row) => `${formatCurrencyIn(row.monthly, row.currency)} a month in contracts`,
+                                        ),
+                                    ]}
+                                />
 
                                 {data.records_start && (
                                     <p className="bg-amber-50 p-3 text-sm text-amber-900 sm:rounded-md">

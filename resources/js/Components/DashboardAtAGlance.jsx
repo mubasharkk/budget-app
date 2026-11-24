@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from '@inertiajs/react';
-import { formatCurrency } from '@/utils/money';
+import OtherCurrenciesNote, { otherCurrencyAmounts } from '@/Components/OtherCurrenciesNote';
+import { formatCurrency, formatCurrencyIn } from '@/utils/money';
 
 const statusAccent = {
     on_track: 'text-green-600',
@@ -143,6 +144,7 @@ export default function DashboardAtAGlance() {
                 <Skeleton />
             ) : (
                 <>
+                <OtherCurrenciesNote amounts={otherCurrencyAmounts(data.expenses.other_currencies, formatCurrencyIn)} />
                 {data.balance && (
                     <BalanceHero balance={data.balance} period={period} />
                 )}

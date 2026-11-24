@@ -12,7 +12,8 @@ import {
     Cell,
     ResponsiveContainer,
 } from 'recharts';
-import { formatCurrency } from '@/utils/money';
+import OtherCurrenciesNote, { otherCurrencyAmounts } from '@/Components/OtherCurrenciesNote';
+import { formatCurrency, formatCurrencyIn } from '@/utils/money';
 
 const FIXED_COLOR = '#6366F1';
 const VARIABLE_COLOR = '#10B981';
@@ -160,6 +161,7 @@ export default function ExpenseOverview() {
                 <Skeleton />
             ) : (
                 <>
+                    <OtherCurrenciesNote amounts={otherCurrencyAmounts(overview.other_currencies, formatCurrencyIn)} />
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <SummaryCard
                             label={`Total spend (${periodLabel.toLowerCase()})`}

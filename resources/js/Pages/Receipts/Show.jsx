@@ -19,6 +19,7 @@ export default function Show({
     attachments = [],
     maxAttachments = 10,
     links = [],
+    attachOptions = [],
     tasks = [],
     priorities = [],
     repeatOptions = [],
@@ -264,7 +265,7 @@ export default function Show({
 
                                     <ReceiptAttachments receiptId={receipt.id} attachments={attachments} max={maxAttachments} />
 
-                                    <ReceiptLinks receiptId={receipt.id} links={links} />
+                                    <ReceiptLinks receiptId={receipt.id} links={links} attachOptions={attachOptions} />
 
                                     <div className="mt-6">
                                         <LinkedTasks

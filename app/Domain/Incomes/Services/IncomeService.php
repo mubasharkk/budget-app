@@ -8,6 +8,7 @@ use App\Models\Income;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class IncomeService
@@ -178,11 +179,53 @@ class IncomeService
             : $monthlyIncome;
     }
 
+    /**
+     * One-time income received in the period, in the user's currency only.
+     */
     public function oneTimeForPeriod(User $user, CarbonImmutable $start, CarbonImmutable $end): float
     {
-        return round((float) Income::query()
-            ->where('user_id', $user->id)
-            ->whereBetween('received_on', [$start->toDateString(), $end->toDateString()])
+        return round((float) $this->oneTimeIn($user, $start, $end)
+            ->where('currency', $user->default_currency)
             ->sum('amount'), 2);
+    }
+
+    /**
+     * Adds the one-time income that oneTimeForPeriod() leaves out, because it is
+     * in another currency, to a list of other-currency amounts (as returned by
+     * ExpenseService::otherCurrencies()).
+     *
+     * @param  array<int, array{currency: string, spent: float, contracts: float}>  $otherCurrencies
+     * @return array<int, array{currency: string, spent: float, contracts: float, income: float}>
+     */
+    public function withOtherCurrencyIncome(array $otherCurrencies, User $user, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $rows = collect($otherCurrencies)->keyBy('currency')->map(fn (array $row): array => $row + ['income' => 0.0]);
+
+        $this->oneTimeIn($user, $start, $end)
+            ->where('currency', '!=', $user->default_currency)
+            ->groupBy('currency')
+            ->selectRaw('currency, SUM(amount) as income')
+            ->toBase()
+            ->get()
+            ->each(function (object $row) use ($rows): void {
+                $rows->put($row->currency, [
+                    'currency' => $row->currency,
+                    'spent' => $rows->get($row->currency)['spent'] ?? 0.0,
+                    'contracts' => $rows->get($row->currency)['contracts'] ?? 0.0,
+                    'income' => round((float) $row->income, 2),
+                ]);
+            });
+
+        return $rows->sortKeys()->values()->all();
+    }
+
+    /**
+     * @return Builder<Income>
+     */
+    private function oneTimeIn(User $user, CarbonImmutable $start, CarbonImmutable $end): Builder
+    {
+        return Income::query()
+            ->where('user_id', $user->id)
+            ->whereBetween('received_on', [$start->toDateString(), $end->toDateString()]);
     }
 }
