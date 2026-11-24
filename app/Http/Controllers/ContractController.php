@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Contracts\Services\ContractInvoiceService;
 use App\Domain\Contracts\Services\ContractService;
+use App\Domain\Receipts\Services\ReceiptLinkService;
 use App\Domain\Tasks\Services\TaskService;
 use App\Http\Requests\ContractRequest;
 use App\Models\Contract;
@@ -16,6 +18,8 @@ class ContractController extends Controller
     public function __construct(
         private ContractService $contractService,
         private TaskService $taskService,
+        private ReceiptLinkService $receiptLinkService,
+        private ContractInvoiceService $invoiceService,
     ) {}
 
     public function index(Request $request): Response
@@ -50,6 +54,9 @@ class ContractController extends Controller
             'contract' => $contract->load(['provider', 'category']),
             'tasks' => $this->taskService->forLinked($contract),
             ...$this->taskService->formOptions(),
+            'receipts' => $this->receiptLinkService->forLinked($contract),
+            'invoices' => $this->invoiceService->forDisplay($contract),
+            'maxInvoices' => ContractInvoiceService::MAX_INVOICES,
         ]);
     }
 

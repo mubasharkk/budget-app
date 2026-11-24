@@ -5,6 +5,7 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\ConsumableGroupController;
 use App\Http\Controllers\ConsumptionAnalysisController;
 use App\Http\Controllers\ContractController;
+use App\Http\Controllers\ContractInvoiceController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\IncomeController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\ReceiptAttachmentController;
 use App\Http\Controllers\ReceiptController;
+use App\Http\Controllers\ReceiptLinkController;
 use App\Http\Controllers\SavingController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +75,9 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
 
     // Receipt management routes
     Route::get('/receipts/scan', [ReceiptController::class, 'scan'])->name('receipts.scan');
+    Route::get('/receipts/search', [ReceiptLinkController::class, 'search'])->name('receipts.search');
+    Route::post('/receipt-links', [ReceiptLinkController::class, 'store'])->name('receipt-links.store');
+    Route::delete('/receipt-links', [ReceiptLinkController::class, 'destroy'])->name('receipt-links.destroy');
     Route::resource('receipts', ReceiptController::class);
     Route::get('/categories', [ReceiptController::class, 'categories'])->name('categories');
     Route::patch('/receipts/{receipt}/keep-duplicate', [ReceiptController::class, 'keepDuplicate'])->name('receipts.keep-duplicate');
@@ -89,6 +94,11 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::resource('contracts', ContractController::class);
     Route::post('/contracts/{contract}/mark-paid', [ContractController::class, 'markPaid'])
         ->name('contracts.mark-paid');
+    Route::scopeBindings()->group(function () {
+        Route::post('/contracts/{contract}/invoices', [ContractInvoiceController::class, 'store'])->name('contracts.invoices.store');
+        Route::get('/contracts/{contract}/invoices/{invoice}', [ContractInvoiceController::class, 'show'])->name('contracts.invoices.show');
+        Route::delete('/contracts/{contract}/invoices/{invoice}', [ContractInvoiceController::class, 'destroy'])->name('contracts.invoices.destroy');
+    });
 
     // Recurring monthly income (stored on the user) + one-time income entries
     Route::patch('/incomes/monthly', [IncomeController::class, 'updateMonthly'])

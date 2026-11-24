@@ -7,6 +7,7 @@ import CancelButton from '@/Components/CancelButton';
 import InputError from '@/Components/InputError';
 import ReceiptKindIcon from '@/Components/ReceiptKindIcon';
 import ReceiptAttachments from '@/Components/ReceiptAttachments';
+import ReceiptLinks from '@/Components/Receipts/ReceiptLinks';
 import LinkedTasks from '@/Components/Tasks/LinkedTasks';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
@@ -17,6 +18,7 @@ export default function Show({
     receipt,
     attachments = [],
     maxAttachments = 10,
+    links = [],
     tasks = [],
     priorities = [],
     repeatOptions = [],
@@ -261,6 +263,8 @@ export default function Show({
                                     )}
 
                                     <ReceiptAttachments receiptId={receipt.id} attachments={attachments} max={maxAttachments} />
+
+                                    <ReceiptLinks receiptId={receipt.id} links={links} />
 
                                     <div className="mt-6">
                                         <LinkedTasks

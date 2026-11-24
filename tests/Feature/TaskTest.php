@@ -116,8 +116,10 @@ class TaskTest extends TestCase
         $user = User::factory()->create(['default_currency' => 'USD']);
         Receipt::factory()->for($user)->create(['vendor' => 'REWE', 'receipt_date' => '2026-11-03', 'total_amount' => 1234.5, 'currency' => 'EUR']);
 
+        $this->actingAs($user)->getJson(route('receipts.search'))
+            ->assertJsonPath('receipts.0.label', 'REWE · 03.11.2026 · $1,234.50');
         $this->actingAs($user)->get(route('tasks.index'))
-            ->assertInertia(fn ($page) => $page->where('linkOptions.receipt.0.label', 'REWE · 03.11.2026 · $1,234.50'));
+            ->assertInertia(fn ($page) => $page->missing('linkOptions.receipt'));
     }
 
     public function test_other_users_tasks_cannot_be_changed(): void

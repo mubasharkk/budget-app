@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import LinkedTasks from '@/Components/Tasks/LinkedTasks';
+import LinkedReceipts from '@/Components/Receipts/LinkedReceipts';
 import PrimaryButton from '@/Components/PrimaryButton';
 import CancelButton from '@/Components/CancelButton';
 import SavingForm from './SavingForm';
@@ -12,6 +13,7 @@ export default function Edit({
     priorities,
     repeatOptions,
     linkTypes,
+    receipts = [],
 }) {
     const { data, setData, put, processing, errors } = useForm({
         amount: saving.amount,
@@ -59,6 +61,12 @@ export default function Edit({
                             </PrimaryButton>
                         </div>
                     </form>
+
+                    <LinkedReceipts
+                        receipts={receipts}
+                        link={{ type: 'saving', id: saving.id }}
+                        description="Receipts behind this saving, e.g. a refund or a cheaper purchase."
+                    />
 
                     <LinkedTasks
                         tasks={tasks}

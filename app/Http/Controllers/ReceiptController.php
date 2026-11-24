@@ -6,6 +6,7 @@ use App\Domain\Categories\Services\CategoryService;
 use App\Domain\Receipts\Data\ReceiptListFilters;
 use App\Domain\Receipts\Exceptions\ReceiptCannotBeRetried;
 use App\Domain\Receipts\Services\ReceiptAttachmentService;
+use App\Domain\Receipts\Services\ReceiptLinkService;
 use App\Domain\Receipts\Services\ReceiptService;
 use App\Domain\Receipts\Services\ReceiptUploadService;
 use App\Domain\Tasks\Services\TaskService;
@@ -28,6 +29,7 @@ class ReceiptController extends Controller
         private CategoryService $categoryService,
         private ReceiptAttachmentService $attachmentService,
         private TaskService $taskService,
+        private ReceiptLinkService $receiptLinkService,
     ) {}
 
     public function index(Request $request): Response
@@ -84,6 +86,7 @@ class ReceiptController extends Controller
             'maxAttachments' => ReceiptAttachmentService::MAX_ATTACHMENTS,
             'tasks' => $this->taskService->forLinked($receipt),
             ...$this->taskService->formOptions(),
+            'links' => $this->receiptLinkService->linksOf($receipt),
         ]);
     }
 
@@ -100,6 +103,7 @@ class ReceiptController extends Controller
             'maxAttachments' => ReceiptAttachmentService::MAX_ATTACHMENTS,
             'tasks' => $this->taskService->forLinked($receipt),
             ...$this->taskService->formOptions(),
+            'links' => $this->receiptLinkService->linksOf($receipt),
         ]);
     }
 

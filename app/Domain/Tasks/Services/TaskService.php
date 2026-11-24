@@ -2,14 +2,12 @@
 
 namespace App\Domain\Tasks\Services;
 
-use App\Domain\Shared\Support\SupportedCurrencies;
 use App\Enums\BillingCycle;
 use App\Enums\TaskLinkType;
 use App\Enums\TaskPriority;
 use App\Http\Resources\TaskResource;
 use App\Models\Budget;
 use App\Models\Contract;
-use App\Models\Receipt;
 use App\Models\Saving;
 use App\Models\Task;
 use App\Models\User;
@@ -117,8 +115,8 @@ class TaskService
     }
 
     /**
-     * Records the user can link a task to, per TaskLinkType value. Receipts show their total
-     * in the user's currency, so receipts from the same shop and day can be told apart.
+     * Records the user can link a task to, per TaskLinkType value. Receipts are not listed:
+     * the form searches them (receipts.search), since there are too many to list.
      *
      * @return array<string, array<int, array{value: int, label: string}>>
      */
@@ -128,19 +126,10 @@ class TaskService
             ->map(fn (Model $record): array => ['value' => $record->getKey(), 'label' => $type->describe($record)])
             ->values()
             ->all();
-        $currency = SupportedCurrencies::codeForUser($userId);
-        $receipts = Receipt::query()->where('user_id', $userId)->latest('receipt_date')->latest('id')->limit(self::LINK_OPTIONS_LIMIT)->get(['id', 'vendor', 'receipt_date', 'total_amount']);
 
         return [
             TaskLinkType::Contract->value => $options(TaskLinkType::Contract, Contract::query()->where('user_id', $userId)->orderBy('name')->get(['id', 'name'])),
             TaskLinkType::Budget->value => $options(TaskLinkType::Budget, Budget::query()->where('user_id', $userId)->with('category:id,name')->get()),
-            TaskLinkType::Receipt->value => $receipts
-                ->map(fn (Receipt $receipt): array => [
-                    'value' => $receipt->getKey(),
-                    'label' => TaskLinkType::Receipt->describe($receipt).' · '.SupportedCurrencies::format($receipt->total_amount, $currency),
-                ])
-                ->values()
-                ->all(),
             TaskLinkType::Saving->value => $options(TaskLinkType::Saving, Saving::query()->where('user_id', $userId)->latest('saved_on')->latest('id')->limit(self::LINK_OPTIONS_LIMIT)->get(['id', 'source', 'saved_on'])),
         ];
     }

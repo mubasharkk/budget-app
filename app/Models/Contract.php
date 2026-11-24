@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\BillingCycle;
 use App\Enums\ContractStatus;
 use App\Enums\ExpenseType;
+use App\Models\Concerns\HasReceipts;
 use App\Models\Concerns\HasTasks;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Carbon\CarbonImmutable;
@@ -12,10 +13,16 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Contract extends Model
+class Contract extends Model implements HasMedia
 {
-    use CrudTrait, HasFactory, HasTasks;
+    use CrudTrait, HasFactory, HasReceipts, HasTasks, InteractsWithMedia;
+
+    public const INVOICES_COLLECTION = 'invoices';
 
     protected $fillable = [
         'user_id',
@@ -141,5 +148,24 @@ class Contract extends Model
         return $this->status->isBillable()
             && $this->isDueInCalendarMonth($anchor)
             && $this->isUnpaidForCurrentDue();
+    }
+
+    /**
+     * Invoices are stored on a private disk and served only through the
+     * ownership-checked contracts.invoices.show route.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::INVOICES_COLLECTION)->useDisk('local');
+    }
+
+    /**
+     * Invoice files kept on the contract; also scopes the `{invoice}` route binding to it.
+     */
+    public function invoices(): MorphMany
+    {
+        return $this->morphMany(Media::class, 'model')
+            ->where('collection_name', self::INVOICES_COLLECTION)
+            ->orderBy('order_column');
     }
 }

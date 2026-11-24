@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -202,5 +203,21 @@ class Receipt extends Model implements HasMedia
     public function getFilePathAttribute(): ?string
     {
         return $this->getFirstMedia(self::RECEIPT_COLLECTION)?->getPath();
+    }
+
+    /**
+     * Contracts this receipt is attached to (receipt_links).
+     */
+    public function linkedContracts(): MorphToMany
+    {
+        return $this->morphedByMany(Contract::class, 'linkable', 'receipt_links')->withTimestamps();
+    }
+
+    /**
+     * Savings entries this receipt is attached to (receipt_links).
+     */
+    public function linkedSavings(): MorphToMany
+    {
+        return $this->morphedByMany(Saving::class, 'linkable', 'receipt_links')->withTimestamps();
     }
 }

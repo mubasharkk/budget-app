@@ -14,6 +14,7 @@ const fieldsFor = (task, link) => ({
     repeats: task?.repeats ?? '',
     link_type: task?.link?.type ?? link?.type ?? '',
     link_id: task?.link?.id ?? link?.id ?? '',
+    link_receipt: task?.link?.type === 'receipt' ? { id: task.link.id, label: task.link.label } : null,
 });
 
 /**

@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import LinkedTasks from '@/Components/Tasks/LinkedTasks';
+import LinkedReceipts from '@/Components/Receipts/LinkedReceipts';
+import StoredDocuments from '@/Components/StoredDocuments';
 import PrimaryButton from '@/Components/PrimaryButton';
 import ProviderLogo from '@/Components/ProviderLogo';
 import SecondaryButton from '@/Components/SecondaryButton';
@@ -19,7 +21,7 @@ function Row({ label, value }) {
     );
 }
 
-export default function Show({ contract, tasks, priorities, repeatOptions, linkTypes }) {
+export default function Show({ contract, tasks, priorities, repeatOptions, linkTypes, receipts = [], invoices = [], maxInvoices = 50 }) {
     return (
         <AuthenticatedLayout
             header={
@@ -143,6 +145,25 @@ export default function Show({ contract, tasks, priorities, repeatOptions, linkT
                             </Link>
                         </div>
                     </div>
+
+                    <section className="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
+                        <StoredDocuments
+                            title="Invoices"
+                            description="Invoices and statements for this contract. They are kept here only; the contract's cost already counts as spending."
+                            documents={invoices}
+                            max={maxInvoices}
+                            accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp"
+                            uploadUrl={route('contracts.invoices.store', contract.id)}
+                            removeUrl={(invoice) => route('contracts.invoices.destroy', [contract.id, invoice.id])}
+                            buttonLabel="Add invoice"
+                        />
+                    </section>
+
+                    <LinkedReceipts
+                        receipts={receipts}
+                        link={{ type: 'contract', id: contract.id }}
+                        description="Receipts that belong to this contract. Attaching one does not change your spending totals."
+                    />
 
                     <LinkedTasks
                         tasks={tasks}

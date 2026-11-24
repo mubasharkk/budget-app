@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasReceipts;
 use App\Models\Concerns\HasTasks;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Saving extends Model
 {
-    use HasFactory, HasTasks;
+    use HasFactory, HasReceipts, HasTasks;
 
     protected $fillable = [
         'user_id',
