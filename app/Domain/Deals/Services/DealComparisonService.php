@@ -9,6 +9,8 @@ use Illuminate\Support\Collection;
 
 /**
  * "Where is it cheapest?": products the user buys that several retailers have on offer.
+ * Offers are matched strictly (ProductDealMatcher::matchingWholeWords), so "Milch" is
+ * never compared with "Buttermilch" or "Tomaten" with "Tomaten Ketchup".
  */
 class DealComparisonService
 {
@@ -40,7 +42,7 @@ class DealComparisonService
         return $products
             ->map(fn (PurchasedProduct $product): DealComparison => DealComparison::of(
                 $product,
-                $this->productDealMatcher->matching($product, $deals),
+                $this->productDealMatcher->matchingWholeWords([$product->name, $product->normalizedName], $product->categoryId, $deals),
             ))
             ->filter(fn (DealComparison $comparison): bool => $comparison->retailerCount() >= self::MIN_RETAILERS)
             ->sortBy(fn (DealComparison $comparison): array => [
