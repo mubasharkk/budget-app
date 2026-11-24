@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\BillingCycle;
 use App\Enums\TaskPriority;
 use App\Models\Contract;
+use App\Models\Receipt;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,6 +109,15 @@ class TaskTest extends TestCase
             ->assertSessionHasErrors('due_date');
 
         $this->assertSame(1, Task::count());
+    }
+
+    public function test_the_receipt_choices_show_each_receipts_total_in_the_users_currency(): void
+    {
+        $user = User::factory()->create(['default_currency' => 'USD']);
+        Receipt::factory()->for($user)->create(['vendor' => 'REWE', 'receipt_date' => '2026-11-03', 'total_amount' => 1234.5, 'currency' => 'EUR']);
+
+        $this->actingAs($user)->get(route('tasks.index'))
+            ->assertInertia(fn ($page) => $page->where('linkOptions.receipt.0.label', 'REWE · 03.11.2026 · $1,234.50'));
     }
 
     public function test_other_users_tasks_cannot_be_changed(): void
